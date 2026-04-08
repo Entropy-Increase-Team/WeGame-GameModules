@@ -300,7 +300,7 @@ export class RocomPets extends plugin {
       userName: toDisplayText(role?.name || binding?.nickname, '洛克玩家'),
       userLevel: toDisplayText(role?.level),
       userUid: toDisplayText(role?.id || role?.openid || credential?.tgpId),
-      userAvatar: normalizeUrl(role?.avatar || binding?.avatar),
+      userAvatar: normalizeUrl(role?.avatar_url || role?.avatar || binding?.avatar),
       tabs: Object.keys(PET_SUBSETS).map((label) => ({
         text: getPetTabText(PET_SUBSETS[label]),
         active: PET_SUBSETS[label] === args.petSubset

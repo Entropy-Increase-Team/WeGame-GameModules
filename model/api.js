@@ -27,6 +27,10 @@ export default class RocomApi extends WeGameApi {
     return this.requestRocomGet('/api/v1/games/rocom/profile/battle-overview', frameworkToken, params)
   }
 
+  getBattleList (frameworkToken, params = {}) {
+    return this.requestRocomGet('/api/v1/games/rocom/battle/list', frameworkToken, params)
+  }
+
   getBattlePets (frameworkToken, params = {}) {
     return this.requestRocomGet('/api/v1/games/rocom/battle/pets', frameworkToken, params)
   }

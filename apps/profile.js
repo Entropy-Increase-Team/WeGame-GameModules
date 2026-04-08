@@ -55,6 +55,12 @@ function formatScore (value) {
   return text.endsWith('分') ? text : `${text}分`
 }
 
+function formatWinRate (value) {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return '--'
+  return `${num.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')}%`
+}
+
 function hasMeaningfulEvaluation (evaluation = {}) {
   const metricKeys = ['capture', 'collection', 'progression', 'strength']
   if (metricKeys.some((key) => toNumber(evaluation?.[key], 0) > 0)) {
@@ -77,6 +83,25 @@ function hasMeaningfulPetSummary (petSummary = {}) {
 
   return ['best_pet_name', 'summary_title', 'summary_content', 'best_pet_img_url']
     .some((key) => String(petSummary?.[key] ?? '').trim())
+}
+
+function hasMeaningfulBattleOverview (battleOverview = {}) {
+  if (toNumber(battleOverview?.total_match, 0) > 0) return true
+  if (toNumber(battleOverview?.total_win, 0) > 0) return true
+  if (String(battleOverview?.tier || '').trim()) return true
+  return Boolean(normalizeRemoteUrl(battleOverview?.tier_icon_url))
+}
+
+function hasMeaningfulBattleRecord (battle = {}) {
+  if (!battle || typeof battle !== 'object') return false
+
+  if (String(battle?.battle_time || '').trim()) return true
+  if (String(battle?.nickname || '').trim()) return true
+  if (String(battle?.enemy_nickname || '').trim()) return true
+  if (Array.isArray(battle?.pet_base_info) && battle.pet_base_info.length > 0) return true
+  if (Array.isArray(battle?.enemy_pet_base_info) && battle.enemy_pet_base_info.length > 0) return true
+
+  return false
 }
 
 function splitSummaryTitle (value) {
@@ -176,6 +201,31 @@ function buildRadarModel (evaluation = {}) {
   }
 }
 
+function normalizeBattlePets (petInfoList = [], petIdList = []) {
+  if (Array.isArray(petInfoList) && petInfoList.length > 0) {
+    return petInfoList.slice(0, 6).map((item, index) => ({
+      name: toDisplayText(item?.pet_name, `精灵 ${index + 1}`),
+      icon: normalizeRemoteUrl(item?.pet_img_url)
+    }))
+  }
+
+  if (Array.isArray(petIdList) && petIdList.length > 0) {
+    return petIdList.slice(0, 6).map((petBaseId, index) => ({
+      name: `精灵 ${index + 1}`,
+      icon: ''
+    }))
+  }
+
+  return []
+}
+
+function normalizeBattleResult (value) {
+  const text = String(value ?? '').trim().toLowerCase()
+  if (Number(value) === 1) return 'win'
+  if (['win', 'success', 'true'].includes(text)) return 'win'
+  return 'fail'
+}
+
 export class RocomProfile extends plugin {
   constructor (e) {
     super({
@@ -201,8 +251,9 @@ export class RocomProfile extends plugin {
       const { credential } = await this.accountService.resolveActiveCredential()
       await this.reply('正在生成洛克档案...')
 
-      const params = this.buildQueryParams(credential?.loginType)
-      const profileData = await this.loadProfileSections(credential.frameworkToken, params)
+      const profileParams = this.buildProfileParams(credential?.loginType)
+      const battleListParams = this.buildBattleListParams(credential?.loginType)
+      const profileData = await this.loadProfileSections(credential.frameworkToken, profileParams, battleListParams)
       const renderData = this.buildRenderData({
         credential,
         ...profileData
@@ -232,23 +283,38 @@ export class RocomProfile extends plugin {
     }
   }
 
-  buildQueryParams (loginType = '') {
+  buildProfileParams (loginType = '') {
     const normalized = String(loginType || '').trim().toLowerCase()
     if (normalized === 'qq') return { account_type: 1 }
     if (normalized === 'wechat') return { account_type: 2 }
     return {}
   }
 
-  async loadProfileSections (frameworkToken, params = {}) {
+  buildBattleListParams (loginType = '') {
+    const normalized = String(loginType || '').trim().toLowerCase()
+    const params = { page_size: 1 }
+
+    if (normalized === 'qq') {
+      params.zone = 0
+    } else if (normalized === 'wechat') {
+      params.zone = 1
+    }
+
+    return params
+  }
+
+  async loadProfileSections (frameworkToken, profileParams = {}, battleListParams = {}) {
     const tasks = [
-      { key: 'roleData', method: 'getRoleProfile' },
-      { key: 'evaluationData', method: 'getProfileEvaluation' },
-      { key: 'petSummaryData', method: 'getPetSummary' },
-      { key: 'collectionData', method: 'getCollection' }
+      { key: 'roleData', method: 'getRoleProfile', params: profileParams },
+      { key: 'evaluationData', method: 'getProfileEvaluation', params: profileParams },
+      { key: 'petSummaryData', method: 'getPetSummary', params: profileParams },
+      { key: 'collectionData', method: 'getCollection', params: profileParams },
+      { key: 'battleOverviewData', method: 'getBattleOverview', params: {} },
+      { key: 'battleListData', method: 'getBattleList', params: battleListParams }
     ]
 
     const settled = await Promise.allSettled(tasks.map(async (task) => {
-      const data = await this.api[task.method](frameworkToken, params)
+      const data = await this.api[task.method](frameworkToken, task.params)
       ensureUpstreamSuccess(data)
       return {
         key: task.key,
@@ -279,12 +345,24 @@ export class RocomProfile extends plugin {
     return result
   }
 
-  buildRenderData ({ credential, roleData, evaluationData, petSummaryData, collectionData }) {
+  buildRenderData ({
+    credential,
+    roleData,
+    evaluationData,
+    petSummaryData,
+    collectionData,
+    battleOverviewData,
+    battleListData
+  }) {
     const role = roleData?.role || credential?.role || {}
     const evaluation = evaluationData || {}
     const petSummary = petSummaryData || {}
     const collection = collectionData || {}
+    const battleOverview = battleOverviewData || {}
+    const latestBattle = Array.isArray(battleListData?.battles) ? (battleListData.battles[0] || null) : null
+
     const hasAiProfileData = hasMeaningfulEvaluation(evaluation) && hasMeaningfulPetSummary(petSummary)
+    const hasBattleData = hasMeaningfulBattleOverview(battleOverview) && hasMeaningfulBattleRecord(latestBattle)
     const starName = role?.star_name || ''
     const summaryTitleParts = splitSummaryTitle(petSummary?.summary_title || '')
     const bestPetName = toDisplayText(
@@ -298,7 +376,7 @@ export class RocomProfile extends plugin {
       userName: toDisplayText(role?.name, '洛克玩家'),
       userLevel: toDisplayText(role?.level),
       userUid: toDisplayText(role?.id || role?.openid || credential?.tgpId),
-      userAvatar: normalizeRemoteUrl(role?.avatar),
+      userAvatar: normalizeRemoteUrl(role?.avatar_url || latestBattle?.avatar_url || role?.avatar),
       enrollDays: toDisplayText(role?.enroll_days),
       starName: toDisplayText(starName),
       hasAiProfileData,
@@ -315,6 +393,16 @@ export class RocomProfile extends plugin {
       fashionCollectionCount: toDisplayText(collection?.fashion_collection_count, '0'),
       itemCount: toDisplayText(collection?.item_count, '0'),
       collectionHint: `输入“${formatCommand('精灵列表')}”查看精灵总览`,
+      hasBattleData,
+      tierBadgeUrl: normalizeRemoteUrl(battleOverview?.tier_icon_url || latestBattle?.tier_url),
+      totalMatch: toDisplayText(battleOverview?.total_match, '0'),
+      totalWin: toDisplayText(battleOverview?.total_win, '0'),
+      winRate: formatWinRate(battleOverview?.win_rate),
+      matchResult: normalizeBattleResult(latestBattle?.result),
+      leftTeamPets: normalizeBattlePets(latestBattle?.pet_base_info, latestBattle?.pet_base_id),
+      rightTeamPets: normalizeBattlePets(latestBattle?.enemy_pet_base_info, latestBattle?.enemy_pet_base_id),
+      opponentName: toDisplayText(latestBattle?.enemy_nickname, '未知对手'),
+      opponentAvatar: normalizeRemoteUrl(latestBattle?.enemy_avatar_url),
       ...buildRadarModel(evaluation)
     }
   }
@@ -322,12 +410,24 @@ export class RocomProfile extends plugin {
   withRenderAssets (data = {}) {
     const buildResUrl = (assetPath) => `${data.pluResPath}${encodeAssetPath(assetPath)}`
     const defaultAvatar = buildResUrl('img/测试头像.png')
+    const fallbackPetImage = buildResUrl('img/本周达宠 测试立绘.png')
 
     return {
       ...data,
       defaultAvatar,
+      fallbackPetImage,
       userAvatarDisplay: normalizeRemoteUrl(data.userAvatar) || defaultAvatar,
-      bestPetImageDisplay: normalizeRemoteUrl(data.bestPetImage)
+      bestPetImageDisplay: normalizeRemoteUrl(data.bestPetImage) || fallbackPetImage,
+      tierBadgeUrl: normalizeRemoteUrl(data.tierBadgeUrl),
+      opponentAvatarDisplay: normalizeRemoteUrl(data.opponentAvatar) || defaultAvatar,
+      leftTeamPets: (data.leftTeamPets || []).map((pet) => ({
+        ...pet,
+        icon: normalizeRemoteUrl(pet.icon) || fallbackPetImage
+      })),
+      rightTeamPets: (data.rightTeamPets || []).map((pet) => ({
+        ...pet,
+        icon: normalizeRemoteUrl(pet.icon) || fallbackPetImage
+      }))
     }
   }
 }

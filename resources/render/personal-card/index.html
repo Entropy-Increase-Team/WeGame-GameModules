@@ -71,7 +71,7 @@
               </div>
               <div class="ai-card-img">
                 <div class="helper-image">
-                  <img alt="{{bestPetName}}" class="helper-image-pic" src="{{bestPetImageDisplay}}" loading="eager">
+                  <img alt="{{bestPetName}}" class="helper-image-pic" src="{{bestPetImageDisplay}}" loading="eager" onerror="this.onerror=null;this.src='{{fallbackPetImage}}'">
                 </div>
               </div>
               <div class="ai-card-score"><span>{{scoreText}}</span></div>
@@ -81,20 +81,6 @@
             <div class="chart-wrapper">
               <div class="chart-box">
                 <svg class="radar-svg" viewBox="0 0 260 220" aria-hidden="true">
-                  <defs>
-                    <linearGradient id="radar-area-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stop-color="#ffd983" stop-opacity="0.82"></stop>
-                      <stop offset="100%" stop-color="#ffbe52" stop-opacity="0.46"></stop>
-                    </linearGradient>
-                    <linearGradient id="radar-line-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stop-color="#ffb347"></stop>
-                      <stop offset="100%" stop-color="#f07f25"></stop>
-                    </linearGradient>
-                    <filter id="radar-badge-shadow" x="-40%" y="-40%" width="180%" height="180%">
-                      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#bfa57a" flood-opacity="0.28"></feDropShadow>
-                    </filter>
-                  </defs>
-
                   {{each radarPolygons polygon}}
                   <polygon points="{{polygon}}" class="radar-grid{{if $index === radarPolygons.length - 1}} radar-grid-outer{{/if}}"></polygon>
                   {{/each}}
@@ -103,17 +89,17 @@
                   <line x1="{{centerX}}" y1="{{centerY}}" x2="{{axis.x}}" y2="{{axis.y}}" class="radar-axis"></line>
                   {{/each}}
 
-                  <polygon points="{{radarAreaPoints}}" class="radar-area" fill="url(#radar-area-gradient)"></polygon>
-                  <polygon points="{{radarAreaPoints}}" class="radar-line" stroke="url(#radar-line-gradient)"></polygon>
+                  <polygon points="{{radarAreaPoints}}" class="radar-area"></polygon>
+                  <polygon points="{{radarAreaPoints}}" class="radar-line"></polygon>
 
                   {{each radarAxisLabels label}}
                   <text x="{{label.x}}" y="{{label.y}}" text-anchor="{{label.anchor}}" class="radar-axis-label">{{label.name}}</text>
                   {{/each}}
 
                   {{each radarValueBadges badge}}
-                  <g class="radar-value-badge" transform="translate({{badge.x}}, {{badge.y}})" filter="url(#radar-badge-shadow)">
-                    <rect width="{{badge.width}}" height="28" rx="14" class="radar-value-bg"></rect>
-                    <text x="{{badge.width / 2}}" y="14" text-anchor="middle" class="radar-value-text">{{badge.value}}</text>
+                  <g transform="translate({{badge.x}}, {{badge.y}})">
+                    <rect width="{{badge.width}}" height="24" rx="12" class="radar-value-bg"></rect>
+                    <text x="{{badge.width / 2}}" y="12" text-anchor="middle" class="radar-value-text">{{badge.value}}</text>
                   </g>
                   {{/each}}
 
@@ -169,6 +155,52 @@
 
           <div class="record-panel">
             <div class="record-tit">闪耀大赛</div>
+            {{if hasBattleData}}
+            <div class="record-main">
+              <div class="record-status">
+                <div class="helper-image"><img class="helper-image-pic" src="{{tierBadgeUrl}}" onerror="this.onerror=null;this.style.display='none'"></div>
+              </div>
+              <div class="record-detail">
+                <ul class="record-detail-data">
+                  <li><span class="label">对战胜率</span><span class="num">{{winRate}}</span></li>
+                  <li><span class="label">对战场次</span><span class="num">{{totalMatch}}</span></li>
+                </ul>
+                <div class="record-detail-btn"><span class="text">查看生涯</span><i class="icon"></i></div>
+              </div>
+            </div>
+            <div class="record-recent">
+              <div class="record-recent-tit"><span>最近一场比赛</span></div>
+              <div class="match-item">
+                <div class="team-info">
+                  <div class="team team-left">
+                    <div class="team-header">
+                      <div class="player-avatar"><div class="helper-image"><img class="helper-image-pic" src="{{userAvatarDisplay}}" onerror="this.onerror=null;this.src='{{defaultAvatar}}'"></div></div>
+                      <span class="player-name">{{userName}}</span>
+                    </div>
+                    <div class="character-list">
+                      {{each leftTeamPets pet}}
+                      <div class="character-item"><div class="character-avatar"><div class="helper-image"><img class="helper-image-pic" src="{{pet.icon}}"></div></div></div>
+                      {{/each}}
+                    </div>
+                  </div>
+                  <div class="match-status-center">
+                    <div class="match-status {{matchResult}}"></div>
+                  </div>
+                  <div class="team team-right">
+                    <div class="team-header">
+                      <span class="player-name">{{opponentName}}</span>
+                      <div class="player-avatar"><div class="helper-image"><img class="helper-image-pic" src="{{opponentAvatarDisplay}}" onerror="this.onerror=null;this.src='{{defaultAvatar}}'"></div></div>
+                    </div>
+                    <div class="character-list">
+                      {{each rightTeamPets pet}}
+                      <div class="character-item"><div class="character-avatar"><div class="helper-image"><img class="helper-image-pic" src="{{pet.icon}}"></div></div></div>
+                      {{/each}}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {{else}}
             <div class="stats-collect-empty">
               <div class="nodata-empty">
                 <div class="nodata-icon"></div>
@@ -176,6 +208,7 @@
                 <div class="nodata-action"></div>
               </div>
             </div>
+            {{/if}}
           </div>
         </div>
       </div>

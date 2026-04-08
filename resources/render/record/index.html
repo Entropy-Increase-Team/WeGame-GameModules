@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280, initial-scale=1">
+  <link rel="stylesheet" href="{{_res_path}}render/record/style.css">
+  <style>
+    html, body {
+      overflow: visible !important;
+      width: auto !important;
+      height: auto !important;
+    }
+    body {
+      background: transparent;
+      margin: 0;
+      padding: 0;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div class="record-page">
+    <!-- Header -->
+    <div class="record-header">
+      <div class="header-user-info">
+        <img class="header-avatar" src="{{userAvatarDisplay || defaultAvatar}}" alt="Avatar" onerror="this.onerror=null;this.src='{{defaultAvatar}}'">
+        <div class="header-user-details">
+          <div class="header-user-name-row">
+            <span class="header-user-name">{{userName}}</span>
+            <span class="header-user-level">Lv. {{userLevel}}</span>
+          </div>
+          <span class="header-user-uid">ID:{{userUid}}</span>
+        </div>
+      </div>
+      <div class="header-center">
+        <span class="header-title">闪耀大赛 · 战绩总览</span>
+      </div>
+      <div class="header-right">
+        <div class="header-stats">
+          <span class="stat-item"><span class="stat-label">胜率</span><span class="stat-value">{{winRate}}</span></span>
+          <span class="stat-item"><span class="stat-label">总场次</span><span class="stat-value">{{totalMatch}}</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Match List -->
+    <div class="match-list">
+      {{each battles battle}}
+      <div class="match-record-card">
+        <!-- Left Team -->
+        <div class="match-team match-team-left">
+          <div class="match-player-info">
+            <img class="match-player-avatar" src="{{battle.leftAvatar || defaultAvatar}}" alt="" onerror="this.onerror=null;this.src='{{defaultAvatar}}'">
+            <span class="match-player-name">{{battle.leftName}}</span>
+          </div>
+          <div class="match-pet-list">
+            {{each battle.leftPets pet}}
+            <img class="match-pet-icon" src="{{pet.icon}}" alt="">
+            {{/each}}
+          </div>
+        </div>
+
+        <!-- Center Result -->
+        <div class="match-center">
+          <div class="match-result-badge {{battle.result}}"></div>
+        </div>
+
+        <!-- Right Team -->
+        <div class="match-team match-team-right">
+          <div class="match-player-info match-player-info-right">
+            <span class="match-player-name">{{battle.rightName}}</span>
+            <img class="match-player-avatar" src="{{battle.rightAvatar || defaultAvatar}}" alt="" onerror="this.onerror=null;this.src='{{defaultAvatar}}'">
+          </div>
+          <div class="match-pet-list match-pet-list-right">
+            {{each battle.rightPets pet}}
+            <img class="match-pet-icon" src="{{pet.icon}}" alt="">
+            {{/each}}
+          </div>
+        </div>
+
+        <!-- Time -->
+        <div class="match-time">
+          <span class="match-time-hm">{{battle.time}}</span>
+          <span class="match-time-date">{{battle.date}}</span>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+
+    <!-- Footer -->
+    <div class="record-footer">
+      <span class="footer-hint">{{pageText}}</span>
+      <span class="footer-cmd">{{footerCommandHint}}</span>
+    </div>
+  </div>
+</body>
+</html>

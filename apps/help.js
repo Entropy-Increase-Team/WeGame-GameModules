@@ -24,6 +24,7 @@ export class RocomHelp extends plugin {
       '',
       `${formatCommand('帮助')} - 查看模块帮助`,
       `${formatCommand('档案')} - 查询角色档案`,
+      `${formatCommand('战绩')} - 查询闪耀大赛战绩`,
       `${formatCommand('精灵列表')} - 查询精灵列表`,
       `${formatCommand('精灵列表 了不起 1')} - 查询了不起精灵第一页`
     ]
