@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280, initial-scale=1">
+  <link rel="stylesheet" href="{{_res_path}}render/personal-card/style.css">
+  <style>
+    html, body {
+      overflow: visible !important;
+      width: auto !important;
+      height: auto !important;
+    }
+
+    body {
+      background: transparent;
+      margin: 0;
+      padding: 0;
+      display: inline-block;
+      min-width: 0;
+    }
+
+    .page-out-client {
+      font-size: 14px;
+    }
+
+    .stats-cont {
+      height: 6.7rem !important;
+    }
+  </style>
+</head>
+<body class="page-out-client">
+  <div class="stats-cont page-section-main">
+    <div class="stats-page">
+      <div class="stats-title"></div>
+      <div class="stats-main">
+        <div class="stats-left">
+          <div class="stats-user-info">
+            <div class="user-info-header">
+              <div class="user-avatar">
+                <div class="helper-image">
+                  <img alt="{{userName}}" class="helper-image-pic" src="{{userAvatarDisplay}}" loading="eager" onerror="this.onerror=null;this.src='{{defaultAvatar}}'">
+                </div>
+              </div>
+              <div class="user-msg">
+                <div class="user-name">
+                  <span class="name">{{userName}}</span>
+                  <span class="level">Lv. {{userLevel}}</span>
+                </div>
+                <div class="user-uid">ID:{{userUid}}</div>
+              </div>
+            </div>
+            <div class="user-info-bottom">
+              <div class="entry-day">
+                <span class="label">入学天数</span>
+                <span class="num">{{enrollDays}}</span>
+              </div>
+              <div class="entry-day">
+                <span class="label">魔法师星级</span>
+                <span class="num num-text">{{starName}}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-ai-panel">
+            {{if hasAiProfileData}}
+            <div class="ai-card-panel" pet-name="{{bestPetName}}">
+              <div class="ai-card-tit">
+                {{each summaryTitleParts part}}
+                <span>{{part}}</span>
+                {{/each}}
+              </div>
+              <div class="ai-card-img">
+                <div class="helper-image">
+                  <img alt="{{bestPetName}}" class="helper-image-pic" src="{{bestPetImageDisplay}}" loading="eager">
+                </div>
+              </div>
+              <div class="ai-card-score"><span>{{scoreText}}</span></div>
+              <div class="ai-card-name">{{bestPetName}}</div>
+            </div>
+
+            <div class="chart-wrapper">
+              <div class="chart-box">
+                <svg class="radar-svg" viewBox="0 0 260 220" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="radar-area-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#ffd983" stop-opacity="0.82"></stop>
+                      <stop offset="100%" stop-color="#ffbe52" stop-opacity="0.46"></stop>
+                    </linearGradient>
+                    <linearGradient id="radar-line-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#ffb347"></stop>
+                      <stop offset="100%" stop-color="#f07f25"></stop>
+                    </linearGradient>
+                    <filter id="radar-badge-shadow" x="-40%" y="-40%" width="180%" height="180%">
+                      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#bfa57a" flood-opacity="0.28"></feDropShadow>
+                    </filter>
+                  </defs>
+
+                  {{each radarPolygons polygon}}
+                  <polygon points="{{polygon}}" class="radar-grid{{if $index === radarPolygons.length - 1}} radar-grid-outer{{/if}}"></polygon>
+                  {{/each}}
+
+                  {{each radarAxes axis}}
+                  <line x1="{{centerX}}" y1="{{centerY}}" x2="{{axis.x}}" y2="{{axis.y}}" class="radar-axis"></line>
+                  {{/each}}
+
+                  <polygon points="{{radarAreaPoints}}" class="radar-area" fill="url(#radar-area-gradient)"></polygon>
+                  <polygon points="{{radarAreaPoints}}" class="radar-line" stroke="url(#radar-line-gradient)"></polygon>
+
+                  {{each radarAxisLabels label}}
+                  <text x="{{label.x}}" y="{{label.y}}" text-anchor="{{label.anchor}}" class="radar-axis-label">{{label.name}}</text>
+                  {{/each}}
+
+                  {{each radarValueBadges badge}}
+                  <g class="radar-value-badge" transform="translate({{badge.x}}, {{badge.y}})" filter="url(#radar-badge-shadow)">
+                    <rect width="{{badge.width}}" height="28" rx="14" class="radar-value-bg"></rect>
+                    <text x="{{badge.width / 2}}" y="14" text-anchor="middle" class="radar-value-text">{{badge.value}}</text>
+                  </g>
+                  {{/each}}
+
+                  {{each radarDots dot}}
+                  <circle cx="{{dot.x}}" cy="{{dot.y}}" r="5" class="radar-dot"></circle>
+                  {{/each}}
+                </svg>
+              </div>
+
+              <div class="ai-comment">
+                <div class="ai-comment-tit"><span>AI点评</span></div>
+                <div class="ai-comment-text">{{aiCommentText}}</div>
+              </div>
+            </div>
+            {{else}}
+            <div class="stats-ai-empty">
+              <div class="nodata-empty">
+                <div class="nodata-icon"></div>
+                <div class="nodata-text">暂无数据</div>
+                <div class="nodata-action"></div>
+              </div>
+            </div>
+            {{/if}}
+          </div>
+        </div>
+
+        <div class="stats-right">
+          <div class="user-collect-panel">
+            <div class="collect-tit">我的收藏</div>
+            <div class="user-collect-header">
+              <div class="collect-totals">
+                <span class="collect-have">{{currentCollectionCount}}</span>
+                <span class="collect-total">{{totalCollectionCount}}</span>
+                <span class="collect-text">搜集情况</span>
+              </div>
+              <div class="collect-detail">
+                <ul class="collect-spirit">
+                  <li><span class="label">了不起精灵</span><span class="num">{{amazingSpriteCount}}</span></li>
+                  <li><span class="label">异色精灵</span><span class="num">{{shinySpriteCount}}</span></li>
+                  <li><span class="label">炫彩精灵</span><span class="num">{{colorfulSpriteCount}}</span></li>
+                </ul>
+                <div class="collect-detail-btn">
+                  <span class="text">{{collectionHint}}</span>
+                  <i class="icon"></i>
+                </div>
+              </div>
+            </div>
+            <div class="user-collect-footer">
+              <div class="collect-value"><span class="label">时装收藏</span><span class="num">{{fashionCollectionCount}}</span></div>
+              <div class="collect-value"><span class="label">道具收藏</span><span class="num">{{itemCount}}</span></div>
+            </div>
+          </div>
+
+          <div class="record-panel">
+            <div class="record-tit">闪耀大赛</div>
+            <div class="stats-collect-empty">
+              <div class="nodata-empty">
+                <div class="nodata-icon"></div>
+                <div class="nodata-text">暂无数据</div>
+                <div class="nodata-action"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1320, initial-scale=1">
+  <title>{{pageTitle}}</title>
+  <link rel="stylesheet" href="{{_res_path}}render/package/style.css">
+</head>
+<body class="page-out-client">
+  <div class="package-cont page-section-main">
+    <div class="package-page">
+      <div class="spirits-page-header">
+        <div class="header-user-info">
+          <img
+            class="header-avatar"
+            src="{{userAvatar || defaultAvatar}}"
+            alt="Avatar"
+            onerror="this.onerror=null;this.src='{{defaultAvatar}}'">
+          <div class="header-user-details">
+            <div class="header-user-name-row">
+              <span class="header-user-name">{{userName}}</span>
+              <span class="header-user-level">Lv. {{userLevel}}</span>
+            </div>
+            <span class="header-user-uid">ID:{{userUid}}</span>
+          </div>
+        </div>
+
+        <div class="header-center">
+          <div class="page-title">{{pageTitle}}</div>
+          <ul class="tab-nav">
+            {{each tabs tab}}
+            <li class="tab-item{{if tab.active}} cur{{/if}}">{{tab.text}}</li>
+            {{/each}}
+          </ul>
+        </div>
+
+        <div class="header-right">
+          <span class="view-status">当前查看：{{currentTab}}</span>
+          <span class="search-text">总计持有：{{totalCount}}</span>
+          <span class="search-text">当前账号：{{accountLabel}}</span>
+        </div>
+      </div>
+
+      <main class="spirits-content">
+        <div class="spirits-grid{{if !pets || pets.length === 0}} is-empty{{/if}}">
+          {{if pets && pets.length > 0}}
+          {{each pets pet}}
+          <div class="spirit-card">
+            <div class="spirit-card-header">
+              <div class="element-icons">
+                {{if pet.elementIcons && pet.elementIcons.length > 0}}
+                {{each pet.elementIcons icon}}
+                <div class="element-icon">
+                  <img src="{{icon.src}}" alt="{{icon.name}}" onerror="this.style.display='none'">
+                </div>
+                {{/each}}
+                {{else}}
+                <div class="element-icon element-icon-empty">?</div>
+                {{/if}}
+              </div>
+              <div class="spirit-level"><span>LV.{{pet.level}}</span></div>
+            </div>
+
+            <div class="spirit-image">
+              {{if pet.badgeImage}}
+              <img class="spirit-subset-badge" src="{{pet.badgeImage}}" alt="{{currentTab}}" onerror="this.style.display='none'">
+              {{/if}}
+              <div class="helper-image">
+                <img
+                  alt="{{pet.name}}"
+                  class="helper-image-pic"
+                  src="{{pet.pet_img_url || pet.imageUrl || fallbackPetImage}}"
+                  loading="eager"
+                  onerror="this.onerror=null;this.src='{{fallbackPetImage}}'">
+              </div>
+            </div>
+
+            <div class="stats-spirit-name"><span>{{pet.name}}</span></div>
+          </div>
+          {{/each}}
+
+          {{each emptySlots slot}}
+          <div class="spirit-card is-empty">
+            <div class="spirit-card-header">
+              <div class="element-icons"></div>
+              <div class="spirit-level"><span>--</span></div>
+            </div>
+            <div class="spirit-image spirit-image-empty">
+              <div class="spirit-empty-copy">空位</div>
+            </div>
+            <div class="stats-spirit-name"><span>待补位</span></div>
+          </div>
+          {{/each}}
+          {{else}}
+          <div class="empty-card">
+            <div class="empty-card-title">这一页暂时没有精灵</div>
+            <div class="empty-card-desc">试试切换分类或页码重新查询</div>
+          </div>
+          {{/if}}
+        </div>
+      </main>
+
+      <div class="pagination-footer">
+        <span class="pagination-text">第 {{currentPage}} 页，共 {{totalPages}} 页，每页 {{pageSize}} 只精灵</span>
+        <span class="pagination-hint">{{commandHint}}</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
