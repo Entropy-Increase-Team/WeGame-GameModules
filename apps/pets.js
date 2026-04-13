@@ -13,63 +13,6 @@ const PET_SUBSETS = {
   炫彩: 3
 }
 
-const ELEMENT_ALIASES = {
-  水: '水',
-  水系: '水',
-  water: '水',
-  火: '火',
-  火系: '火',
-  fire: '火',
-  草: '草',
-  草系: '草',
-  grass: '草',
-  冰: '冰',
-  冰系: '冰',
-  ice: '冰',
-  电: '电',
-  电系: '电',
-  雷: '电',
-  雷系: '电',
-  electric: '电',
-  岩: '岩',
-  岩系: '岩',
-  rock: '岩',
-  earth: '岩',
-  土: '岩',
-  武: '武',
-  武系: '武',
-  fight: '武',
-  fighting: '武',
-  毒: '毒',
-  毒系: '毒',
-  poison: '毒',
-  虫: '虫',
-  虫系: '虫',
-  bug: '虫',
-  萌: '萌',
-  萌系: '萌',
-  cute: '萌',
-  翼: '翼',
-  翼系: '翼',
-  flying: '翼',
-  恶: '恶',
-  恶系: '恶',
-  dark: '恶',
-  幽: '幽',
-  幽系: '幽',
-  ghost: '幽',
-  机: '机',
-  机系: '机',
-  机械: '机',
-  metal: '机',
-  steel: '机',
-  光: '光',
-  光系: '光',
-  light: '光'
-}
-
-const ELEMENT_NAMES = [...new Set(Object.values(ELEMENT_ALIASES))]
-
 function getMaxPage () {
   return Number(RocomConfig.get('rocom', 'max_page')) || 5
 }
@@ -342,7 +285,6 @@ export class RocomPets extends plugin {
       pet_img_url: imageUrl,
       imageUrl,
       badgeFile: args.petSubset > 0 ? `${getPetTabText(args.petSubset)} half.png` : '',
-      elementNames: this.extractElementNames(pet),
       elementTypesInfo: this.extractElementTypesInfo(pet)
     }
   }
@@ -372,76 +314,6 @@ export class RocomPets extends plugin {
 
     return []
   }
-
-  extractElementNames (pet = {}) {
-    const values = [
-      pet?.elements,
-      pet?.element_list,
-      pet?.pet_elements,
-      pet?.attribute_list,
-      pet?.type_list,
-      pet?.pet_type_name,
-      pet?.type_name,
-      pet?.attribute_name,
-      pet?.element_name,
-      pet?.pet_type,
-      pet?.type,
-      pet?.attribute,
-      pet?.element,
-      pet?.pet_types_info
-    ]
-
-    const result = []
-    for (const value of values) {
-      this.collectElementNames(result, value)
-      if (result.length >= 2) break
-    }
-
-    return [...new Set(result)].slice(0, 2)
-  }
-
-  collectElementNames (result, value) {
-    if (result.length >= 2 || value === undefined || value === null || value === '') return
-
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        this.collectElementNames(result, item)
-        if (result.length >= 2) break
-      }
-      return
-    }
-
-    if (typeof value === 'object') {
-      this.collectElementNames(result, value.name || value.label || value.type_name || value.element_name)
-      return
-    }
-
-    const pieces = String(value).split(/[\/,&|+，、\s]+/).filter(Boolean)
-    for (const piece of pieces) {
-      for (const token of this.findElementNames(piece)) {
-        if (!result.includes(token)) {
-          result.push(token)
-        }
-        if (result.length >= 2) break
-      }
-      if (result.length >= 2) break
-    }
-  }
-
-  findElementNames (value) {
-    const raw = String(value || '').trim()
-    if (!raw) return []
-
-    const cleaned = raw.replace(/属性|元素|系/g, '').trim()
-    const lower = cleaned.toLowerCase()
-
-    if (ELEMENT_ALIASES[raw]) return [ELEMENT_ALIASES[raw]]
-    if (ELEMENT_ALIASES[cleaned]) return [ELEMENT_ALIASES[cleaned]]
-    if (ELEMENT_ALIASES[lower]) return [ELEMENT_ALIASES[lower]]
-
-    return ELEMENT_NAMES.filter((name) => cleaned.includes(name)).slice(0, 2)
-  }
-
   withRenderAssets (data = {}) {
     const buildResUrl = (assetPath) => `${data.pluResPath}${encodeAssetPath(assetPath)}`
     const defaultAvatar = buildResUrl('img/测试头像.png')
@@ -457,28 +329,22 @@ export class RocomPets extends plugin {
         pet_img_url: normalizeUrl(pet.pet_img_url) || normalizeUrl(pet.imageUrl) || fallbackPetImage,
         imageUrl: normalizeUrl(pet.imageUrl) || fallbackPetImage,
         badgeImage: pet.badgeFile ? buildResUrl(`img/${pet.badgeFile}`) : '',
-        elementIcons: this.buildElementIcons(pet, buildResUrl)
+        elementIcons: this.buildElementIcons(pet)
       }))
     }
   }
 
-  buildElementIcons (pet = {}, buildResUrl) {
-    if (Array.isArray(pet.elementTypesInfo) && pet.elementTypesInfo.length > 0) {
-      return pet.elementTypesInfo.map((item) => {
-        const fallbackName = this.findElementNames(item.name || '')[0] || ''
-        return {
-          name: item.name || fallbackName,
-          src: normalizeUrl(item.icon) || (fallbackName ? buildResUrl(`img/${fallbackName}.png`) : '')
-        }
-      }).filter((item) => item.src)
+  buildElementIcons (pet = {}) {
+    if (!Array.isArray(pet.elementTypesInfo) || pet.elementTypesInfo.length === 0) {
+      return []
     }
 
-    return Array.isArray(pet.elementNames)
-      ? pet.elementNames.map((name) => ({
-          name,
-          src: buildResUrl(`img/${name}.png`)
-        }))
-      : []
+    return pet.elementTypesInfo
+      .map((item) => ({
+        name: item.name || '',
+        src: normalizeUrl(item.icon)
+      }))
+      .filter((item) => item.src)
   }
 
   pickValue (obj, keys = [], depth = 0) {

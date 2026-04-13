@@ -7,7 +7,8 @@
 - 基础认证
 - WeGame 登录或凭证导入
 - `frameworkToken` 获取
-- 对应作用域 API Key 创建
+- 开发者 `WeGame API Key` 创建
+- `game:rocom` 对应权限申请
 
 ## 前置要求
 
@@ -19,7 +20,8 @@
 
 - 先完成基础认证
 - 通过 `X-Framework-Token` 指定一份已保存的 WeGame 凭证
-- 如果使用 `X-API-Key`，必须使用 `scope=game:rocom`
+- 如果使用 `X-API-Key`，统一使用开发者 `WeGame API Key`
+- 该 API Key 还必须已经获批 `game:rocom` 下的对应权限，当前默认公开权限为 `rocom.access`
 - 当前只开放 HAR 中已验证的核心查询接口
 - 成功时 `data` 中会包一层上游 WeGame 响应
 
@@ -40,6 +42,82 @@
 
 ## RoCom / NRC 代理接口
 
+### 账号列表
+
+- `GET /api/v1/games/rocom/accounts`
+
+说明：
+
+- 返回当前调用者在 `rocom` 组件下能成功识别出的账号列表
+- 实现方式是先读取当前用户的 WeGame 绑定列表，再逐个查询 RoCom 角色资料
+- 只有成功读取到角色资料的绑定才会出现在结果里
+- Web 用户直接带 `Authorization: Bearer <web-jwt>` 即可
+- API Key 调用时需要额外带 `user_identifier`
+- 支持可选查询参数 `account_type`
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "accounts": [
+      {
+        "binding": {
+          "id": "67f12d2f4436d8d0d82f8b61",
+          "framework_token": "4c52b50d-2b5f-47fb-9a1f-8b0c76f76c67",
+          "token_type": "wegame",
+          "login_type": "qq",
+          "client_type": "web",
+          "tgp_id": "295231685",
+          "is_primary": true,
+          "is_valid": true,
+          "created_at": "2026-04-05T22:10:00+08:00",
+          "updated_at": "2026-04-05T22:12:00+08:00"
+        },
+        "role": {
+          "avatar": "1001009",
+          "avatar_url": "https://jsonschema.qpic.cn/v1_/rb5/4c8194c8827d8b6c81de052a9409800f.png",
+          "background_url": "https://photo-prod.nrc.qq.com/704693375/card/3302501774819218804",
+          "create_time": "1774482937",
+          "enroll_days": 12,
+          "id": "704693375",
+          "is_online": 0,
+          "level": 52,
+          "name": "BvzRays",
+          "openid": "2153985996166641979",
+          "star": 4,
+          "star_name": "精灵博学者"
+        },
+        "data": {
+          "result": {
+            "error_code": 0,
+            "error_message": "WG_COMM_SUCC"
+          },
+          "role": {
+            "avatar": "1001009",
+            "avatar_url": "https://jsonschema.qpic.cn/v1_/rb5/4c8194c8827d8b6c81de052a9409800f.png",
+            "background_url": "https://photo-prod.nrc.qq.com/704693375/card/3302501774819218804",
+            "create_time": "1774482937",
+            "enroll_days": 12,
+            "id": "704693375",
+            "is_online": 0,
+            "level": 52,
+            "name": "BvzRays",
+            "openid": "2153985996166641979",
+            "star": 4,
+            "star_name": "精灵博学者"
+          }
+        }
+      }
+    ],
+    "total": 1,
+    "bindings_total": 2
+  }
+}
+```
+
 ### 角色资料
 
 - `GET /api/v1/games/rocom/profile/role`
@@ -58,6 +136,7 @@
 - 对应上游 `NrcProfile/GetRoleInfo`
 - `avatar` 表示头像
 - `avatar_url` 表示头像图片地址，由 API 侧按 `avatar` 从已同步到本地的 `headicon_config` 映射得出，不是上游原始字段
+- `background_url` 表示角色卡背景图片地址，由 API 侧按 `id` 拼接得出，不是上游原始字段
 - `create_time` 表示创建时间，时间戳格式
 - `id` 表示账号 ID
 - `is_online` 表示是否在线
@@ -91,6 +170,7 @@
     "role": {
       "avatar": "1001009",
       "avatar_url": "https://jsonschema.qpic.cn/v1_/rb5/4c8194c8827d8b6c81de052a9409800f.png",
+      "background_url": "https://photo-prod.nrc.qq.com/704693375/card/3302501774819218804",
       "create_time": "1774482937",
       "enroll_days": 12,
       "id": "704693375",
@@ -444,6 +524,178 @@
     "total": 167,
     "weekly_pet": "3005",
     "weekly_pet_update_time": "0"
+  }
+}
+```
+
+### 阵容助手
+
+- `GET /api/v1/games/rocom/lineup/list`
+
+说明：
+对应上游 `NrcLineup/GetLineupList`。
+
+参数说明：
+`category` 用于按阵容分类过滤，透传给上游。
+`account_type` 透传给上游。
+`page_no` 表示后端分页页码，默认为 `1`。
+后端会先请求上游全量阵容列表，再在 API 侧按每页 `6` 条分页返回。
+
+响应补充：
+后端会在顶层补充 `page_no`、`page_size`、`total`、`total_pages`、`has_more`，用于表示 API 侧分页结果。
+后端会保留上游原始 `lineup.pets[].id` 和 `lineup.pets[].skills`。
+后端会为每个 `lineup.pets[]` 追加：
+`pet_name` 从本地 `sprite_base_info` 表映射得到的精灵名称。
+`pet_img_url` 按 `https://game.gtimg.cn/images/rocom/rocodata/jingling/{id}/icon.png` 拼出的精灵图片地址。
+`bloodline_info` 来自本地 `lineup_bloodlines` 表，包含 `id`、`name`、`icon`。
+`skills_info` 数组，其中每一项都包含：
+`skill_id` 技能 ID。
+`skill_name` 从本地 `skill_list` 表映射得到的技能名称。
+`skill_img_url` 按 `https://game.gtimg.cn/images/rocom/rocodata/skill/{skill_id}.png` 拼出的技能图片地址。
+
+示例：
+`GET /api/v1/games/rocom/lineup/list?page_no=1`
+`GET /api/v1/games/rocom/lineup/list?category=闪耀大赛&page_no=2`
+
+`GET /api/v1/games/rocom/lineup/list` 响应示例（节选）：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "result": {
+      "error_code": 0,
+      "error_message": "success"
+    },
+    "page_no": 1,
+    "page_size": 6,
+    "total": 48,
+    "total_pages": 8,
+    "has_more": true,
+    "lineups": [
+      {
+        "id": 59,
+        "name": "大运翼王队",
+        "author_name": "洛王",
+        "category": "闪耀大赛",
+        "code": "B~G3K~~~O~a~BSBPBTa5Sg~a5QA~bUGI~a5QU~1F~~~M~G~BQBPBUayBM~ayCS~bRqq~bRrw~4Z~~~H~E~BQBSBPayGq~ayI2~ayBM~bPMi~2d~~~M~V~BPBRBUayBW~bbbW~bWhw~ayJK~vd~~~G~X~BQBPBUbRqq~ayBM~ayCS~bDCa~37~~~N~V~BQBPBUbRpG~ayAa~ayBM~bUFM~ZZC~FA~A~G~D~A~D~A~A~A~A~A~D~",
+        "lineup": {
+          "version": 1,
+          "pets": [
+            {
+              "id": 3530,
+              "pet_name": "精灵名称示例",
+              "pet_img_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3530/icon.png",
+              "bloodline": 14,
+              "bloodline_info": {
+                "id": 14,
+                "name": "血脉名称示例",
+                "icon": "https://example.com/bloodline.png"
+              },
+              "nature": 26,
+              "attributes": [
+                82,
+                79,
+                83
+              ],
+              "skills": [
+                7050400,
+                7050240,
+                7160200,
+                7050260
+              ],
+              "skills_info": [
+                {
+                  "skill_id": "7050400",
+                  "skill_name": "技能名称示例一",
+                  "skill_img_url": "https://game.gtimg.cn/images/rocom/rocodata/skill/7050400.png"
+                },
+                {
+                  "skill_id": "7050240",
+                  "skill_name": "技能名称示例二",
+                  "skill_img_url": "https://game.gtimg.cn/images/rocom/rocodata/skill/7050240.png"
+                }
+              ]
+            }
+          ],
+          "magic_id": 104002,
+          "formation_mode": 5,
+          "name": ""
+        }
+      }
+    ]
+  }
+}
+```
+
+### 交换大厅
+
+- `GET /api/v1/games/rocom/exchange/posters`
+
+说明：
+对应上游 `RocoExchange/GetPosterList`。
+
+参数说明：
+`refresh` 透传给上游，默认为 `false`。
+`account_type` 透传给上游。
+`page_no` 表示后端分页页码，默认为 `1`。
+后端会先请求上游全量海报列表，再在 API 侧按每页 `6` 条分页返回。
+
+响应补充：
+后端会在顶层补充 `page_no`、`page_size`、`total`、`total_pages`、`has_more`，用于表示 API 侧分页结果。
+后端会保留上游原始 `posters[].user_info.avatar` 字段。
+后端会为每条海报的 `user_info` 追加：
+`avatar_url` 由 API 侧按头像 ID 从本地 `headicon_icons` 表映射得到。
+
+示例：
+`GET /api/v1/games/rocom/exchange/posters?page_no=1`
+`GET /api/v1/games/rocom/exchange/posters?refresh=true&page_no=2`
+
+`GET /api/v1/games/rocom/exchange/posters` 响应示例（节选）：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "result": {
+      "error_code": 0,
+      "error_message": "success"
+    },
+    "page_no": 1,
+    "page_size": 6,
+    "total": 96,
+    "total_pages": 16,
+    "has_more": true,
+    "posters": [
+      {
+        "poster_id": "02084051-083e-4932-871f-862eebb55fc5",
+        "user_info": {
+          "role_id": "5256315",
+          "openid": "14526297201009036867",
+          "nickname": "温柔小帅",
+          "avatar": "2001001",
+          "avatar_url": "https://jsonschema.qpic.cn/v1_/rb5/4c8194c8827d8b6c81de052a9409800f.png",
+          "level": 58,
+          "online_status": 1,
+          "master_tgpid": "3644507"
+        },
+        "want_item": 0,
+        "want_item_name": "交友",
+        "message": "牵手",
+        "offer_items": [
+          "恶魔狼",
+          "一火二水",
+          "雪影犀角鸟"
+        ],
+        "duration": 1,
+        "create_time": "1775784858",
+        "expire_time": "1775871258"
+      }
+    ],
+    "openid": "439241631",
+    "trace_id": ""
   }
 }
 ```

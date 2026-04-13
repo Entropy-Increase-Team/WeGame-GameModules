@@ -1,0 +1,227 @@
+@font-face {
+    font-family: 'mianfeiziti';
+    src: url('../../ttf/dundun.xHd_Ee5-.woff2') format('woff2'),
+         url('../../ttf/dundun.BCbg_KoL.ttf') format('truetype');
+    font-display: swap;
+}
+
+:root {
+    --helper-font-family-mianfeiziti: 'mianfeiziti', system-ui, "calibri", "Roboto", verdana, "PingFang SC", sans-serif;
+}
+
+body {
+    margin: 0;
+    padding: 30px;
+    background-color: #FAF6ED;
+    display: inline-block;
+    font-family: var(--helper-font-family-mianfeiziti);
+}
+
+.bind-cont {
+    width: 680px;
+    background: url("../../img/ercode-bg.D1ccSQKH.png") no-repeat center center;
+    background-size: 100% 100%;
+    position: relative;
+    padding: 30px 40px;
+    box-sizing: border-box;
+}
+
+.bind-page {
+    position: relative;
+    z-index: 2;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 25px;
+    border-bottom: 2px dashed rgba(160, 140, 110, 0.4);
+    padding-bottom: 12px;
+}
+
+.page-title {
+    color: #ffc65f;
+    font-size: 34px;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    -webkit-text-stroke: 1.5px #d4842b;
+    letter-spacing: 2px;
+    margin: 0;
+}
+
+.page-subtitle {
+    color: #9e8e76;
+    font-size: 14px;
+    margin-top: 6px;
+}
+
+.bind-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.bind-item {
+    width: 100%;
+    min-height: 106px;
+    background: url("../../img/player-bg.png") no-repeat center center;
+    background-size: 100% 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 25px;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.bind-item.is-primary {
+    filter: drop-shadow(0 0 8px rgba(255, 198, 95, 0.4));
+}
+
+.bind-index {
+    font-size: 24px;
+    font-weight: bold;
+    color: #c97926;
+    width: 50px;
+    text-align: center;
+    opacity: 0.8;
+}
+
+.bind-details {
+    flex: 1;
+    padding-left: 10px;
+}
+
+.bind-name-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.bind-nickname {
+    font-size: 18px;
+    font-weight: bold;
+    color: #5a3e1b;
+}
+
+.bind-binding-index {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(177, 132, 67, 0.12);
+    color: #9d6c29;
+    font-weight: bold;
+}
+
+.badge {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+.badge-primary {
+    background: #ffc65f;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.badge-valid {
+    background: rgba(105, 170, 97, 0.16);
+    color: #4f8a44;
+}
+
+.badge-invalid {
+    background: rgba(199, 102, 86, 0.16);
+    color: #b44c3c;
+}
+
+.badge-online {
+    background: rgba(76, 166, 201, 0.16);
+    color: #2d84a7;
+}
+
+.badge-offline {
+    background: rgba(140, 122, 97, 0.14);
+    color: #7e6d57;
+}
+
+.bind-info-row {
+    font-size: 13px;
+    color: #8c7a61;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    row-gap: 4px;
+    margin-bottom: 4px;
+}
+
+.info-label {
+    opacity: 0.7;
+    margin-right: 4px;
+    white-space: nowrap;
+}
+
+.info-value {
+    font-weight: 500;
+    color: #5f4d33;
+}
+
+.ml {
+    margin-left: 15px;
+}
+
+.bind-date {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    text-align: right;
+    width: 124px;
+    flex-shrink: 0;
+}
+
+.bind-date-label {
+    color: #aa9b83;
+}
+
+.bind-date-value {
+    color: #8c7a61;
+    line-height: 1.3;
+}
+
+.empty-state {
+    padding: 60px 0;
+    text-align: center;
+    color: #9e8e76;
+    background: url("../../img/player-bg.png") no-repeat center center;
+    background-size: 100% 100%;
+    font-size: 16px;
+}
+
+/* 底部提示区域改为纯文字 */
+.bind-tip {
+    margin-top: 15px;
+    padding: 10px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #9e8e76;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.tip-icon {
+    font-size: 14px;
+    color: #b17f35;
+}
+
+.footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 12px;
+    color: #bfae95;
+    opacity: 0.8;
+}

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-astro-cid-ouamjn2i="">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{{_res_path}}render/exchange-hall/css/index.D2LGPudy.css">
+  <link rel="stylesheet" href="{{_res_path}}render/exchange-hall/css/index.B3tv56V6.css">
+  <link rel="stylesheet" href="{{_res_path}}render/exchange-hall/css/_@astro-renderers.0KDkAyVb.css">
+  <link rel="stylesheet" href="{{_res_path}}render/exchange-hall/style.css">
+</head>
+<body class="page-out-client theme-cn-dark">
+  <div class="exchange-page" style="width: 960px; padding: 25px; background: url('{{_res_path}}img/bg.C8CUoi7I.jpg') no-repeat center top; background-size: cover; position: relative; display: inline-block; vertical-align: top;">
+     <!-- 黑暗遮罩，增加暗色主题质感 -->
+     <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(30, 26, 22, 0.7); z-index: 0;"></div>
+     
+     <div class="exchange-cont page-section-main" style="position: relative; z-index: 1;">
+        <!-- 头部，极简展示 -->
+        <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 20px;">
+           <div style="display: flex; align-items: center; gap: 20px; font-family: dundun, system-ui;">
+              <span style="font-size: 32px; font-weight: bold; color: #ffc966; letter-spacing: 2px;">交换大厅</span>
+              <span style="color: #eeddbb; font-size: 18px; margin-top: 6px;">当前筛选：{{filterLabel}}</span>
+           </div>
+        </div>
+
+        <div class="exchange-cont">
+           <div class="exchange-card-list">
+              {{each posts post}}
+              <!-- 名片模板，完全采用源站的原生 DOM 结构 -->
+              <div class="exchange-card-item {{if post.isExpired}}disabled{{/if}}">
+                 <!-- 倒计时/状态 -->
+                 <div class="exchange-card-time">{{post.timeLabel}}</div>
+                 
+                 <div class="exchange-card-user-section">
+                    <div class="exchange-card-avatar">
+                       <div class="helper-image helper-image--error">
+                           <img src="{{post.avatarUrl}}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23333\'%3E%3Ccircle cx=\'12\' cy=\'12\' r=\'12\'/%3E%3C/svg%3E'">
+                       </div>
+                    </div>
+                    <div class="exchange-card-user">
+                       <div class="exchange-card-name">{{post.userName}}</div>
+                       <div class="exchange-card-label">
+                          <div class="exchange-label" style="background-color: rgb(223, 215, 192); color: rgb(24, 24, 23);">LV{{post.userLevel}}</div>
+                          
+                          {{if post.isOnline}}
+                          <div class="exchange-label" style="background-color: rgb(145, 228, 0); color: rgb(39, 39, 39);">在线</div>
+                          {{else}}
+                          <div class="exchange-label" style="background-color: rgb(107, 107, 107); color: rgb(204, 204, 204);">离线</div>
+                          {{/if}}
+                       </div>
+                    </div>
+                 </div>
+                 
+                 <!-- 我想拥有 -->
+                 <div class="exchange-card-section own">
+                    <div class="exchange-card-section-title"><i></i><span>我想拥有</span></div>
+                    <div class="exchange-card-content">
+                       <p class="exchange-card-text">{{post.wantText}}</p>
+                       {{if post.wantBadgeUrl}}
+                       <div class="exchange-card-badge">
+                          <div class="helper-image">
+                             <img src="{{post.wantBadgeUrl}}" style="width: 100%; height: auto; object-fit: contain;" onerror="this.style.display='none'">
+                          </div>
+                       </div>
+                       {{/if}}
+                    </div>
+                 </div>
+                 
+                 <!-- 我能提供 -->
+                 <div class="exchange-card-section provide">
+                    <div class="exchange-card-section-title"><i></i><span>我能提供</span></div>
+                    <div class="exchange-card-content">
+                       {{each post.provideItems item}}
+                       <div class="exchange-card-item-label" data-name="{{item}}">{{item}}</div>
+                       {{/each}}
+                    </div>
+                 </div>
+                 
+                 <!-- 底部 ID 展示，去掉无关按钮组件 -->
+                 <div class="exchange-card-tools" style="justify-content: center;">
+                    <div style="width: 100%; display: flex; justify-content: center; align-items: center; background: #e0d5ba; padding: 8px; border-radius: 6px; box-shadow: inset 0 1px 3px rgba(255,255,255,0.4);">
+                        <span style="font-size: 18px; font-weight: bold; color: #5a4b3c; font-family: dundun, system-ui;">
+                           ID: {{post.userId}}
+                        </span>
+                    </div>
+                 </div>
+              </div>
+              {{/each}}
+           </div>
+           
+           <!-- 底部翻页和机器人提示 -->
+           <div class="pagination-footer">
+              <span class="pagination-text">第 {{currentPage}} 页，共 {{totalPages}} 页</span>
+              <span class="pagination-hint">{{commandHint}}</span>
+           </div>
+        </div>
+     </div>
+  </div>
+</body>
+</html>

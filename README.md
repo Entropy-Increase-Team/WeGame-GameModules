@@ -46,6 +46,7 @@
 当前模块支持：
 
 - `+帮助`
+- `+账号列表`
 - `+档案`
 - `+精灵列表`
 - `+精灵列表 了不起 1`
@@ -72,8 +73,9 @@
 
 说明：
 
-- `rocom.api_key` 必须填写 `scope=game:rocom` 的 API Key
-- 不要填写 WeGame 核心层的 `wegame.api_key`
+- `rocom.yaml` 现在只保留模块业务配置，例如分页大小
+- 实际接口认证统一使用核心层的 `wegame.api_key`
+- 如果要调用需要授权的 RoCom 接口，这把 Key 还需要获批 `game:rocom` 下的 `rocom.access`
 
 ## 目录结构
 

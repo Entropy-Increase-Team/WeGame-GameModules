@@ -7,6 +7,10 @@ export default class RocomApi extends WeGameApi {
     return this.requestGameFrameworkGet(urlPath, frameworkToken, GAME_CODE, params)
   }
 
+  getAccounts (userIdentifier, params = {}) {
+    return this.requestUserScopedGet('/api/v1/games/rocom/accounts', userIdentifier, params)
+  }
+
   getRoleProfile (frameworkToken, params = {}) {
     return this.requestRocomGet('/api/v1/games/rocom/profile/role', frameworkToken, params)
   }

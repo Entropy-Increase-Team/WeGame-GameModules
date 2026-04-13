@@ -1,4 +1,81 @@
-import { buildCommandReg, formatCommand } from '../utils/command.js'
+import { renderModuleTemplate } from '../../../model/moduleRender.js'
+import { getModuleHelpGroups } from '../../../utils/helpConfig.js'
+import { buildCommandReg, COMMAND_PREFIXES, formatCommand } from '../utils/command.js'
+
+function buildDefaultMenuGroups () {
+  return [
+    {
+      groupTitle: '洛克王国世界',
+      menuItems: [
+        {
+          cmd: formatCommand('帮助'),
+          desc: '查看洛克王国世界帮助'
+        },
+        {
+          cmd: formatCommand('档案'),
+          desc: '查询角色档案'
+        },
+        {
+          cmd: formatCommand('账号列表'),
+          desc: '查询可识别的洛克角色账号'
+        },
+        {
+          cmd: formatCommand('战绩'),
+          desc: '查询闪耀大赛战绩'
+        },
+        {
+          cmd: formatCommand('精灵列表'),
+          desc: '查询精灵列表第一页'
+        },
+        {
+          cmd: formatCommand('精灵列表 了不起 1'),
+          desc: '查询了不起精灵第一页'
+        }
+      ]
+    }
+  ]
+}
+
+function normalizeMenuGroups (groups = []) {
+  const normalized = (Array.isArray(groups) ? groups : [])
+    .filter((group) => group?.type !== 'tips')
+    .map((group) => ({
+      groupTitle: String(group?.group || '常用命令').trim(),
+      menuItems: (Array.isArray(group?.list) ? group.list : [])
+        .map((item) => ({
+          cmd: String(item?.title || '').trim(),
+          desc: String(item?.desc || '').trim()
+        }))
+        .filter((item) => item.cmd || item.desc)
+    }))
+    .filter((group) => group.groupTitle || group.menuItems.length)
+
+  return normalized.length > 0 ? normalized : buildDefaultMenuGroups()
+}
+
+function buildFallbackText (menuGroups = []) {
+  const lines = [
+    '洛克王国世界帮助',
+    `支持前缀：${COMMAND_PREFIXES.join(' / ')}`
+  ]
+
+  for (const group of menuGroups) {
+    const items = Array.isArray(group?.menuItems) ? group.menuItems : []
+    if (!group?.groupTitle && items.length === 0) continue
+
+    lines.push('')
+    if (group?.groupTitle) {
+      lines.push(`${group.groupTitle}：`)
+    }
+
+    for (const item of items) {
+      if (!item?.cmd && !item?.desc) continue
+      lines.push(item?.desc ? `${item.cmd} - ${item.desc}` : item.cmd)
+    }
+  }
+
+  return lines.join('\n')
+}
 
 export class RocomHelp extends plugin {
   constructor (e) {
@@ -19,17 +96,34 @@ export class RocomHelp extends plugin {
   }
 
   async showHelp () {
-    const lines = [
-      '洛克王国世界帮助',
-      '',
-      `${formatCommand('帮助')} - 查看模块帮助`,
-      `${formatCommand('档案')} - 查询角色档案`,
-      `${formatCommand('战绩')} - 查询闪耀大赛战绩`,
-      `${formatCommand('精灵列表')} - 查询精灵列表`,
-      `${formatCommand('精灵列表 了不起 1')} - 查询了不起精灵第一页`
-    ]
+    const menuGroups = normalizeMenuGroups(getModuleHelpGroups('rocom'))
 
-    await this.reply(lines.join('\n'))
-    return true
+    try {
+      const image = await renderModuleTemplate(
+        this.e,
+        'rocom',
+        'render/menu/index',
+        {
+          saveId: `rocom-help-${this.e.user_id}-${Date.now()}`,
+          pageTitle: '洛克王国世界帮助',
+          pageSubtitle: `支持前缀：${COMMAND_PREFIXES.join(' / ')}`,
+          menuGroups
+        },
+        {
+          retType: 'base64'
+        }
+      )
+
+      if (!image) {
+        throw new Error('模块帮助渲染失败')
+      }
+
+      await this.reply(image)
+      return true
+    } catch (error) {
+      logger.error('[WeGame-plugin][rocom] 帮助渲染失败', error)
+      await this.reply(buildFallbackText(menuGroups))
+      return true
+    }
   }
 }

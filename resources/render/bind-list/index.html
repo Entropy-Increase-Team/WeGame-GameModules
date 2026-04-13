@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=600, initial-scale=1">
+  <title>{{title}}</title>
+  <link rel="stylesheet" href="{{_res_path}}render/bind-list/style.css">
+</head>
+<body class="page-out-client">
+  <div class="bind-cont page-section-main">
+    <div class="bind-page">
+      <div class="page-header">
+        <h1 class="page-title">{{title}}</h1>
+        <p class="page-subtitle">{{subtitle}}</p>
+      </div>
+      
+      <main class="bind-list">
+        {{if bindings && bindings.length > 0}}
+          {{each bindings item}}
+          <div class="bind-item{{if item.isPrimary}} is-primary{{/if}}">
+            <div class="bind-index">#{{item.index}}</div>
+            <div class="bind-details">
+              <div class="bind-name-row">
+                <span class="bind-nickname">{{item.nickname}}</span>
+                <span class="bind-binding-index">绑定{{item.binding_index}}</span>
+                {{if item.badges && item.badges.length > 0}}
+                  {{each item.badges badge}}
+                    <span class="badge{{if badge.type}} badge-{{badge.type}}{{/if}}">{{badge.text}}</span>
+                  {{/each}}
+                {{/if}}
+              </div>
+              <div class="bind-info-row">
+                <span class="info-label">角色ID</span>
+                <span class="info-value">{{item.role_id}}</span>
+                <span class="info-label ml">WeGameID</span>
+                <span class="info-value">{{item.tgp_id}}</span>
+              </div>
+              <div class="bind-info-row">
+                <span class="info-label">登录方式</span>
+                <span class="info-value">{{item.type_label}}</span>
+                <span class="info-label ml">等级</span>
+                <span class="info-value">{{item.level_text}}</span>
+                <span class="info-label ml">星级</span>
+                <span class="info-value">{{item.star_name}}</span>
+              </div>
+            </div>
+            <div class="bind-date">
+              <span class="bind-date-label">更新时间</span>
+              <span class="bind-date-value">{{item.updated_at}}</span>
+            </div>
+          </div>
+          {{/each}}
+        {{else}}
+          <div class="empty-state">
+            {{emptyText || "暂无可识别的账号信息"}}
+          </div>
+        {{/if}}
+      </main>
+      <div class="footer">{{copyright}}</div>
+    </div>
+  </div>
+  <div class="bind-tip">
+    <span class="tip-icon">提示</span>
+    <span class="tip-text">{{tip || "发送 =切换账号 <绑定序号> 切换默认账号"}}</span>
+  </div>
+</body>
+</html>

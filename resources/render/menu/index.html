@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=800, initial-scale=1">
+  <title>{{pageTitle}}</title>
+  <link rel="stylesheet" href="{{_res_path}}render/menu/style.css">
+</head>
+<body class="page-out-client">
+  <div class="menu-cont page-section-main">
+    <img class="xiaoluoke-overlay" src="{{_res_path}}img/小洛克.png" onerror="this.style.display='none'">
+    <div class="menu-page">
+      <div class="header-center">
+        <div class="page-title">{{pageTitle}}</div>
+        <div class="page-subtitle">{{pageSubtitle}}</div>
+      </div>
+      <main class="menu-content">
+        {{each menuGroups group}}
+        <div class="menu-group">
+          <div class="group-title">{{group.groupTitle}}</div>
+          <div class="group-items">
+            {{each group.menuItems item}}
+            <div class="menu-item">
+              <div class="menu-item-cmd">{{item.cmd}}</div>
+              <div class="menu-item-desc">{{item.desc}}</div>
+            </div>
+            {{/each}}
+          </div>
+        </div>
+        {{/each}}
+      </main>
+      <div class="footer">Yunzai & WeGame Roco Kingdom Plugin</div>
+    </div>
+  </div>
+</body>
+</html>

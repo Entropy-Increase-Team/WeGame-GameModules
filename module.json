@@ -1,18 +1,20 @@
 {
   "code": "rocom",
   "name": "洛克王国世界",
-  "description": "RoCom / NRC 游戏模块，提供档案与精灵查询能力。",
+  "description": "RoCom / NRC 游戏模块，提供档案、战绩与精灵查询能力。",
   "version": "0.1.0",
   "apiDoc": "modules/rocom/Rocom-API.md",
   "commands": [
     "+帮助",
+    "+账号列表",
     "+档案",
+    "+战绩",
     "+精灵列表"
   ],
   "help": {
     "icon": "../modules/rocom/resources/img/logo.png",
     "title": "+帮助",
-    "desc": "洛克王国帮助"
+    "desc": "查看洛克王国世界帮助"
   },
   "config": {
     "file": "games/rocom.yaml"

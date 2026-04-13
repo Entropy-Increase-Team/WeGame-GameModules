@@ -1,9 +1,4 @@
 rocom:
-  # `game:rocom` 作用域的 API Key
-  # 请不要填写 WeGame 核心层的 wegame.api_key
-  # 示例：sk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-  api_key: ''
-
   # 精灵列表每页数量
   page_size: 10
 
