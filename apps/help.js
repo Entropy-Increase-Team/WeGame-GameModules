@@ -30,6 +30,22 @@ function buildDefaultMenuGroups () {
         {
           cmd: formatCommand('精灵列表 了不起 1'),
           desc: '查询了不起精灵第一页'
+        },
+        {
+          cmd: formatCommand('尺寸查询 0.45 35.6'),
+          desc: '按尺寸和重量反查精灵候选'
+        },
+        {
+          cmd: formatCommand('远行商人'),
+          desc: '查询远行商人活动信息'
+        },
+        {
+          cmd: formatCommand('wiki精灵 圣剑'),
+          desc: '查询 Wiki 精灵资料'
+        },
+        {
+          cmd: formatCommand('wiki技能 圣光斩'),
+          desc: '查询 Wiki 技能资料'
         }
       ]
     }

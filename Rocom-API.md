@@ -10,6 +10,8 @@
 - 开发者 `WeGame API Key` 创建
 - `game:rocom` 对应权限申请
 
+如果这份 `frameworkToken` 已经明确持久化为其他共享登录 provider，例如 `df`，当前接口会直接拒绝使用，避免跨游戏误用 token。
+
 ## 前置要求
 
 当前洛克王国世界模块统一使用：
@@ -69,6 +71,7 @@
           "framework_token": "4c52b50d-2b5f-47fb-9a1f-8b0c76f76c67",
           "token_type": "wegame",
           "login_type": "qq",
+          "credential_provider": "rocom",
           "client_type": "web",
           "tgp_id": "295231685",
           "is_primary": true,
@@ -325,6 +328,7 @@
 未传 `zone` 时，后端会根据当前 WeGame `loginType` 自动推断。
 `after_time` 为分页游标时间，建议使用 RFC3339 格式。
 未传 `after_time` 时，后端会自动使用当前 UTC 时间后再请求上游。
+`result` 为战斗结果 `result=0` 表示 胜利，`result=1` 表示失败。
 `page_size` 默认为 `4`。
 
 响应补充：
@@ -700,6 +704,127 @@
 }
 ```
 
+### 精灵尺寸查询
+
+- `GET /api/v1/games/rocom/pet/size-query`
+
+说明：
+根据精灵尺寸（直径，单位米）与重量（单位千克）查询匹配的精灵候选列表。该接口代理第三方服务 `size.mfsky.xyz`，并在返回结果上追加精灵的 `petImage`（大图）与 `petIcon`（小图）。
+
+参数说明：
+`diameter`（必填）精灵尺寸，单位米，例如 `0.45`。
+`weight`（必填）精灵重量，单位千克，例如 `35.6`。
+
+鉴权说明：
+- 需要 `X-API-Key` 并持有 `rocom.access` 权限
+- 本接口为工具类查询，**不需要** 传 `X-Framework-Token`
+
+响应补充：
+后端会按上游返回的 `petId` 反查本地 `sprite_base_info.item_id`，得到精灵图片资源 `id` 后，在每个 `candidates` / `exactResults` 条目上追加：
+
+- `petImage`：`https://game.gtimg.cn/images/rocom/rocodata/jingling/{id}/image.png`
+- `petIcon`：`https://game.gtimg.cn/images/rocom/rocodata/jingling/{id}/icon.png`
+
+本地尚未同步到该精灵时，不会写入 `petImage` / `petIcon`。
+
+示例：
+`GET /api/v1/games/rocom/pet/size-query?diameter=1.23&weight=45.6`
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "candidates": [
+      {
+        "diameterMax": 0.49,
+        "diameterMin": 0.376,
+        "matchCount": 1,
+        "pet": "圣剑侍从",
+        "petId": 285,
+        "petImage": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3285/image.png",
+        "petIcon": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3285/icon.png",
+        "probability": 13.4,
+        "weightMax": 69.44,
+        "weightMin": 46.28
+      }
+    ],
+    "exactResults": [],
+    "searchMode": "nearest"
+  }
+}
+```
+
+### 远行商人信息
+
+- `GET /api/v1/games/rocom/merchant/info`
+
+说明：
+查询 RoCom 小程序 `m-common-co.getInitInfo` 里的远行商人活动数据。后端会把上游原始返回做一次投影，只保留远行商人和其他活动的核心字段，并对成功结果做短时缓存。
+
+参数：
+
+- `refresh`（选填）是否强制刷新缓存，支持 `true / false / 1 / 0`，默认 `false`
+
+鉴权说明：
+
+- 支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`
+- **不需要** 传 `X-Framework-Token`
+- API Key 调用时仍需通过游戏权限校验
+
+缓存说明：
+
+- 默认缓存 5 分钟
+- 传 `refresh=true` 时会先清掉当前进程内缓存，再重新请求上游
+
+返回说明：
+
+- `merchant_activities`：远行商人活动列表
+- `other_activities`：同一个上游接口里返回的其他活动简表
+- 字段名已经统一转成 snake_case，不再直接暴露上游的 camelCase
+
+示例：
+
+`GET /api/v1/games/rocom/merchant/info?refresh=true`
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "merchant_activities": [
+      {
+        "name": "远行商人",
+        "start_date": "2026-04-18",
+        "start_time": 1776441600000,
+        "end_time": 1776527999000,
+        "get_props": [
+          {
+            "name": "高级咕噜球",
+            "start_time": 1776441600000,
+            "end_time": 1776527999000
+          }
+        ],
+        "get_pets": [
+          {
+            "name": "圣剑侍从"
+          }
+        ]
+      }
+    ],
+    "other_activities": [
+      {
+        "name": "签到活动"
+      }
+    ]
+  }
+}
+```
+
 ### 手动同步本地配置
 
 - `POST /api/v1/games/rocom/config/sync`
@@ -738,6 +863,160 @@
       "skill.json"
     ],
     "triggered_by": "web_jwt"
+  }
+}
+```
+
+## Wiki 数据（BWIKI 同步）
+
+BWIKI 同步把 `wiki.biligame.com/rocom` 的精灵图鉴抓回本地 PostgreSQL，写入 `game_rocom.wiki_sprites` 与 `game_rocom.wiki_skills`。
+
+调度策略：
+
+- Worker 每天 `00:00 / 06:00 / 12:00 / 18:00` 本地时间触发一次
+- `00:00` 触发全量同步；其余时段触发增量（仅抓取新增条目，或页面 URL / 编号 / 名称 / Form / 异色标记发生变化的条目）
+- 每次请求 BWIKI 前随机等待 `1.5~3` 秒，`HTTP 567`（反爬）时按 `10/20/30s` 退避重试
+- 如果列表页抓取成功但一条精灵都没有识别出来，本轮同步会直接记为失败，不会再把 `0 条` 当作成功结果
+- 每轮同步都会按最新图鉴列表清理本地已下线的精灵；技能清理由全量同步在成功完成后统一收口
+
+### 查询精灵
+
+- `GET /api/v1/games/rocom/wiki/pet`
+
+参数：
+
+- `q`（必填）精灵名称关键字，支持精确 / 前缀 / 子串匹配
+- `limit`（选填）最多返回几条，默认 10，最大 50
+
+鉴权：需要 `X-API-Key` 并持有 `rocom.access` 权限，**不需要** `X-Framework-Token`。
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "query": "圣剑",
+    "limit": 10,
+    "total": 1,
+    "results": [
+      {
+        "no": 285,
+        "name": "圣剑侍从",
+        "form": "",
+        "url": "https://wiki.biligame.com/rocom/%E5%9C%A3%E5%89%91%E4%BE%8D%E4%BB%8E",
+        "has_shiny": true,
+        "image_url": "https://patchwiki.biligame.com/images/rocom/...png",
+        "attributes": ["圣光"],
+        "stats": {"hp": 90, "atk": 110, "sp_atk": 60, "def": 80, "sp_def": 70, "spd": 95, "total": 505},
+        "ability_name": "圣剑之誓",
+        "ability_desc": "...",
+        "type_matchup": {"strong_against": ["暗影"], "weak_to": [], "resists": [], "resisted_by": []},
+        "skills": [
+          {"name": "圣光斩", "attribute": "圣光", "category": "物理", "cost": 2, "power": 90, "description": "..."}
+        ],
+        "updated_at": "2026-04-18T00:12:34+08:00"
+      }
+    ]
+  }
+}
+```
+
+### 查询技能
+
+- `GET /api/v1/games/rocom/wiki/skill`
+
+参数：
+
+- `q`（必填）技能名称关键字
+- `limit`（选填）最多返回几条，默认 10，最大 50
+
+鉴权：同上，`X-API-Key` + `rocom.access`。
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "query": "圣光斩",
+    "limit": 10,
+    "total": 1,
+    "results": [
+      {
+        "name": "圣光斩",
+        "attribute": "圣光",
+        "category": "物理",
+        "cost": 2,
+        "power": 90,
+        "description": "...",
+        "updated_at": "2026-04-18T00:12:34+08:00"
+      }
+    ]
+  }
+}
+```
+
+### 手动触发 Wiki 同步
+
+- `POST /api/v1/games/rocom/wiki/sync`
+
+参数：
+
+- `mode`（选填）`incremental`（默认）或 `full`
+
+鉴权：需要管理员权限，两种方式都可以：
+
+- `Authorization: Bearer <web-jwt>` 且角色是后端管理员，或
+- `X-API-Key` 且该 Key 已被授予 `admin.access` 权限（wegame scope）
+
+说明：
+
+- 全量同步会抓完整套精灵图鉴，耗时约 30~60 分钟，任务内会限时 2 小时
+- 本接口是异步触发，返回即表示任务已入队；如果已有同步正在运行，返回 `409`
+- 进度可通过 `/wiki/sync/status` 查询
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "Wiki 同步已触发",
+  "data": {
+    "mode": "incremental",
+    "started_at": "2026-04-18T12:00:00+08:00",
+    "triggered": "async"
+  }
+}
+```
+
+### 查询 Wiki 同步状态
+
+- `GET /api/v1/games/rocom/wiki/sync/status`
+
+鉴权：同 `POST /wiki/sync`（Web JWT 管理员 或 `admin.access` 的 API Key）。
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "running": false,
+    "last_mode": "incremental",
+    "last_started": "2026-04-18T12:00:00+08:00",
+    "last_finished": "2026-04-18T12:14:22+08:00",
+    "last_listed": 812,
+    "last_fetched": 3,
+    "last_failed": 0,
+    "last_written": 3,
+    "last_deleted": 1,
+    "last_skills": 15,
+    "last_skills_deleted": 0,
+    "last_error": ""
   }
 }
 ```

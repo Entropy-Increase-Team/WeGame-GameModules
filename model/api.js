@@ -7,6 +7,14 @@ export default class RocomApi extends WeGameApi {
     return this.requestGameFrameworkGet(urlPath, frameworkToken, GAME_CODE, params)
   }
 
+  requestRocomPublicGet (urlPath, params = {}) {
+    return this.request(urlPath, {
+      method: 'get',
+      params,
+      needBaseAuth: true
+    })
+  }
+
   getAccounts (userIdentifier, params = {}) {
     return this.requestUserScopedGet('/api/v1/games/rocom/accounts', userIdentifier, params)
   }
@@ -37,5 +45,21 @@ export default class RocomApi extends WeGameApi {
 
   getBattlePets (frameworkToken, params = {}) {
     return this.requestRocomGet('/api/v1/games/rocom/battle/pets', frameworkToken, params)
+  }
+
+  getPetSizeQuery (params = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/pet/size-query', params)
+  }
+
+  getMerchantInfo (params = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/merchant/info', params)
+  }
+
+  searchWikiPet (params = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/wiki/pet', params)
+  }
+
+  searchWikiSkill (params = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/wiki/skill', params)
   }
 }

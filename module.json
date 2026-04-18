@@ -9,7 +9,11 @@
     "+账号列表",
     "+档案",
     "+战绩",
-    "+精灵列表"
+    "+精灵列表",
+    "+尺寸查询",
+    "+远行商人",
+    "+wiki精灵",
+    "+wiki技能"
   ],
   "help": {
     "icon": "../modules/rocom/resources/img/logo.png",
