@@ -1,0 +1,216 @@
+@font-face {
+    font-family: 'Mianfeiziti';
+    src: url('{{_res_path}}ttf/SourceHanSansCN-Regular.ttf') format('truetype');
+}
+
+:root {
+    --bg-primary: rgba(30, 26, 22, 0.9);
+    --card-bg: rgba(245, 238, 224, 0.95);
+    --text-primary: #f4eee1;
+    --text-secondary: #a8a69f;
+    --accent-color: #ffc966;
+}
+
+html, body {
+    margin: 0;
+    padding: 25px;
+    background: transparent;
+    font-size: 100px;
+    font-family: 'Mianfeiziti', system-ui, -apple-system, sans-serif;
+}
+
+.lineup-detail-page {
+    width: 8rem;
+    background: var(--card-bg);
+    border-radius: 0.12rem;
+    padding: 0.25rem;
+    margin: 0 auto;
+}
+
+/* ====== Header ====== */
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.2rem;
+    padding-bottom: 0.15rem;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+.detail-title {
+    font-size: 0.24rem;
+    font-weight: bold;
+    color: #272727;
+    letter-spacing: 2px;
+}
+
+.detail-close {
+    font-size: 0.24rem;
+    color: #999;
+    cursor: pointer;
+}
+
+/* ====== Lineup Info ====== */
+.lineup-info {
+    margin-bottom: 0.25rem;
+}
+
+.lineup-name-section {
+    display: flex;
+    align-items: center;
+    gap: 0.08rem;
+    flex-wrap: wrap;
+}
+
+.lineup-name {
+    font-size: 0.2rem;
+    font-weight: bold;
+    color: #272727;
+}
+
+.lineup-icon {
+    font-size: 0.22rem;
+}
+
+.lineup-tags {
+    display: flex;
+    gap: 0.05rem;
+    margin-left: 0.1rem;
+}
+
+.tag {
+    background: rgba(0, 0, 0, 0.1);
+    color: #666;
+    font-size: 0.12rem;
+    padding: 0.03rem 0.08rem;
+    border-radius: 0.04rem;
+}
+
+/* ====== Pet Detail List ====== */
+.pet-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin-bottom: 0.25rem;
+}
+
+.pet-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.12rem;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 0.08rem;
+}
+
+.pet-detail-avatar {
+    position: relative;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.pet-detail-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.bloodline-badge {
+    position: absolute;
+    bottom: -0.05rem;
+    right: -0.05rem;
+    width: 0.28rem;
+    height: 0.28rem;
+    background: var(--card-bg);
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    padding: 0.02rem;
+}
+
+.bloodline-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.pet-detail-name {
+    width: 1.2rem;
+    font-size: 0.16rem;
+    font-weight: 500;
+    color: #272727;
+}
+
+.pet-detail-skills {
+    flex: 1;
+    display: flex;
+    gap: 0.05rem;
+    flex-wrap: wrap;
+}
+
+.skill-detail-icon {
+    width: 0.3rem;
+    height: 0.3rem;
+    border-radius: 0.05rem;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+/* ====== Footer ====== */
+.detail-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.2rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.author-info {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.author-avatar {
+    width: 0.35rem;
+    height: 0.35rem;
+    border-radius: 50%;
+}
+
+.author-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.03rem;
+}
+
+.author-name {
+    font-size: 0.15rem;
+    color: #272727;
+    font-weight: 500;
+}
+
+.author-likes {
+    font-size: 0.13rem;
+    color: #666;
+}
+
+.lineup-code-section {
+    display: flex;
+    align-items: center;
+    gap: 0.08rem;
+}
+
+.code-label {
+    font-size: 0.13rem;
+    color: #666;
+}
+
+.code-value {
+    font-size: 0.14rem;
+    color: #272727;
+    font-family: monospace;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.05rem 0.1rem;
+    border-radius: 0.04rem;
+}

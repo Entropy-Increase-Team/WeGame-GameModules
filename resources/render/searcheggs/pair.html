@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=820, initial-scale=1">
+  <title>配种判定</title>
+  <link rel="stylesheet" href="{{_res_path}}render/searcheggs/style.css">
+</head>
+<body class="page-out-client">
+  <div class="searcheggs-cont page-section-main">
+    <img class="xiaoluoke-overlay" src="{{_res_path}}img/小洛克.png" onerror="this.style.display='none'">
+    <div class="page-inner">
+
+      <div class="header">
+        <div class="header-title">🥚 配种判定</div>
+        <div class="header-subtitle">精灵配种兼容性检查</div>
+      </div>
+
+      <div class="pair-card">
+        <!-- Two pets side by side -->
+        <div class="pair-pets">
+          <div class="pair-pet-info">
+            <div class="pair-pet-role">母体 (后者)</div>
+            <div class="pair-pet-name">{{mother.name}}</div>
+            <div class="pair-pet-type">{{mother.type_label}}</div>
+            <div style="font-size:12px; color:#8c7a61; margin-top:4px;">{{mother.egg_groups_label}}</div>
+          </div>
+          <div class="pair-arrow">⚡</div>
+          <div class="pair-pet-info">
+            <div class="pair-pet-role">父体 (前者)</div>
+            <div class="pair-pet-name">{{father.name}}</div>
+            <div class="pair-pet-type">{{father.type_label}}</div>
+            <div style="font-size:12px; color:#8c7a61; margin-top:4px;">{{father.egg_groups_label}}</div>
+          </div>
+        </div>
+
+        <!-- Result Badge -->
+        {{if compatible}}
+        <div class="pair-result-badge pair-result-compatible">
+          <div class="pair-result-text">✅ 可以配种</div>
+          <div class="pair-result-reason">共享蛋组匹配，可以产出精灵蛋</div>
+          <div class="shared-groups">
+            {{each shared_egg_group_labels label}}
+            <span class="shared-group-tag">{{label}}</span>
+            {{/each}}
+          </div>
+        </div>
+        {{else}}
+        <div class="pair-result-badge pair-result-incompatible">
+          <div class="pair-result-text">❌ 无法配种</div>
+          {{each reasons reason}}
+          <div class="pair-result-reason">{{reason}}</div>
+          {{/each}}
+        </div>
+        {{/if}}
+
+        <!-- Hatch Info (only when compatible) -->
+        {{if compatible}}
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">孵化时长</div>
+            <div class="info-value-sm">{{hatch_label}}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">体重范围</div>
+            <div class="info-value-sm">{{weight_label}}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">身高范围</div>
+            <div class="info-value-sm">{{height_label}}</div>
+          </div>
+        </div>
+        {{/if}}
+      </div>
+
+      <div class="command-hint">{{commandHint}}</div>
+      <div class="footer">{{copyright}}</div>
+    </div>
+  </div>
+</body>
+</html>

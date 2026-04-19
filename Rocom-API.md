@@ -18,12 +18,14 @@
 
 - `/api/v1/games/rocom/*`
 
-以下接口统一要求：
+以下认证规则请先记住：
 
-- 先完成基础认证
-- 通过 `X-Framework-Token` 指定一份已保存的 WeGame 凭证
+- 当前模块的大部分查询接口至少需要一种基础认证：`Authorization: Bearer <web-jwt>`、`X-Anonymous-Token`、或 `X-API-Key`
+- 除了明确标注为“**不需要 `X-Framework-Token`**”的接口外，大部分游戏数据接口都需要通过 `X-Framework-Token` 指定一份已保存的 WeGame 凭证
 - 如果使用 `X-API-Key`，统一使用开发者 `WeGame API Key`
 - 该 API Key 还必须已经获批 `game:rocom` 下的对应权限，当前默认公开权限为 `rocom.access`
+- 如果 API Key 请求使用的是按第三方用户作用域创建 / 归属的 `frameworkToken` 或绑定记录，后续请求还需要继续带同一个 `user_identifier`；可放在 query 参数，或 `X-User-Identifier` 请求头
+- 如果这份 `frameworkToken` 来自 Web 授权流程，且授权请求里传过 `platform_id`，这里的 `user_identifier` 也应该和当时的 `platform_id` 保持一致
 - 当前只开放 HAR 中已验证的核心查询接口
 - 成功时 `data` 中会包一层上游 WeGame 响应
 
@@ -53,8 +55,10 @@
 - 返回当前调用者在 `rocom` 组件下能成功识别出的账号列表
 - 实现方式是先读取当前用户的 WeGame 绑定列表，再逐个查询 RoCom 角色资料
 - 只有成功读取到角色资料的绑定才会出现在结果里
+- `GET /api/v1/games/rocom/accounts` 基于已保存绑定工作，**不需要** `X-Framework-Token`
 - Web 用户直接带 `Authorization: Bearer <web-jwt>` 即可
-- API Key 调用时需要额外带 `user_identifier`
+- API Key 调用时需要额外带 `user_identifier`，可放在 query 参数或 `X-User-Identifier` 请求头
+- 当前账号列表接口不支持匿名令牌
 - 支持可选查询参数 `account_type`
 
 响应示例：
@@ -130,9 +134,19 @@
 - `GET /api/v1/games/rocom/profile/battle-overview`
 
 参数说明：
-以下接口都支持可选查询参数 `account_type`。
+`GET /api/v1/games/rocom/profile/role`
+`GET /api/v1/games/rocom/profile/evaluation`
+`GET /api/v1/games/rocom/profile/pet-summary`
+`GET /api/v1/games/rocom/profile/collection`
+以上 4 个接口都需要 `X-Framework-Token`，并支持可选查询参数 `account_type`。
 `account_type=1` 表示 QQ，`account_type=2` 表示微信。
 未传 `account_type` 时，后端会根据当前 WeGame `loginType` 自动推断。
+
+`GET /api/v1/games/rocom/profile/battle-overview` 同样需要 `X-Framework-Token`，但它使用的是可选查询参数 `zone`，不是 `account_type`。
+`zone=0` 表示 QQ，`zone=1` 表示微信。
+未传 `zone` 时，后端会根据当前 WeGame `loginType` 自动推断。
+
+如果使用 `X-API-Key` 且该 `frameworkToken` 绑定了第三方用户作用域，以上接口仍需继续带同一个 `user_identifier`，可放在 query 参数或 `X-User-Identifier` 请求头。
 
 `GET /api/v1/games/rocom/profile/role` 说明：
 
@@ -324,17 +338,21 @@
 对应上游 `NrcBattle/GetBattles`。
 
 参数说明：
+`X-Framework-Token` 必填。
 `zone` 用于区分登录来源对应的战斗分区，`zone=0` 表示 QQ，`zone=1` 表示微信。
 未传 `zone` 时，后端会根据当前 WeGame `loginType` 自动推断。
 `after_time` 为分页游标时间，建议使用 RFC3339 格式。
 未传 `after_time` 时，后端会自动使用当前 UTC 时间后再请求上游。
-`result` 为战斗结果 `result=0` 表示 胜利，`result=1` 表示失败。
 `page_size` 默认为 `4`。
+如果使用 `X-API-Key` 且该 `frameworkToken` 绑定了第三方用户作用域，仍需继续带同一个 `user_identifier`，可放在 query 参数或 `X-User-Identifier` 请求头。
 
 响应补充：
 后端会为每条对战记录补充 `avatar_url` 和 `enemy_avatar_url`，由 API 侧按头像 ID 从已同步到本地的 `headicon_config` 映射得出，不是上游原始字段。
 后端会为每条对战记录补充 `tier_url` 和 `enemy_tier_url`，由 API 侧按段位 ID 从已同步到本地的 `file_config.rank_big` 映射得出，不是上游原始字段。
 后端会保留上游原始 `pet_base_id` 和 `enemy_pet_base_id` 数组，同时追加 `pet_base_info` 和 `enemy_pet_base_info`。
+顶层的 `data.result` 是上游通用状态对象；每条 `battles[].result` 则是单场对战结果字段，两者不是同一含义。
+后端当前不会改写 `battles[].result`，会原样保留上游返回值。
+`battles[].result=0` 表示胜利，`battles[].result=1` 表示失败；示例里的 `"result": 1` 表示这场战斗结果为失败，不是接口错误码。
 `battle_time` 表示挑战时间。
 `pet_base_info` 和 `enemy_pet_base_info` 中每一项都包含：
 `pet_base_id` 精灵 ID。
@@ -466,6 +484,7 @@
 虽然路径是 `/api/v1/games/rocom/battle/pets`，但该接口实际用于查询精灵列表，对应上游 `NrcBattle/GetMyPets`。
 
 参数说明：
+`X-Framework-Token` 必填。
 `zone` 用于区分登录来源对应的战斗分区，`zone=0` 表示 QQ，`zone=1` 表示微信。
 未传 `zone` 时，后端会根据当前 WeGame `loginType` 自动推断。
 `pet_subset=0` 全部精灵列表。
@@ -475,6 +494,7 @@
 `pet_type` 用于按属性筛选，默认 `0` 表示不过滤。
 `page_no` 默认为 `1`。
 `page_size` 默认为 `10`。
+如果使用 `X-API-Key` 且该 `frameworkToken` 绑定了第三方用户作用域，仍需继续带同一个 `user_identifier`，可放在 query 参数或 `X-User-Identifier` 请求头。
 
 响应补充：
 后端会为每个精灵项补充 `pet_img_url` 字段，规则为
@@ -540,10 +560,12 @@
 对应上游 `NrcLineup/GetLineupList`。
 
 参数说明：
+`X-Framework-Token` 必填。
 `category` 用于按阵容分类过滤，透传给上游。
 `account_type` 透传给上游。
 `page_no` 表示后端分页页码，默认为 `1`。
 后端会先请求上游全量阵容列表，再在 API 侧按每页 `6` 条分页返回。
+如果使用 `X-API-Key` 且该 `frameworkToken` 绑定了第三方用户作用域，仍需继续带同一个 `user_identifier`，可放在 query 参数或 `X-User-Identifier` 请求头。
 
 响应补充：
 后端会在顶层补充 `page_no`、`page_size`、`total`、`total_pages`、`has_more`，用于表示 API 侧分页结果。
@@ -641,10 +663,12 @@
 对应上游 `RocoExchange/GetPosterList`。
 
 参数说明：
+`X-Framework-Token` 必填。
 `refresh` 透传给上游，默认为 `false`。
 `account_type` 透传给上游。
 `page_no` 表示后端分页页码，默认为 `1`。
 后端会先请求上游全量海报列表，再在 API 侧按每页 `6` 条分页返回。
+如果使用 `X-API-Key` 且该 `frameworkToken` 绑定了第三方用户作用域，仍需继续带同一个 `user_identifier`，可放在 query 参数或 `X-User-Identifier` 请求头。
 
 响应补充：
 后端会在顶层补充 `page_no`、`page_size`、`total`、`total_pages`、`has_more`，用于表示 API 侧分页结果。
@@ -716,7 +740,7 @@
 `weight`（必填）精灵重量，单位千克，例如 `35.6`。
 
 鉴权说明：
-- 需要 `X-API-Key` 并持有 `rocom.access` 权限
+- 支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`
 - 本接口为工具类查询，**不需要** 传 `X-Framework-Token`
 
 响应补充：
@@ -762,7 +786,7 @@
 - `GET /api/v1/games/rocom/merchant/info`
 
 说明：
-查询 RoCom 小程序 `m-common-co.getInitInfo` 里的远行商人活动数据。后端会把上游原始返回做一次投影，只保留远行商人和其他活动的核心字段，并对成功结果做短时缓存。
+查询 RoCom 小程序 `m-common-co.getInitInfo` 里的远行商人活动数据。后端不会再对返回结构做投影或字段重命名，当前会直接透传上游 JSON，并对成功结果做短时缓存。
 
 参数：
 
@@ -781,9 +805,8 @@
 
 返回说明：
 
-- `merchant_activities`：远行商人活动列表
-- `other_activities`：同一个上游接口里返回的其他活动简表
-- 字段名已经统一转成 snake_case，不再直接暴露上游的 camelCase
+- 当前直接返回上游 JSON，字段名、嵌套结构、数组内容以上游实际返回为准
+- 例如 `merchantActivities`、`otherActivities`、`get_props`、`get_pets`、`get_extra_props`、`_id`、`icon_url` 等字段都会原样保留
 
 示例：
 
@@ -796,7 +819,7 @@
   "code": 0,
   "message": "成功",
   "data": {
-    "merchant_activities": [
+    "merchantActivities": [
       {
         "name": "远行商人",
         "start_date": "2026-04-18",
@@ -804,11 +827,14 @@
         "end_time": 1776527999000,
         "get_props": [
           {
+            "_id": "67611185d8ac54dc9b688c9b",
+            "icon_url": "https://mmbiz.qpic.cn/example.png",
             "name": "高级咕噜球",
             "start_time": 1776441600000,
             "end_time": 1776527999000
           }
         ],
+        "get_extra_props": [],
         "get_pets": [
           {
             "name": "圣剑侍从"
@@ -816,7 +842,7 @@
         ]
       }
     ],
-    "other_activities": [
+    "otherActivities": [
       {
         "name": "签到活动"
       }
@@ -824,6 +850,52 @@
   }
 }
 ```
+
+### 好友关系
+
+- `GET /api/v1/games/rocom/social/friendship`
+
+说明：
+
+- 对应上游 `Imsnssvr/CheckFriendship`
+- 需要 `X-Framework-Token`
+- `user_ids` 必填，使用英文逗号分隔的一组数字 ID，例如 `10001,10002`
+- 如果使用 `X-API-Key` 且该 `frameworkToken` 绑定了第三方用户作用域，仍需继续带同一个 `user_identifier`（query 或 `X-User-Identifier`）
+
+返回说明：
+
+- 当前直接透传上游 JSON，字段以上游实际返回为准
+
+### 学生认证状态
+
+- `GET /api/v1/games/rocom/activity/student-state`
+
+说明：
+
+- 对应上游 `StudentActivity/GetStudentCertifiedState`
+- 需要 `X-Framework-Token`
+- `account_type` 可选，默认 `0`，透传给上游
+- 如果使用 `X-API-Key` 且该 `frameworkToken` 绑定了第三方用户作用域，仍需继续带同一个 `user_identifier`（query 或 `X-User-Identifier`）
+
+返回说明：
+
+- 当前直接透传上游 JSON，字段以上游实际返回为准
+
+### 学生活动福利
+
+- `GET /api/v1/games/rocom/activity/perks`
+
+说明：
+
+- 对应上游 `NrcStudentActivity/GetPerksList`
+- 需要 `X-Framework-Token`
+- `area` 可选，默认 `101`
+- `account_type` 可选，默认 `0`
+- 如果使用 `X-API-Key` 且该 `frameworkToken` 绑定了第三方用户作用域，仍需继续带同一个 `user_identifier`（query 或 `X-User-Identifier`）
+
+返回说明：
+
+- 当前直接透传上游 JSON，字段以上游实际返回为准
 
 ### 手动同步本地配置
 
@@ -888,7 +960,7 @@ BWIKI 同步把 `wiki.biligame.com/rocom` 的精灵图鉴抓回本地 PostgreSQL
 - `q`（必填）精灵名称关键字，支持精确 / 前缀 / 子串匹配
 - `limit`（选填）最多返回几条，默认 10，最大 50
 
-鉴权：需要 `X-API-Key` 并持有 `rocom.access` 权限，**不需要** `X-Framework-Token`。
+鉴权：支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`，**不需要** `X-Framework-Token`。
 
 响应示例：
 
@@ -932,7 +1004,7 @@ BWIKI 同步把 `wiki.biligame.com/rocom` 的精灵图鉴抓回本地 PostgreSQL
 - `q`（必填）技能名称关键字
 - `limit`（选填）最多返回几条，默认 10，最大 50
 
-鉴权：同上，`X-API-Key` + `rocom.access`。
+鉴权：同上，支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`，**不需要** `X-Framework-Token`。
 
 响应示例：
 

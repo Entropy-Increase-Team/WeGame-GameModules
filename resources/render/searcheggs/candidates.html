@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="{{_res_path}}render/searcheggs/style.css">
+  <style>
+    .search-card-list { display: grid; gap: 14px; margin-top: 22px; }
+    .search-card-item { background: rgba(255,255,255,0.94); border-radius: 18px; padding: 18px 20px; box-shadow: 0 10px 24px rgba(40, 31, 23, 0.08); }
+    .search-card-title { display: flex; justify-content: space-between; gap: 12px; font-size: 28px; font-weight: 700; color: #4d3624; }
+    .search-card-meta { margin-top: 10px; color: #75563d; font-size: 18px; line-height: 1.7; }
+    .search-empty { text-align: center; font-size: 24px; color: #6f5845; padding: 48px 24px; }
+  </style>
+</head>
+<body>
+  <div class="searcheggs-cont page-section-main">
+    <div class="header-card">
+      <div class="header-main">
+        <div class="header-title">查蛋候选结果</div>
+        <div class="header-subtitle">关键词「{{keyword}}」命中 {{count}} 个候选，请使用更精确的名称</div>
+      </div>
+    </div>
+
+    {{if candidates && candidates.length > 0}}
+    <div class="search-card-list">
+      {{each candidates item}}
+      <div class="search-card-item">
+        <div class="search-card-title">
+          <span>{{item.name}}</span>
+          <span>#{{item.id}}</span>
+        </div>
+        <div class="search-card-meta">
+          属性：{{item.type_label}}<br>
+          蛋组：{{item.egg_groups_label}}<br>
+          身高：{{item.height_label}} ｜ 体重：{{item.weight_label}}
+        </div>
+      </div>
+      {{/each}}
+    </div>
+    {{else}}
+    <div class="search-empty">没有可展示的候选结果</div>
+    {{/if}}
+
+    <div class="pagination-footer">
+      <span class="pagination-hint">{{commandHint}}</span>
+      <span class="copyright">{{copyright}}</span>
+    </div>
+  </div>
+</body>
+</html>

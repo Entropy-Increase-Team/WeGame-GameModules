@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>远行商人</title>
+    <style>
+@font-face {
+    font-family: "fzlant";
+    src: url("{{_res_path}}ttf/fzlant.D5FI9Et0.ttf");
+}
+
+@font-face {
+    font-family: "dundun";
+    src: url("{{_res_path}}ttf/dundun.xHd_Ee5-.woff2");
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --font-family: "fzlant", "Microsoft YaHei", "PingFang SC", sans-serif;
+    --font-family-accent: "dundun", "fzlant", "Microsoft YaHei", sans-serif;
+    --text-1: #332719;
+    --text-2: #6b5846;
+    --line: rgba(118, 97, 74, 0.22);
+    --panel-bg: rgba(243, 237, 227, 0.94);
+    --card-bg: rgba(255, 252, 247, 0.82);
+    --tag-bg: rgba(255, 214, 153, 0.4);
+    --tag-text: #9a5f19;
+}
+
+html,
+body {
+    width: 100%;
+    height: auto;
+    font-family: var(--font-family);
+    color: var(--text-1);
+    background: #ece3d3;
+}
+
+.merchant-page {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: #ece3d3;
+}
+
+.background {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    opacity: 0.24;
+    filter: saturate(0.9);
+}
+
+.content-container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    padding: 18px 18px 24px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 22px 24px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.86), rgba(245,236,221,0.9));
+    box-shadow: 0 14px 36px rgba(58, 39, 21, 0.08);
+}
+
+.title-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.title-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.title-badge {
+    width: 68px;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: #fffaf0;
+    font-size: 32px;
+    font-weight: 900;
+}
+
+.title-badge img {
+    width: 68px;
+    height: 68px;
+    object-fit: contain;
+}
+
+.title-text {
+    font-family: var(--font-family-accent);
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: 2px;
+}
+
+.subtitle {
+    color: var(--text-2);
+    font-size: 18px;
+}
+
+.header-side {
+    min-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 14px;
+}
+
+.summary-chip {
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(179, 123, 45, 0.2);
+    color: var(--text-2);
+    font-size: 18px;
+}
+
+.summary-chip strong {
+    font-family: var(--font-family-accent);
+    color: #a0631d;
+    font-size: 28px;
+    margin-left: 8px;
+}
+
+.round-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.round-pill,
+.countdown-pill {
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.78);
+    border: 1px solid var(--line);
+    font-size: 17px;
+}
+
+.countdown-pill {
+    color: #bf5f3f;
+    font-weight: 700;
+}
+
+.products-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.product-card {
+    display: grid;
+    grid-template-columns: 140px 1fr auto;
+    gap: 18px;
+    align-items: center;
+    min-height: 156px;
+    padding: 18px 22px;
+    border: 1px solid rgba(118, 97, 74, 0.14);
+    border-radius: 22px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.72), rgba(244,236,224,0.88));
+    box-shadow: 0 10px 26px rgba(58, 39, 21, 0.06);
+}
+
+.product-image-container {
+    width: 140px;
+    height: 140px;
+    border-radius: 18px;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.94), rgba(239,228,210,0.92));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.product-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.product-main {
+    min-width: 0;
+}
+
+.product-name {
+    font-family: var(--font-family-accent);
+    font-size: 34px;
+    font-weight: 800;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.product-sub {
+    margin-top: 10px;
+    color: var(--text-2);
+    font-size: 18px;
+}
+
+.product-time {
+    display: inline-flex;
+    margin-top: 14px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.product-side {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.product-slot {
+    padding: 10px 14px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(179, 123, 45, 0.18);
+    color: #8b5e2b;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.product-empty {
+    text-align: center;
+    padding: 30px 18px;
+    border-radius: 22px;
+    border: 1px dashed rgba(120, 102, 81, 0.35);
+    color: #5c4a37;
+    font-size: 22px;
+    background: rgba(255,255,255,0.52);
+}
+    </style>
+</head>
+<body>
+    <div class="merchant-page">
+        <div class="background" style="background-image: url('{{background}}');"></div>
+        <div class="content-container">
+            <div class="header">
+                <div class="title-section">
+                    <div class="title-main">
+                        <div class="title-badge">
+                            {{if titleIcon}}
+                            <img src="{{_res_path}}img/yuanxingshangren.png" alt="{{title}}">
+                            {{else}}
+                            远
+                            {{/if}}
+                        </div>
+                        <span class="title-text">{{title}}</span>
+                    </div>
+                    <div class="subtitle">{{subtitle}}</div>
+                </div>
+                <div class="header-side">
+                    <div class="summary-chip">当前商品数 <strong>{{product_count}}</strong></div>
+                    <div class="round-info">
+                        <div class="round-pill">第 {{round_info.current || '未开放'}} / {{round_info.total}} 轮</div>
+                        <div class="countdown-pill">剩余 {{round_info.countdown}}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="products-grid">
+                {{if products && products.length > 0}}
+                {{each products product}}
+                <div class="product-card">
+                    <div class="product-image-container">
+                        <img class="product-image" src="{{product.image}}" alt="{{product.name}}">
+                    </div>
+                    <div class="product-main">
+                        <div class="product-name">{{product.name}}</div>
+                        <div class="product-sub">远行商人当前轮次商品</div>
+                        <div class="product-time">北京时间 {{product.time_label}}</div>
+                    </div>
+                    <div class="product-side">
+                        <div class="product-slot">本轮商品</div>
+                    </div>
+                </div>
+                {{/each}}
+                {{else}}
+                <div class="product-empty">本轮暂无商品，稍后再来看看。</div>
+                {{/if}}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

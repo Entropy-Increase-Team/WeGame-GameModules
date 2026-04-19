@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=820, initial-scale=1">
+  <title>查蛋 - {{pet_name}}</title>
+  <link rel="stylesheet" href="{{_res_path}}render/searcheggs/style.css">
+</head>
+<body class="page-out-client">
+  <div class="searcheggs-cont page-section-main">
+    <img class="xiaoluoke-overlay" src="{{_res_path}}img/小洛克.png" onerror="this.style.display='none'">
+    <div class="page-inner">
+
+      <div class="header">
+        <div class="header-title">🥚 精灵查蛋</div>
+        <div class="header-subtitle">蛋组查询 · 配种兼容一览</div>
+      </div>
+
+      <!-- Pet Info Card -->
+      <div class="pet-card">
+        <div class="pet-card-header">
+          <div class="pet-card-main">
+            <div class="pet-icon-wrap">
+              <img class="pet-icon" src="{{pet_icon}}" alt="{{pet_name}}" onerror="this.onerror=null;this.src='{{_res_path}}img/roco_icon.png'">
+            </div>
+            <div>
+              <span class="pet-name">{{pet_name}}</span>
+              <span class="pet-id">#{{pet_id}}</span>
+            </div>
+          </div>
+          <span class="pet-type-badge">{{type_label}}</span>
+        </div>
+
+        <!-- Egg Group Tags -->
+        <div class="egg-groups-row">
+          {{each egg_groups gid}}
+          {{if gid == 1}}
+          <span class="egg-group-tag egg-group-tag-undiscovered">🚫 未发现</span>
+          {{else}}
+          <span class="egg-group-tag">🥚 {{egg_group_labels[gid]}}</span>
+          {{/if}}
+          {{/each}}
+        </div>
+
+        <!-- Gender Bar -->
+        {{if male_rate !== null && male_rate !== undefined}}
+        <div class="gender-bar-wrap">
+          <div class="gender-bar-label">性别比例</div>
+          <div class="gender-bar">
+            <div class="gender-male" style="width: {{male_rate}}%"></div>
+            <div class="gender-female" style="width: {{female_rate}}%"></div>
+          </div>
+          <div class="gender-text">
+            <span>♂ {{male_rate}}%</span>
+            <span>♀ {{female_rate}}%</span>
+          </div>
+        </div>
+        {{/if}}
+
+        <!-- Info Grid -->
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">孵化时长</div>
+            <div class="info-value-sm">{{hatch_label}}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">体重范围</div>
+            <div class="info-value-sm">{{weight_label}}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">身高范围</div>
+            <div class="info-value-sm">{{height_label}}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">总种族值</div>
+            <div class="info-value">{{total_stats}}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">可配种数</div>
+            <div class="info-value">{{total_compatible}}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">蛋组</div>
+            <div class="info-value-sm">{{egg_groups_label}}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Egg Details Section -->
+      {{if egg_details && egg_details.has_data}}
+      <div class="egg-details-card">
+        <div class="egg-details-title">🥚 蛋种详细数据</div>
+
+        <!-- Basic Egg Info -->
+        <div class="egg-info-grid">
+          <div class="egg-info-item">
+            <div class="egg-info-label">蛋类型</div>
+            <div class="egg-info-value">{{egg_details.precious_egg_label}}</div>
+          </div>
+          <div class="egg-info-item">
+            <div class="egg-info-label">基础异色概率</div>
+            <div class="egg-info-value">{{egg_details.base_prob_str}}</div>
+          </div>
+          <div class="egg-info-item">
+            <div class="egg-info-label">额外异色概率</div>
+            <div class="egg-info-value">{{egg_details.add_prob_str}}</div>
+          </div>
+          <div class="egg-info-item">
+            <div class="egg-info-label">接触增加异色</div>
+            <div class="egg-info-value">{{if egg_details.is_contact_add_glass}}是{{else}}否{{/if}}</div>
+          </div>
+        </div>
+
+        <!-- Variants Section -->
+        {{if egg_details.variant_count > 0}}
+        <div class="variants-section">
+          <div class="variants-title">🔄 蛋变体（{{egg_details.variant_count}}个）</div>
+          {{each egg_details.variant variant}}
+          <div class="variant-card">
+            <div class="variant-header">
+              <span class="variant-name">{{variant.name}}</span>
+              <span class="variant-id">#{{variant.id}}</span>
+            </div>
+            <div class="variant-info-grid">
+              <div class="variant-info-item">
+                <span class="label">蛋类型</span>
+                <span class="value">{{variant.precious_egg_label}}</span>
+              </div>
+              <div class="variant-info-item">
+                <span class="label">孵化时长</span>
+                <span class="value">{{variant.hatch_label}}</span>
+              </div>
+              <div class="variant-info-item">
+                <span class="label">体重范围</span>
+                <span class="value">{{variant.weight_label}}</span>
+              </div>
+              <div class="variant-info-item">
+                <span class="label">身高范围</span>
+                <span class="value">{{variant.height_label}}</span>
+              </div>
+              <div class="variant-info-item">
+                <span class="label">异色概率</span>
+                <span class="value">{{variant.base_prob_str}}</span>
+              </div>
+            </div>
+          </div>
+          {{/each}}
+        </div>
+        {{/if}}
+      </div>
+      {{/if}}
+
+      <!-- Undiscovered Notice -->
+      {{if is_undiscovered}}
+      <div class="undiscovered-notice">
+        <div class="undiscovered-notice-title">⚠️ 未发现蛋组</div>
+        <div class="undiscovered-notice-desc">该精灵属于「未发现」蛋组，不能和任何精灵生蛋。</div>
+      </div>
+      {{/if}}
+
+      <!-- Egg Group Sections -->
+      {{each egg_group_sections section}}
+      {{if section.id != 1}}
+      <div class="egg-section">
+        <div class="egg-section-header">
+          <div class="egg-section-icon">{{section.id}}</div>
+          <div class="egg-section-title">{{section.label}}</div>
+          <div class="egg-section-count">{{section.count}} 只可配种</div>
+        </div>
+        {{if section.desc}}
+        <div class="egg-section-desc">{{section.desc}}</div>
+        {{/if}}
+
+        {{if section.count == 0}}
+        <div class="egg-section-desc" style="text-align:center; padding: 12px;">暂无同蛋组可配种精灵</div>
+        {{else}}
+        <div class="member-grid">
+          {{each section.members member}}
+          <div class="member-item">
+            <div class="member-name">{{member.name}}</div>
+            <div class="member-meta">{{member.type_label}} · {{member.egg_groups_label}}</div>
+          </div>
+          {{/each}}
+          {{if section.has_more}}
+          <div class="member-more">... 还有 {{section.total - 30}} 只精灵未显示</div>
+          {{/if}}
+        </div>
+        {{/if}}
+      </div>
+      {{/if}}
+      {{/each}}
+
+      <div class="command-hint">{{commandHint}}</div>
+      <div class="footer">{{copyright}}</div>
+    </div>
+  </div>
+</body>
+</html>

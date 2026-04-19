@@ -1,8 +1,8 @@
 {
   "code": "rocom",
   "name": "洛克王国世界",
-  "description": "RoCom / NRC 游戏模块，提供档案、战绩与精灵查询能力。",
-  "version": "0.1.0",
+  "description": "RoCom / NRC 游戏模块，提供档案、战绩、阵容、交换大厅、查蛋与远行商人订阅能力。",
+  "version": "0.2.0",
   "apiDoc": "modules/rocom/Rocom-API.md",
   "commands": [
     "+帮助",
@@ -10,10 +10,15 @@
     "+档案",
     "+战绩",
     "+精灵列表",
+    "+阵容",
+    "+查看阵容",
+    "+交换大厅",
     "+尺寸查询",
     "+远行商人",
-    "+wiki精灵",
-    "+wiki技能"
+    "+订阅远行商人",
+    "+取消订阅远行商人",
+    "+查蛋",
+    "+配种"
   ],
   "help": {
     "icon": "../modules/rocom/resources/img/logo.png",

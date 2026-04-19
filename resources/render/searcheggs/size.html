@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="{{_res_path}}render/searcheggs/style.css">
+  <style>
+    .result-group { margin-top: 20px; }
+    .result-group-title { font-size: 28px; font-weight: 800; color: #4b3423; margin-bottom: 14px; }
+    .result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .result-card { background: rgba(255,255,255,0.94); border-radius: 18px; padding: 18px; box-shadow: 0 10px 24px rgba(40, 31, 23, 0.08); }
+    .result-card-icon { width: 64px; height: 64px; border-radius: 16px; background: rgba(248, 244, 236, 0.92); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; border: 1px solid rgba(75, 52, 35, 0.08); }
+    .result-card-icon img { width: 56px; height: 56px; object-fit: contain; }
+    .result-card-name { font-size: 26px; font-weight: 700; color: #4d3624; }
+    .result-card-meta { margin-top: 8px; color: #75563d; font-size: 18px; line-height: 1.7; }
+    .result-empty { text-align: center; color: #6f5845; padding: 44px 20px; font-size: 24px; }
+  </style>
+</head>
+<body>
+  <div class="searcheggs-cont page-section-main">
+    <div class="header-card">
+      <div class="header-main">
+        <div class="header-title">尺寸反查</div>
+        <div class="header-subtitle">查询条件：{{query_label}}</div>
+      </div>
+    </div>
+
+    {{if !has_results}}
+    <div class="result-empty">没有找到匹配当前尺寸的精灵</div>
+    {{/if}}
+
+    {{if perfect_matches && perfect_matches.length > 0}}
+    <section class="result-group">
+      <div class="result-group-title">完美匹配</div>
+      <div class="result-grid">
+        {{each perfect_matches item}}
+        <div class="result-card">
+          {{if item.icon}}
+          <div class="result-card-icon"><img src="{{item.icon}}" alt="{{item.name}}"></div>
+          {{/if}}
+          <div class="result-card-name">{{item.name}} #{{item.id}}</div>
+          <div class="result-card-meta">
+            属性：{{item.type_label}}<br>
+            蛋组：{{item.egg_groups_label}}<br>
+            身高：{{item.height_label}} ｜ 体重：{{item.weight_label}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+    {{/if}}
+
+    {{if range_matches && range_matches.length > 0}}
+    <section class="result-group">
+      <div class="result-group-title">范围匹配</div>
+      <div class="result-grid">
+        {{each range_matches item}}
+        <div class="result-card">
+          {{if item.icon}}
+          <div class="result-card-icon"><img src="{{item.icon}}" alt="{{item.name}}"></div>
+          {{/if}}
+          <div class="result-card-name">{{item.name}} #{{item.id}}</div>
+          <div class="result-card-meta">
+            属性：{{item.type_label}}<br>
+            蛋组：{{item.egg_groups_label}}<br>
+            身高：{{item.height_label}} ｜ 体重：{{item.weight_label}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+    {{/if}}
+
+    <div class="pagination-footer">
+      <span class="pagination-hint">{{commandHint}}</span>
+      <span class="copyright">{{copyright}}</span>
+    </div>
+  </div>
+</body>
+</html>

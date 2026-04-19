@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1280, initial-scale=1">
+  <link rel="stylesheet" href="{{_res_path}}render/lineup/style.css">
+</head>
+<body>
+  <div class="lineup-page">
+    <!-- Header -->
+    <div class="lineup-header">
+      <div class="header-title">阵容助手</div>
+      <div class="header-subtitle">{{if category}}{{category}}{{else}}热门推荐{{/if}}</div>
+    </div>
+
+    <!-- Lineup Grid -->
+    <div class="lineup-grid">
+      {{each lineups lineup index}}
+      <div class="lineup-card">
+        <!-- Card Header -->
+        <div class="card-header">
+          <div class="lineup-name">
+            <span class="lineup-icon">🔥</span>
+            {{lineup.name}}
+          </div>
+          <div class="lineup-tags">
+            {{each lineup.tags tag}}
+            <span class="tag">{{tag}}</span>
+            {{/each}}
+          </div>
+        </div>
+
+        <!-- Pet List -->
+        <div class="pet-list">
+          {{each lineup.pets pet}}
+          <div class="pet-card">
+            <div class="pet-avatar">
+              <img src="{{pet.pet_img_url}}" onerror="this.src='{{fallbackPetImage}}'">
+            </div>
+            <div class="pet-info">
+              <div class="pet-name">{{pet.pet_name}}</div>
+              <div class="skill-list">
+                {{each pet.skills_info skill}}
+                <img class="skill-icon" src="{{skill.skill_img_url}}" title="{{skill.skill_name}}" onerror="this.style.display='none'">
+                {{/each}}
+              </div>
+            </div>
+          </div>
+          {{/each}}
+        </div>
+
+        <!-- Card Footer -->
+        <div class="card-footer">
+          <div class="author-info">
+            <img class="author-avatar" src="{{lineup.author_avatar}}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23333\'%3E%3Ccircle cx=\'12\' cy=\'12\' r=\'12\'/%3E%3C/svg%3E'">
+            <div class="author-details">
+              <span class="author-name">{{lineup.author_name}}</span>
+              <span class="author-likes">👍 {{lineup.likes}}</span>
+            </div>
+          </div>
+          <div class="lineup-code-box">
+            <span class="lineup-code-label">阵容码:</span>
+            <span class="lineup-code">{{lineup.lineup_code}}</span>
+          </div>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+
+    <!-- Footer -->
+    <div class="pagination-footer">
+      <span class="pagination-text">第 {{page_no}} 页 / 共 {{total_pages}} 页</span>
+      <span class="pagination-hint">{{commandHint}}</span>
+    </div>
+  </div>
+</body>
+</html>

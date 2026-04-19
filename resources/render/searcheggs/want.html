@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="{{_res_path}}render/searcheggs/style.css">
+  <style>
+    .want-panel { background: rgba(255,255,255,0.94); border-radius: 20px; padding: 22px; box-shadow: 0 10px 24px rgba(40, 31, 23, 0.08); margin-top: 18px; }
+    .want-title { font-size: 30px; font-weight: 800; color: #4d3624; }
+    .want-meta { margin-top: 10px; color: #75563d; font-size: 19px; line-height: 1.8; }
+    .father-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+    .father-card { background: rgba(244, 236, 224, 0.95); border-radius: 18px; padding: 16px 18px; }
+    .father-card-name { font-size: 24px; font-weight: 700; color: #4b3524; }
+    .father-card-meta { margin-top: 8px; color: #735640; font-size: 17px; line-height: 1.7; }
+    .warn-box { margin-top: 16px; padding: 16px 18px; border-radius: 14px; background: rgba(240, 98, 82, 0.12); color: #8a3d2e; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <div class="searcheggs-cont page-section-main">
+    <div class="header-card">
+      <div class="header-main">
+        <div class="header-title">目标配种方案</div>
+        <div class="header-subtitle">想要孵出「{{target.name}}」时，母体应固定为目标精灵</div>
+      </div>
+    </div>
+
+    <div class="want-panel">
+      <div class="want-title">{{target.name}} #{{target.id}}</div>
+      <div class="want-meta">
+        属性：{{target.type_label}}<br>
+        蛋组：{{egg_groups_label}}<br>
+        性别比：雄性 {{male_rate_label}}% ｜ 雌性 {{female_rate_label}}%
+      </div>
+
+      {{if is_undiscovered}}
+      <div class="warn-box">该精灵属于未发现蛋组，无法通过常规配种获得。</div>
+      {{else if !fathers || fathers.length === 0}}
+      <div class="warn-box">没有找到可与该目标精灵共享蛋组的父体候选。</div>
+      {{else}}
+      <div class="father-grid">
+        {{each fathers item}}
+        <div class="father-card">
+          <div class="father-card-name">{{item.name}} #{{item.id}}</div>
+          <div class="father-card-meta">
+            属性：{{item.type_label}}<br>
+            蛋组：{{item.egg_groups_label}}<br>
+            身高：{{item.height_label}} ｜ 体重：{{item.weight_label}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+      {{/if}}
+    </div>
+
+    <div class="pagination-footer">
+      <span class="pagination-hint">{{commandHint}}</span>
+      <span class="copyright">{{copyright}}</span>
+    </div>
+  </div>
+</body>
+</html>

@@ -28,24 +28,40 @@ function buildDefaultMenuGroups () {
           desc: '查询精灵列表第一页'
         },
         {
-          cmd: formatCommand('精灵列表 了不起 1'),
-          desc: '查询了不起精灵第一页'
+          cmd: formatCommand('阵容 闪耀大赛 1'),
+          desc: '查询阵容助手'
         },
         {
-          cmd: formatCommand('尺寸查询 0.45 35.6'),
-          desc: '按尺寸和重量反查精灵候选'
+          cmd: formatCommand('查看阵容 59'),
+          desc: '查看指定阵容详情'
+        },
+        {
+          cmd: formatCommand('交换大厅 1'),
+          desc: '查询交换大厅第一页'
         },
         {
           cmd: formatCommand('远行商人'),
           desc: '查询远行商人活动信息'
         },
         {
-          cmd: formatCommand('wiki精灵 圣剑'),
-          desc: '查询 Wiki 精灵资料'
+          cmd: formatCommand('订阅远行商人 1 国王球 棱镜球'),
+          desc: '订阅商人商品提醒'
         },
         {
-          cmd: formatCommand('wiki技能 圣光斩'),
-          desc: '查询 Wiki 技能资料'
+          cmd: formatCommand('取消订阅远行商人'),
+          desc: '取消商人商品提醒'
+        },
+        {
+          cmd: formatCommand('尺寸查询 0.45 35.6'),
+          desc: '按尺寸和重量反查精灵候选'
+        },
+        {
+          cmd: formatCommand('查蛋 喵喵'),
+          desc: '查询精灵蛋组与可配种精灵'
+        },
+        {
+          cmd: formatCommand('配种 火花 喵喵'),
+          desc: '判断两只精灵能否配种'
         }
       ]
     }

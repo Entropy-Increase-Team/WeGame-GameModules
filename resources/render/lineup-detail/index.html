@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=800, initial-scale=1">
+  <link rel="stylesheet" href="{{_res_path}}render/lineup-detail/style.css">
+</head>
+<body>
+  <div class="lineup-detail-page">
+    <!-- Header -->
+    <div class="detail-header">
+      <div class="detail-title">阵容详情</div>
+      <div class="detail-close">✕</div>
+    </div>
+
+    <!-- Lineup Info -->
+    <div class="lineup-info">
+      <div class="lineup-name-section">
+        <span class="lineup-icon">🔥</span>
+        <span class="lineup-name">{{lineup.name}}</span>
+        <div class="lineup-tags">
+          {{each lineup.tags tag}}
+          <span class="tag">{{tag}}</span>
+          {{/each}}
+        </div>
+      </div>
+    </div>
+
+    <!-- Pet List -->
+    <div class="pet-detail-list">
+      {{each lineup.pets pet}}
+      <div class="pet-detail-item">
+        <div class="pet-detail-avatar">
+          <img src="{{pet.pet_img_url}}" onerror="this.src='{{fallbackPetImage}}'">
+          {{if pet.bloodline}}
+          <div class="bloodline-badge">
+            <img src="{{pet.bloodline_icon}}" alt="">
+          </div>
+          {{/if}}
+        </div>
+        <div class="pet-detail-name">{{pet.pet_name}}</div>
+        <div class="pet-detail-skills">
+          {{each pet.skills skill}}
+          <img class="skill-detail-icon" src="{{skill}}" alt="">
+          {{/each}}
+        </div>
+      </div>
+      {{/each}}
+    </div>
+
+    <!-- Footer -->
+    <div class="detail-footer">
+      <div class="author-info">
+        <img class="author-avatar" src="{{lineup.author_avatar}}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23333\'%3E%3Ccircle cx=\'12\' cy=\'12\' r=\'12\'/%3E%3C/svg%3E'">
+        <div class="author-details">
+          <span class="author-name">{{lineup.author_name}}</span>
+          <span class="author-likes">👍 {{lineup.likes}}</span>
+        </div>
+      </div>
+      <div class="lineup-code-section">
+        <span class="code-label">阵容码：</span>
+        <span class="code-value">{{lineup.lineup_code}}</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

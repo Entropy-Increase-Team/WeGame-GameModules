@@ -1,0 +1,587 @@
+@font-face {
+    font-family: 'mianfeiziti';
+    src: url('../../ttf/dundun.xHd_Ee5-.woff2') format('woff2'),
+         url('../../ttf/dundun.BCbg_KoL.ttf') format('truetype');
+    font-display: swap;
+}
+
+:root {
+    --helper-font-family-mianfeiziti: 'mianfeiziti', system-ui, "calibri", "Roboto", verdana, "PingFang SC", sans-serif;
+    --color-gold: #ffc65f;
+    --color-brown: #5a3e1b;
+    --color-brown-light: #8c7a61;
+    --color-brown-border: #c97926;
+    --color-bg-warm: #FAF6ED;
+    --color-card-bg: rgba(255, 255, 255, 0.6);
+    --color-tag-green: #4ade80;
+    --color-tag-red: #f87171;
+    --color-tag-blue: #60a5fa;
+    --color-tag-amber: #fbbf24;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 30px;
+    background-color: var(--color-bg-warm);
+    display: inline-block;
+    font-family: var(--helper-font-family-mianfeiziti);
+}
+
+.searcheggs-cont {
+    width: 820px;
+    background: url("../../img/ercode-bg.D1ccSQKH.png") no-repeat center center;
+    background-size: 100% 100%;
+    position: relative;
+    padding: 40px 45px;
+}
+
+.xiaoluoke-overlay {
+    position: absolute;
+    bottom: -15px;
+    right: -30px;
+    width: 280px;
+    opacity: 0.12;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.page-inner {
+    position: relative;
+    z-index: 2;
+}
+
+/* ---- Header ---- */
+.header {
+    text-align: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px dashed rgba(160, 140, 110, 0.4);
+}
+
+.header-title {
+    color: var(--color-gold);
+    font-size: 36px;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    -webkit-text-stroke: 1.5px #d4842b;
+    letter-spacing: 2px;
+}
+
+.header-subtitle {
+    color: #9e8e76;
+    font-size: 15px;
+    margin-top: 6px;
+}
+
+/* ---- Pet Info Card ---- */
+.pet-card {
+    background: var(--color-card-bg);
+    border-radius: 18px;
+    padding: 22px 28px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(201, 121, 38, 0.25);
+}
+
+.pet-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 16px;
+}
+
+.pet-card-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.pet-icon-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid rgba(201, 121, 38, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.pet-icon {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+}
+
+.pet-name {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--color-brown);
+}
+
+.pet-id {
+    font-size: 14px;
+    color: var(--color-brown-light);
+}
+
+.pet-type-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #fde68a, #fbbf24);
+    color: var(--color-brown);
+    font-size: 13px;
+    font-weight: bold;
+    padding: 3px 12px;
+    border-radius: 20px;
+    margin-left: 8px;
+}
+
+/* ---- Info Grid ---- */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.info-item {
+    background: rgba(255,255,255,0.7);
+    border-radius: 12px;
+    padding: 12px 16px;
+    border: 1px solid rgba(201, 121, 38, 0.15);
+}
+
+.info-label {
+    font-size: 12px;
+    color: var(--color-brown-light);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.info-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--color-brown);
+}
+
+.info-value-sm {
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--color-brown);
+}
+
+/* ---- Egg Group Tags ---- */
+.egg-groups-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.egg-group-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: var(--color-brown);
+    font-size: 14px;
+    font-weight: bold;
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(201, 121, 38, 0.3);
+}
+
+.egg-group-tag-undiscovered {
+    background: linear-gradient(135deg, #fecaca, #fca5a5);
+    color: #991b1b;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* ---- Gender Bar ---- */
+.gender-bar-wrap {
+    margin-bottom: 12px;
+}
+
+.gender-bar-label {
+    font-size: 13px;
+    color: var(--color-brown-light);
+    margin-bottom: 6px;
+}
+
+.gender-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    background: #e5e7eb;
+}
+
+.gender-male {
+    background: linear-gradient(90deg, #60a5fa, #3b82f6);
+}
+
+.gender-female {
+    background: linear-gradient(90deg, #f472b6, #ec4899);
+}
+
+.gender-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--color-brown-light);
+    margin-top: 4px;
+}
+
+/* ---- Undiscovered Notice ---- */
+.undiscovered-notice {
+    background: linear-gradient(135deg, #fef2f2, #fecaca);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.undiscovered-notice-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #991b1b;
+    margin-bottom: 6px;
+}
+
+.undiscovered-notice-desc {
+    font-size: 14px;
+    color: #b91c1c;
+}
+
+/* ---- Egg Group Section ---- */
+.egg-section {
+    margin-bottom: 22px;
+}
+
+.egg-section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid rgba(201, 121, 38, 0.2);
+}
+
+.egg-section-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fde68a, #f59e0b);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: white;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.egg-section-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--color-brown-border);
+}
+
+.egg-section-count {
+    font-size: 13px;
+    color: var(--color-brown-light);
+    margin-left: auto;
+}
+
+.egg-section-desc {
+    font-size: 13px;
+    color: var(--color-brown-light);
+    margin-bottom: 10px;
+    padding-left: 4px;
+}
+
+/* ---- Member Grid ---- */
+.member-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.member-item {
+    background: rgba(255, 255, 255, 0.65);
+    border-radius: 10px;
+    padding: 10px 14px;
+    border: 1px solid rgba(201, 121, 38, 0.12);
+    transition: background 0.15s;
+}
+
+.member-name {
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--color-brown);
+    margin-bottom: 2px;
+}
+
+.member-meta {
+    font-size: 11px;
+    color: var(--color-brown-light);
+}
+
+.member-more {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 13px;
+    color: var(--color-brown-light);
+    padding: 8px;
+}
+
+/* ---- Egg Details Card ---- */
+.egg-details-card {
+    background: var(--color-card-bg);
+    border-radius: 18px;
+    padding: 22px 28px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(201, 121, 38, 0.25);
+}
+
+.egg-details-title {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--color-brown);
+    margin-bottom: 16px;
+    text-align: center;
+    padding-bottom: 10px;
+    border-bottom: 2px dashed rgba(160, 140, 110, 0.4);
+}
+
+.egg-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.egg-info-item {
+    background: rgba(255,255,255,0.7);
+    border-radius: 12px;
+    padding: 12px 16px;
+    border: 1px solid rgba(201, 121, 38, 0.15);
+    text-align: center;
+}
+
+.egg-info-label {
+    font-size: 12px;
+    color: var(--color-brown-light);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.egg-info-value {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--color-brown);
+}
+
+/* ---- Variants Section ---- */
+.variants-section {
+    margin-top: 10px;
+}
+
+.variants-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--color-brown-border);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid rgba(201, 121, 38, 0.2);
+}
+
+.variant-card {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(201, 121, 38, 0.2);
+}
+
+.variant-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(201, 121, 38, 0.15);
+}
+
+.variant-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--color-brown);
+}
+
+.variant-id {
+    font-size: 13px;
+    color: var(--color-brown-light);
+}
+
+.variant-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.variant-info-item {
+    text-align: center;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+}
+
+.variant-info-item .label {
+    display: block;
+    font-size: 11px;
+    color: var(--color-brown-light);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.variant-info-item .value {
+    display: block;
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--color-brown);
+}
+
+/* ---- Pair Result ---- */
+.pair-card {
+    background: var(--color-card-bg);
+    border-radius: 18px;
+    padding: 22px 28px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(201, 121, 38, 0.25);
+}
+
+.pair-pets {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.pair-pet-info {
+    text-align: center;
+}
+
+.pair-pet-name {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--color-brown);
+}
+
+.pair-pet-role {
+    font-size: 12px;
+    color: var(--color-brown-light);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.pair-pet-type {
+    font-size: 13px;
+    color: var(--color-brown-light);
+}
+
+.pair-arrow {
+    font-size: 28px;
+    color: var(--color-brown-border);
+}
+
+.pair-result-badge {
+    text-align: center;
+    padding: 14px;
+    border-radius: 14px;
+    margin-bottom: 16px;
+}
+
+.pair-result-compatible {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.pair-result-incompatible {
+    background: linear-gradient(135deg, #fef2f2, #fecaca);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.pair-result-text {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.pair-result-compatible .pair-result-text {
+    color: #065f46;
+}
+
+.pair-result-incompatible .pair-result-text {
+    color: #991b1b;
+}
+
+.pair-result-reason {
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.pair-result-compatible .pair-result-reason {
+    color: #047857;
+}
+
+.pair-result-incompatible .pair-result-reason {
+    color: #b91c1c;
+}
+
+/* ---- Shared Groups ---- */
+.shared-groups {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+.shared-group-tag {
+    display: inline-block;
+    background: linear-gradient(135deg, #d1fae5, #6ee7b7);
+    color: #065f46;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 4px 12px;
+    border-radius: 16px;
+}
+
+/* ---- Footer ---- */
+.footer {
+    margin-top: 25px;
+    text-align: center;
+    font-size: 13px;
+    color: #bfae95;
+}
+
+.command-hint {
+    text-align: center;
+    font-size: 13px;
+    color: var(--color-brown-light);
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 10px;
+}
