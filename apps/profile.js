@@ -5,9 +5,9 @@ import { buildCommandReg, formatCommand } from '../utils/command.js'
 import { ensureUpstreamSuccess } from '../../../utils/queryHelper.js'
 
 const RADAR_AXES = [
-  { key: 'strength', name: '战力', labelX: 128, labelY: 18, anchor: 'middle', dx: 0, dy: -18 },
+  { key: 'strength', name: '战力', labelX: 128, labelY: 12, anchor: 'middle', dx: 0, dy: -18 },
   { key: 'progression', name: '推进', labelX: 224, labelY: 110, anchor: 'start', dx: 20, dy: 0 },
-  { key: 'capture', name: '捉宠', labelX: 128, labelY: 198, anchor: 'middle', dx: 0, dy: 18 },
+  { key: 'capture', name: '捉宠', labelX: 128, labelY: 215, anchor: 'middle', dx: 0, dy: 18 },
   { key: 'collection', name: '收藏', labelX: 34, labelY: 110, anchor: 'end', dx: -20, dy: 0 }
 ]
 
