@@ -44,9 +44,12 @@ body {
 
 .merchant-page {
     position: relative;
-    width: 100%;
+    width: min(1040px, calc(100vw - 24px));
+    margin: 0 auto;
+    padding: 14px;
     overflow: hidden;
     background: #ece3d3;
+    border-radius: 30px;
 }
 
 .background {
@@ -63,14 +66,14 @@ body {
     position: relative;
     z-index: 1;
     width: 100%;
-    padding: 18px 18px 24px;
+    padding: 2px 0 4px;
 }
 
 .header {
     display: flex;
     justify-content: space-between;
-    gap: 20px;
-    padding: 22px 24px;
+    gap: 16px;
+    padding: 20px 22px;
     border: 1px solid var(--line);
     border-radius: 24px;
     background: linear-gradient(135deg, rgba(255,255,255,0.86), rgba(245,236,221,0.9));
@@ -86,61 +89,61 @@ body {
 .title-main {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
 }
 
 .title-badge {
-    width: 68px;
-    height: 68px;
+    width: 60px;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: transparent;
     color: #fffaf0;
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 900;
 }
 
 .title-badge img {
-    width: 68px;
-    height: 68px;
+    width: 60px;
+    height: 60px;
     object-fit: contain;
 }
 
 .title-text {
     font-family: var(--font-family-accent);
-    font-size: 42px;
+    font-size: 36px;
     font-weight: 900;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
 }
 
 .subtitle {
     color: var(--text-2);
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .header-side {
-    min-width: 320px;
+    min-width: 250px;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     justify-content: center;
-    gap: 14px;
+    gap: 12px;
 }
 
 .summary-chip {
-    padding: 10px 16px;
+    padding: 9px 14px;
     border-radius: 999px;
     background: rgba(255,255,255,0.72);
     border: 1px solid rgba(179, 123, 45, 0.2);
     color: var(--text-2);
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .summary-chip strong {
     font-family: var(--font-family-accent);
     color: #a0631d;
-    font-size: 28px;
+    font-size: 24px;
     margin-left: 8px;
 }
 
@@ -154,11 +157,11 @@ body {
 
 .round-pill,
 .countdown-pill {
-    padding: 8px 14px;
+    padding: 7px 12px;
     border-radius: 999px;
     background: rgba(255,255,255,0.78);
     border: 1px solid var(--line);
-    font-size: 17px;
+    font-size: 15px;
 }
 
 .countdown-pill {
@@ -169,27 +172,27 @@ body {
 .products-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 16px;
-    margin-top: 18px;
+    gap: 14px;
+    margin-top: 16px;
 }
 
 .product-card {
     display: grid;
-    grid-template-columns: 140px 1fr auto;
-    gap: 18px;
+    grid-template-columns: 112px 1fr auto;
+    gap: 16px;
     align-items: center;
-    min-height: 156px;
-    padding: 18px 22px;
+    min-height: 128px;
+    padding: 16px 18px;
     border: 1px solid rgba(118, 97, 74, 0.14);
-    border-radius: 22px;
+    border-radius: 20px;
     background: linear-gradient(135deg, rgba(255,255,255,0.72), rgba(244,236,224,0.88));
     box-shadow: 0 10px 26px rgba(58, 39, 21, 0.06);
 }
 
 .product-image-container {
-    width: 140px;
-    height: 140px;
-    border-radius: 18px;
+    width: 112px;
+    height: 112px;
+    border-radius: 16px;
     background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.94), rgba(239,228,210,0.92));
     display: flex;
     align-items: center;
@@ -209,26 +212,26 @@ body {
 
 .product-name {
     font-family: var(--font-family-accent);
-    font-size: 34px;
+    font-size: 28px;
     font-weight: 800;
     line-height: 1.2;
     word-break: break-word;
 }
 
 .product-sub {
-    margin-top: 10px;
+    margin-top: 8px;
     color: var(--text-2);
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .product-time {
     display: inline-flex;
-    margin-top: 14px;
-    padding: 8px 14px;
+    margin-top: 12px;
+    padding: 7px 12px;
     border-radius: 999px;
     background: var(--tag-bg);
     color: var(--tag-text);
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
 }
 
@@ -240,28 +243,28 @@ body {
 }
 
 .product-slot {
-    padding: 10px 14px;
-    border-radius: 16px;
+    padding: 9px 12px;
+    border-radius: 14px;
     background: rgba(255,255,255,0.72);
     border: 1px solid rgba(179, 123, 45, 0.18);
     color: #8b5e2b;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
 }
 
 .product-empty {
     text-align: center;
-    padding: 30px 18px;
-    border-radius: 22px;
+    padding: 26px 18px;
+    border-radius: 20px;
     border: 1px dashed rgba(120, 102, 81, 0.35);
     color: #5c4a37;
-    font-size: 22px;
+    font-size: 20px;
     background: rgba(255,255,255,0.52);
 }
     </style>
 </head>
 <body>
-    <div class="merchant-page">
+    <div id="container" class="merchant-page">
         <div class="background" style="background-image: url('{{background}}');"></div>
         <div class="content-container">
             <div class="header">

@@ -6,7 +6,7 @@ import merchantService from '../model/merchantService.js'
 import { buildCommandReg, formatCommand } from '../utils/command.js'
 
 const SIZE_QUERY_REG = buildCommandReg('(?:尺寸查询|精灵尺寸)(?:\\s+(.+))?')
-const MERCHANT_INFO_REG = buildCommandReg('(?:(远行|旅行)商人|商人信息)(?:\\s+(.+))?')
+const MERCHANT_INFO_REG = buildCommandReg('(?:(?:远行|旅行)商人|商人信息)')
 
 function trimText (value = '') {
   return String(value || '').trim()
@@ -41,20 +41,6 @@ function parseSizeQueryArgs (raw = '') {
     diameter: parsePositiveNumber(tokens[0], '直径'),
     weight: parsePositiveNumber(tokens[1], '重量')
   }
-}
-
-function parseMerchantArgs (raw = '') {
-  const text = trimText(raw)
-  if (!text) {
-    return { refresh: false }
-  }
-
-  const normalized = text.toLowerCase()
-  if (['刷新', 'refresh', '1', 'true'].includes(normalized)) {
-    return { refresh: true }
-  }
-
-  throw new Error(`格式：${formatCommand('远行商人 [刷新]')}`)
 }
 
 function encodeAssetPath (assetPath = '') {
@@ -133,9 +119,8 @@ export class RocomTools extends plugin {
 
   async queryMerchantInfo () {
     try {
-      const args = parseMerchantArgs(extractMatchArg(this.e.msg, MERCHANT_INFO_REG))
-      await this.reply(args.refresh ? '正在强制刷新远行商人信息...' : '正在查询远行商人信息...')
-      const data = await merchantService.getInfo(args.refresh)
+      await this.reply('正在查询远行商人信息...')
+      const data = await merchantService.getInfo()
       const renderData = merchantService.buildRenderData(data)
 
       const image = await renderModuleTemplate(
