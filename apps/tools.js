@@ -6,7 +6,7 @@ import merchantService from '../model/merchantService.js'
 import { buildCommandReg, formatCommand } from '../utils/command.js'
 
 const SIZE_QUERY_REG = buildCommandReg('(?:尺寸查询|精灵尺寸)(?:\\s+(.+))?')
-const MERCHANT_INFO_REG = buildCommandReg('(?:远行商人|商人信息)(?:\\s+(.+))?')
+const MERCHANT_INFO_REG = buildCommandReg('(?:(远行|旅行)商人|商人信息)(?:\\s+(.+))?')
 
 function trimText (value = '') {
   return String(value || '').trim()

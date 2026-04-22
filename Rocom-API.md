@@ -2,6 +2,13 @@
 
 本文档描述洛克王国世界（RoCom / NRC）游戏模块接口。
 
+## 文档边界
+
+本文档描述当前后端暴露的 RoCom 接口：
+
+- `/api/v1/games/rocom/*`
+- `/api/v1/games/rocom/ingame/*`
+
 在调用本文件中的接口前，请先参考 [WeGame-API.md](./WeGame-API.md) 完成：
 
 - 基础认证
@@ -14,11 +21,12 @@
 
 ## 前置要求
 
-当前洛克王国世界模块统一使用：
+当前洛克王国世界模块包含两组前缀：
 
 - `/api/v1/games/rocom/*`
+- `/api/v1/games/rocom/ingame/*`
 
-以下认证规则请先记住：
+以下认证规则主要针对非 `ingame` 接口，请先记住：
 
 - 当前模块的大部分查询接口至少需要一种基础认证：`Authorization: Bearer <web-jwt>`、`X-Anonymous-Token`、或 `X-API-Key`
 - 除了明确标注为“**不需要 `X-Framework-Token`**”的接口外，大部分游戏数据接口都需要通过 `X-Framework-Token` 指定一份已保存的 WeGame 凭证
@@ -27,7 +35,7 @@
 - 如果 API Key 请求使用的是按第三方用户作用域创建 / 归属的 `frameworkToken` 或绑定记录，后续请求还需要继续带同一个 `user_identifier`；可放在 query 参数，或 `X-User-Identifier` 请求头
 - 如果这份 `frameworkToken` 来自 Web 授权流程，且授权请求里传过 `platform_id`，这里的 `user_identifier` 也应该和当时的 `platform_id` 保持一致
 - 当前只开放 HAR 中已验证的核心查询接口
-- 成功时 `data` 中会包一层上游 WeGame 响应
+- 非 `ingame` 接口成功时，`data` 中通常会包一层上游 WeGame 响应
 
 通用成功响应示例：
 
@@ -44,7 +52,208 @@
 }
 ```
 
-## RoCom / NRC 代理接口
+## RoCom / NRC Ingame 接口
+
+这组接口统一使用：
+
+- `/api/v1/games/rocom/ingame/*`
+
+认证方式：
+
+- `Authorization: Bearer <web-jwt>`
+- `X-Anonymous-Token`
+- `X-API-Key`
+
+如果使用 `X-API-Key`：
+
+- 统一使用开发者 `WeGame API Key`
+- 该 API Key 仍需已获批 `game:rocom` 下的对应权限
+- 当前默认公开权限为 `rocom.access`
+
+这组接口当前不要求 `X-Framework-Token`。
+
+### 玩家搜索
+
+- `GET /api/v1/games/rocom/ingame/player/search?uid=<UID>`
+- `POST /api/v1/games/rocom/ingame/player/search`
+
+说明：
+
+- 适合做玩家 UID 搜索、名片资料页、基础社交资料展示
+- `GET` 使用 query 参数 `uid`
+- `POST` 使用 JSON 请求体 `{"uid":123456}`
+
+`GET /api/v1/games/rocom/ingame/player/search` 请求示例：
+
+```http
+GET /api/v1/games/rocom/ingame/player/search?uid=123456
+X-API-Key: <wegame-api-key>
+Accept: application/json
+```
+
+`POST /api/v1/games/rocom/ingame/player/search` 请求示例：
+
+```http
+POST /api/v1/games/rocom/ingame/player/search
+Content-Type: application/json
+X-API-Key: <wegame-api-key>
+
+{"uid":123456}
+```
+
+响应结构示例：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "title": "[0x02A5] FriendSearchRsp - ZoneFriendSearchPlayerRsp",
+    "rows": [
+      {
+        "level": 0,
+        "field": "ret_info",
+        "label": "返回码",
+        "value": "(RetInfo, 2B)"
+      },
+      {
+        "level": 1,
+        "field": "ret_code",
+        "label": "返回码",
+        "value": "0"
+      },
+      {
+        "level": 1,
+        "field": "uin",
+        "label": "用户ID",
+        "value": "123456"
+      },
+      {
+        "level": 1,
+        "field": "name",
+        "label": "昵称",
+        "value": "'一二三四五六'"
+      },
+      {
+        "level": 1,
+        "field": "level",
+        "label": "等级",
+        "value": "48"
+      },
+      {
+        "level": 1,
+        "field": "signature",
+        "label": "个性签名",
+        "value": "'大柚子'"
+      }
+    ],
+    "notes": [
+      "unlocked_rel_node_num          已解锁关系节点 0",
+      "(外层/未知字段 1 个，已跳过)"
+    ]
+  }
+}
+```
+
+字段补充：
+
+- `title`：当前查询标题
+- `rows`：结构化字段列表，适合前端直接按表格或树形结构渲染
+- `notes`：附加说明
+- `rows[].level`：层级深度
+- `rows[].field`：字段名
+- `rows[].label`：字段中文名
+- `rows[].value`：字段值
+
+### 商店信息
+
+- `GET /api/v1/games/rocom/ingame/merchant/info?shop_id=<SHOP_ID>`
+- `POST /api/v1/games/rocom/ingame/merchant/info`
+
+说明：
+
+- 适合做远行商人页、商店商品列表、刷新时间展示
+- `GET` 使用 query 参数 `shop_id`
+- `POST` 使用 JSON 请求体 `{"shop_id":3019}`
+
+`GET /api/v1/games/rocom/ingame/merchant/info` 请求示例：
+
+```http
+GET /api/v1/games/rocom/ingame/merchant/info?shop_id=3019
+X-API-Key: <wegame-api-key>
+Accept: application/json
+```
+
+`POST /api/v1/games/rocom/ingame/merchant/info` 请求示例：
+
+```http
+POST /api/v1/games/rocom/ingame/merchant/info
+Content-Type: application/json
+X-API-Key: <wegame-api-key>
+
+{"shop_id":3019}
+```
+
+响应结构示例：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "title": "商店查询结果 - shop_id=3019",
+    "rows": [
+      {
+        "level": 0,
+        "field": "shop_id",
+        "label": "商店ID",
+        "value": "3019"
+      },
+      {
+        "level": 0,
+        "field": "ret_code",
+        "label": "返回码",
+        "value": "0"
+      },
+      {
+        "level": 0,
+        "field": "goods_count",
+        "label": "商品数量",
+        "value": "1"
+      },
+      {
+        "level": 1,
+        "field": "goods_id",
+        "label": "商品ID",
+        "value": "67005"
+      },
+      {
+        "level": 1,
+        "field": "next_refresh_time",
+        "label": "下次刷新时间",
+        "value": "1776830400 (2026-04-22 12:00:00 CST)"
+      },
+      {
+        "level": 1,
+        "field": "real_price",
+        "label": "现价",
+        "value": "6000"
+      }
+    ],
+    "notes": []
+  }
+}
+```
+
+常见错误响应示例：
+
+```json
+{
+  "code": 4010,
+  "message": "unauthorized",
+  "data": null
+}
+```
 
 ### 账号列表
 
@@ -935,160 +1144,6 @@
       "skill.json"
     ],
     "triggered_by": "web_jwt"
-  }
-}
-```
-
-## Wiki 数据（BWIKI 同步）
-
-BWIKI 同步把 `wiki.biligame.com/rocom` 的精灵图鉴抓回本地 PostgreSQL，写入 `game_rocom.wiki_sprites` 与 `game_rocom.wiki_skills`。
-
-调度策略：
-
-- Worker 每天 `00:00 / 06:00 / 12:00 / 18:00` 本地时间触发一次
-- `00:00` 触发全量同步；其余时段触发增量（仅抓取新增条目，或页面 URL / 编号 / 名称 / Form / 异色标记发生变化的条目）
-- 每次请求 BWIKI 前随机等待 `1.5~3` 秒，`HTTP 567`（反爬）时按 `10/20/30s` 退避重试
-- 如果列表页抓取成功但一条精灵都没有识别出来，本轮同步会直接记为失败，不会再把 `0 条` 当作成功结果
-- 每轮同步都会按最新图鉴列表清理本地已下线的精灵；技能清理由全量同步在成功完成后统一收口
-
-### 查询精灵
-
-- `GET /api/v1/games/rocom/wiki/pet`
-
-参数：
-
-- `q`（必填）精灵名称关键字，支持精确 / 前缀 / 子串匹配
-- `limit`（选填）最多返回几条，默认 10，最大 50
-
-鉴权：支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`，**不需要** `X-Framework-Token`。
-
-响应示例：
-
-```json
-{
-  "code": 0,
-  "message": "成功",
-  "data": {
-    "query": "圣剑",
-    "limit": 10,
-    "total": 1,
-    "results": [
-      {
-        "no": 285,
-        "name": "圣剑侍从",
-        "form": "",
-        "url": "https://wiki.biligame.com/rocom/%E5%9C%A3%E5%89%91%E4%BE%8D%E4%BB%8E",
-        "has_shiny": true,
-        "image_url": "https://patchwiki.biligame.com/images/rocom/...png",
-        "attributes": ["圣光"],
-        "stats": {"hp": 90, "atk": 110, "sp_atk": 60, "def": 80, "sp_def": 70, "spd": 95, "total": 505},
-        "ability_name": "圣剑之誓",
-        "ability_desc": "...",
-        "type_matchup": {"strong_against": ["暗影"], "weak_to": [], "resists": [], "resisted_by": []},
-        "skills": [
-          {"name": "圣光斩", "attribute": "圣光", "category": "物理", "cost": 2, "power": 90, "description": "..."}
-        ],
-        "updated_at": "2026-04-18T00:12:34+08:00"
-      }
-    ]
-  }
-}
-```
-
-### 查询技能
-
-- `GET /api/v1/games/rocom/wiki/skill`
-
-参数：
-
-- `q`（必填）技能名称关键字
-- `limit`（选填）最多返回几条，默认 10，最大 50
-
-鉴权：同上，支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`，**不需要** `X-Framework-Token`。
-
-响应示例：
-
-```json
-{
-  "code": 0,
-  "message": "成功",
-  "data": {
-    "query": "圣光斩",
-    "limit": 10,
-    "total": 1,
-    "results": [
-      {
-        "name": "圣光斩",
-        "attribute": "圣光",
-        "category": "物理",
-        "cost": 2,
-        "power": 90,
-        "description": "...",
-        "updated_at": "2026-04-18T00:12:34+08:00"
-      }
-    ]
-  }
-}
-```
-
-### 手动触发 Wiki 同步
-
-- `POST /api/v1/games/rocom/wiki/sync`
-
-参数：
-
-- `mode`（选填）`incremental`（默认）或 `full`
-
-鉴权：需要管理员权限，两种方式都可以：
-
-- `Authorization: Bearer <web-jwt>` 且角色是后端管理员，或
-- `X-API-Key` 且该 Key 已被授予 `admin.access` 权限（wegame scope）
-
-说明：
-
-- 全量同步会抓完整套精灵图鉴，耗时约 30~60 分钟，任务内会限时 2 小时
-- 本接口是异步触发，返回即表示任务已入队；如果已有同步正在运行，返回 `409`
-- 进度可通过 `/wiki/sync/status` 查询
-
-响应示例：
-
-```json
-{
-  "code": 0,
-  "message": "Wiki 同步已触发",
-  "data": {
-    "mode": "incremental",
-    "started_at": "2026-04-18T12:00:00+08:00",
-    "triggered": "async"
-  }
-}
-```
-
-### 查询 Wiki 同步状态
-
-- `GET /api/v1/games/rocom/wiki/sync/status`
-
-鉴权：同 `POST /wiki/sync`（Web JWT 管理员 或 `admin.access` 的 API Key）。
-
-响应示例：
-
-```json
-{
-  "code": 0,
-  "message": "成功",
-  "data": {
-    "running": false,
-    "last_mode": "incremental",
-    "last_started": "2026-04-18T12:00:00+08:00",
-    "last_finished": "2026-04-18T12:14:22+08:00",
-    "last_listed": 812,
-    "last_fetched": 3,
-    "last_failed": 0,
-    "last_written": 3,
-    "last_deleted": 1,
-    "last_skills": 15,
-    "last_skills_deleted": 0,
-    "last_error": ""
   }
 }
 ```

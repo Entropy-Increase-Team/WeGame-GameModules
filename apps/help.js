@@ -5,6 +5,15 @@ import { buildCommandReg, COMMAND_PREFIXES, formatCommand } from '../utils/comma
 function buildDefaultMenuGroups () {
   return [
     {
+      groupTitle: '登陆部分',
+      menuItems: [
+        {
+          cmd: '=帮助',
+          desc: '查看登陆帮助'
+        }
+      ]
+    },
+    {
       groupTitle: '洛克王国世界',
       menuItems: [
         {
@@ -18,6 +27,10 @@ function buildDefaultMenuGroups () {
         {
           cmd: formatCommand('账号列表'),
           desc: '查询可识别的洛克角色账号'
+        },
+        {
+          cmd: formatCommand('uid 437023912'),
+          desc: '按 UID 搜索玩家资料'
         },
         {
           cmd: formatCommand('战绩'),

@@ -46,12 +46,12 @@ export class RocomMerchantSubscription extends plugin {
       priority: 118,
       rule: [
         {
-          reg: buildCommandReg('订阅远行商人(?:\\s+.*)?'),
+          reg: buildCommandReg('订阅(远行|旅行)商人(?:\\s+.*)?'),
           fnc: 'subscribeMerchant',
           permission: 'admin'
         },
         {
-          reg: buildCommandReg('取消订阅远行商人'),
+          reg: buildCommandReg('取消订阅(远行|旅行)商人'),
           fnc: 'unsubscribeMerchant',
           permission: 'admin'
         }
