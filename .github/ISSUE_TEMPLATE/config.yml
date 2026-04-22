@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: WeGame 核心插件 (核心插件 / 统一前后端)
+    url: https://github.com/Entropy-Increase-Team/WeGame-plugin/issues
+    about: 扫码、账号、模块发现与下载、统一 API、非本分支游戏资源等，请到 WeGame-plugin
+  - name: 洛克王国世界插件 QQ 交流群
+    url: https://qm.qq.com/q/VDBFadHGwA
+    about: 洛克王国世界插件交流，群号 1097809141

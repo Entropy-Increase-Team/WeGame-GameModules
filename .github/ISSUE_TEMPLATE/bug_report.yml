@@ -1,0 +1,86 @@
+name: 🐛 Bug 报告
+description: 报告某游戏模块分支内的问题
+title: "[分支名] 简短描述，例如: [rocom] 档案查询错误"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        本仓库按 **游戏模块 / Git 分支** 维护。提交前请 **在标题中标注游戏模块(对应分支)**，例如 `rocom`。
+
+        若问题属于 **WeGame 核心框架**（登录、统一配置、与分支无关的下载/帮助等），请到 [WeGame-plugin](https://github.com/Entropy-Increase-Team/WeGame-plugin/issues) 。
+
+  - type: dropdown
+    id: module_branch
+    attributes:
+      label: 游戏模块（对应分支名）
+      description: 与仓库分支一致；不确定请看对应分支 README
+      options:
+        - rocom（洛克王国：世界）
+        - 其他（在下方「分支说明」中写明）
+    validations:
+      required: true
+
+  - type: input
+    id: branch_extra
+    attributes:
+      label: 其他分支名（当上一项选「其他」时填写）
+      placeholder: "例如: 未来的模块分支名"
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图或日志
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: 相关版本（模块与 WeGame-plugin 如已知）
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: 环境（Yunzai/Node/系统等）
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 补充信息
+    validations:
+      required: false

@@ -1,0 +1,47 @@
+name: 💡 功能建议
+description: 对某游戏模块（分支）提建议
+title: "[分支名] 简短建议，例如: [rocom] 希望增加"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请在**标题**中标明 **游戏模块(对应分支)**。与全框架/统一 WeGame 能力相关的需求，请走 [WeGame-plugin](https://github.com/Entropy-Increase-Team/WeGame-plugin/issues) 。
+
+  - type: dropdown
+    id: module_branch
+    attributes:
+      label: 游戏模块（对应分支名）
+      options:
+        - rocom（洛克王国：世界）
+        - 其他（在下方说明）
+    validations:
+      required: true
+
+  - type: input
+    id: branch_extra
+    attributes:
+      label: 其他分支名
+    validations:
+      required: false
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 背景与需求
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 希望实现的效果
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 补充信息
+    validations:
+      required: false
