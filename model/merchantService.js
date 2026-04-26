@@ -70,7 +70,7 @@ function formatCountdown (milliseconds = 0) {
 
 function formatMerchantTime (timestampMs) {
   const numeric = Number(timestampMs)
-  if (!Number.isFinite(numeric)) return '--'
+  if (numeric == 0) return '--'
 
   const parts = getChinaParts(new Date(numeric))
   return `${padNumber(parts.month)}-${padNumber(parts.day)} ${padNumber(parts.hour)}:${padNumber(parts.minute)}`
@@ -81,7 +81,8 @@ function formatMerchantWindow (item = {}) {
   const endLabel = formatMerchantTime(item?.end_time)
 
   if (startLabel === '--' || endLabel === '--') {
-    return '当前轮次'
+	const parts = getChinaParts(Date.now())
+    return `${padNumber(parts.month)}-${padNumber(parts.day)} ` + '08:00 - 23:59'
   }
 
   return startLabel.slice(0, 5) === endLabel.slice(0, 5)
@@ -92,8 +93,7 @@ function formatMerchantWindow (item = {}) {
 function isMerchantItemActive (item = {}) {
   const startTime = Number(item?.start_time)
   const endTime = Number(item?.end_time)
-
-  if (!Number.isFinite(startTime) || !Number.isFinite(endTime)) {
+  if (startTime == 0 || endTime == 0) {
     return true
   }
 
@@ -163,7 +163,6 @@ class MerchantService {
     const collectItems = (items = [], kind = 'prop') => {
       for (const item of items) {
         if (!isMerchantItemActive(item)) continue
-
         products.push({
           kind,
           name: trimText(item?.name) || '未知商品',
