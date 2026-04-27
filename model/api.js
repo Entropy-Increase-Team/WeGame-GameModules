@@ -1,6 +1,89 @@
 import WeGameApi from '../../../model/api.js'
 
 const GAME_CODE = 'rocom'
+const DEFAULT_INGAME_WAIT_MS = 5000
+const DEFAULT_INGAME_TASK_TIMEOUT_MS = 5 * 60 * 1000
+const DEFAULT_INGAME_TASK_INTERVAL_MS = 3000
+
+function sleep (ms = 0) {
+  if (global.Bot?.sleep) {
+    return Bot.sleep(ms)
+  }
+
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function trimText (value = '') {
+  return String(value || '').trim()
+}
+
+function normalizeTaskStatus (value = '') {
+  return trimText(value).toLowerCase()
+}
+
+function isIngameTaskPayload (payload = {}) {
+  return Boolean(payload && typeof payload === 'object' && trimText(payload.task_id || payload.taskId))
+}
+
+function isPendingTaskStatus (status = '') {
+  return ['queued', 'pending', 'running', 'processing', 'accepted'].includes(normalizeTaskStatus(status))
+}
+
+function isFailedTaskStatus (status = '') {
+  return ['failed', 'error', 'timeout', 'cancelled', 'canceled'].includes(normalizeTaskStatus(status))
+}
+
+function isCompletedGatewayPayload (payload = {}) {
+  if (!payload || typeof payload !== 'object') return false
+  if (Array.isArray(payload.rows)) return true
+  if (trimText(payload.title)) return true
+  if (payload.source !== undefined) return true
+  return false
+}
+
+function isCompletedTaskStatus (status = '') {
+  return ['done', 'success', 'succeeded', 'completed', 'finished'].includes(normalizeTaskStatus(status))
+}
+
+function extractCompletedTaskPayload (payload = {}) {
+  if (!payload || typeof payload !== 'object') return null
+  if (isCompletedGatewayPayload(payload)) return payload
+  if (isCompletedGatewayPayload(payload.result)) return payload.result
+  if (isCompletedGatewayPayload(payload.data)) return payload.data
+  return null
+}
+
+function extractTaskErrorMessage (payload = {}, fallbackStatus = '') {
+  if (!payload || typeof payload !== 'object') {
+    return trimText(fallbackStatus) || 'failed'
+  }
+
+  const candidates = [
+    payload.message,
+    payload.error,
+    payload.error_message,
+    payload.errorMessage,
+    payload.reason,
+    payload.detail,
+    payload.result?.message,
+    payload.result?.error,
+    payload.result?.error_message,
+    payload.result?.errorMessage,
+    payload.result?.reason,
+    payload.data?.message,
+    payload.data?.error,
+    payload.data?.error_message,
+    payload.data?.errorMessage,
+    payload.data?.reason
+  ]
+
+  for (const candidate of candidates) {
+    const text = trimText(candidate)
+    if (text && text !== 'failed') return text
+  }
+
+  return trimText(payload.status || fallbackStatus) || 'failed'
+}
 
 export default class RocomApi extends WeGameApi {
   requestRocomGet (urlPath, frameworkToken, params = {}) {
@@ -15,14 +98,98 @@ export default class RocomApi extends WeGameApi {
     })
   }
 
+  requestRocomPublicPost (urlPath, data = {}) {
+    return this.request(urlPath, {
+      method: 'post',
+      data,
+      needBaseAuth: true
+    })
+  }
+
+  async requestRocomIngamePost (urlPath, data = {}, options = {}) {
+    const payload = await this.requestRocomPublicPost(urlPath, {
+      wait_ms: Number(options.waitMs ?? DEFAULT_INGAME_WAIT_MS) || DEFAULT_INGAME_WAIT_MS,
+      ...data
+    })
+
+    return this.resolveIngameTask(payload, options)
+  }
+
+  async getIngameTask (taskId = '') {
+    const normalizedTaskId = trimText(taskId)
+    if (!normalizedTaskId) {
+      throw new Error('缺少 Ingame 任务 ID')
+    }
+
+    return this.requestRocomPublicGet(`/api/v1/games/rocom/ingame/tasks/${encodeURIComponent(normalizedTaskId)}`)
+  }
+
+  async resolveIngameTask (payload = {}, options = {}) {
+    const initialCompletedPayload = extractCompletedTaskPayload(payload)
+    if (initialCompletedPayload) {
+      return initialCompletedPayload
+    }
+
+    if (!isIngameTaskPayload(payload)) {
+      return payload
+    }
+
+    const taskId = trimText(payload.task_id || payload.taskId)
+    const timeoutMs = Math.max(1000, Number(options.timeoutMs ?? DEFAULT_INGAME_TASK_TIMEOUT_MS) || DEFAULT_INGAME_TASK_TIMEOUT_MS)
+    const intervalMs = Math.max(300, Number(options.intervalMs ?? DEFAULT_INGAME_TASK_INTERVAL_MS) || DEFAULT_INGAME_TASK_INTERVAL_MS)
+    const startedAt = Date.now()
+    let lastStatus = normalizeTaskStatus(payload.status)
+
+    while (Date.now() - startedAt < timeoutMs) {
+      if (lastStatus && isFailedTaskStatus(lastStatus)) {
+        throw new Error(`Ingame 任务失败：${extractTaskErrorMessage(payload, lastStatus)}`)
+      }
+
+      if (lastStatus && !isPendingTaskStatus(lastStatus)) {
+        break
+      }
+
+      await sleep(intervalMs)
+
+      const taskPayload = await this.getIngameTask(taskId)
+      const completedPayload = extractCompletedTaskPayload(taskPayload)
+      if (completedPayload) {
+        return completedPayload
+      }
+
+      lastStatus = normalizeTaskStatus(taskPayload.status)
+      if (lastStatus && isFailedTaskStatus(lastStatus)) {
+        throw new Error(`Ingame 任务失败：${extractTaskErrorMessage(taskPayload, lastStatus)}`)
+      }
+
+      if (isCompletedTaskStatus(lastStatus)) {
+        const nestedPayload = extractCompletedTaskPayload(taskPayload.result || taskPayload.data)
+        if (nestedPayload) return nestedPayload
+        throw new Error(`Ingame 任务已完成但未返回可解析结果：${taskId}`)
+      }
+
+      if (!isIngameTaskPayload(taskPayload) && !lastStatus) {
+        return taskPayload
+      }
+    }
+
+    throw new Error(`Ingame 任务等待超时：${taskId}`)
+  }
+
   getAccounts (userIdentifier, params = {}) {
     return this.requestUserScopedGet('/api/v1/games/rocom/accounts', userIdentifier, params)
   }
 
-  searchPlayer (uid) {
-    return this.requestRocomPublicGet('/api/v1/games/rocom/ingame/player/search', {
+  searchPlayer (uid, options = {}) {
+    return this.requestRocomIngamePost('/api/v1/games/rocom/ingame/player/search', {
       uid
-    })
+    }, options)
+  }
+
+  getIngameMerchantInfo (shopId = 3019, options = {}) {
+    return this.requestRocomIngamePost('/api/v1/games/rocom/ingame/merchant/info', {
+      shop_id: shopId
+    }, options)
   }
 
   getRoleProfile (frameworkToken, params = {}) {

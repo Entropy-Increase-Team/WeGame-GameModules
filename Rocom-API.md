@@ -82,6 +82,7 @@
 - 适合做玩家 UID 搜索、名片资料页、基础社交资料展示
 - `GET` 使用 query 参数 `uid`
 - `POST` 使用 JSON 请求体 `{"uid":123456}`
+- `POST` 可选传 `wait_ms`，用于覆盖外置 gateway 默认同步等待时间
 
 `GET /api/v1/games/rocom/ingame/player/search` 请求示例：
 
@@ -98,16 +99,17 @@ POST /api/v1/games/rocom/ingame/player/search
 Content-Type: application/json
 X-API-Key: <wegame-api-key>
 
-{"uid":123456}
+{"uid":123456,"wait_ms":5000}
 ```
 
-响应结构示例：
+同步成功响应示例，HTTP `200`：
 
 ```json
 {
   "code": 0,
   "message": "ok",
   "data": {
+    "source": "live",
     "title": "[0x02A5] FriendSearchRsp - ZoneFriendSearchPlayerRsp",
     "rows": [
       {
@@ -150,16 +152,19 @@ X-API-Key: <wegame-api-key>
     "notes": [
       "unlocked_rel_node_num          已解锁关系节点 0",
       "(外层/未知字段 1 个，已跳过)"
-    ]
+    ],
+    "meta": {}
   }
 }
 ```
 
 字段补充：
 
+- `source`：结果来源，可能是 `live` 或 `cache`
 - `title`：当前查询标题
 - `rows`：结构化字段列表，适合前端直接按表格或树形结构渲染
 - `notes`：附加说明
+- `meta`：外置 gateway 返回的附加元信息
 - `rows[].level`：层级深度
 - `rows[].field`：字段名
 - `rows[].label`：字段中文名
@@ -175,6 +180,7 @@ X-API-Key: <wegame-api-key>
 - 适合做远行商人页、商店商品列表、刷新时间展示
 - `GET` 使用 query 参数 `shop_id`
 - `POST` 使用 JSON 请求体 `{"shop_id":3019}`
+- `POST` 可选传 `wait_ms`，用于覆盖外置 gateway 默认同步等待时间
 
 `GET /api/v1/games/rocom/ingame/merchant/info` 请求示例：
 
@@ -191,16 +197,17 @@ POST /api/v1/games/rocom/ingame/merchant/info
 Content-Type: application/json
 X-API-Key: <wegame-api-key>
 
-{"shop_id":3019}
+{"shop_id":3019,"wait_ms":5000}
 ```
 
-响应结构示例：
+同步成功响应示例，HTTP `200`：
 
 ```json
 {
   "code": 0,
   "message": "ok",
   "data": {
+    "source": "live",
     "title": "商店查询结果 - shop_id=3019",
     "rows": [
       {
@@ -240,17 +247,76 @@ X-API-Key: <wegame-api-key>
         "value": "6000"
       }
     ],
-    "notes": []
+    "notes": [],
+    "meta": {}
   }
 }
 ```
 
-常见错误响应示例：
+### 任务状态
+
+- `GET /api/v1/games/rocom/ingame/tasks/{task_id}`
+
+说明：
+
+- 玩家搜索或商店查询返回 HTTP `202` 时，使用返回的 `task_id` 查询异步任务状态
+- 任务完成后，返回结构仍然是外置 gateway 的统一 JSON 响应
+
+请求示例：
+
+```http
+GET /api/v1/games/rocom/ingame/tasks/tsk_xxx
+X-API-Key: <wegame-api-key>
+Accept: application/json
+```
+
+### Ingame 返回规则
+
+同步成功，HTTP `200`：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "source": "cache",
+    "title": "...",
+    "rows": [],
+    "notes": [],
+    "meta": {}
+  }
+}
+```
+
+排队中，HTTP `202`：
+
+```json
+{
+  "code": 0,
+  "message": "accepted",
+  "data": {
+    "task_id": "tsk_xxx",
+    "status": "queued"
+  }
+}
+```
+
+未授权，HTTP `401`：
 
 ```json
 {
   "code": 4010,
   "message": "unauthorized",
+  "data": null
+}
+```
+
+外置 worker 查询失败，HTTP `500`：
+
+```json
+{
+  "code": 5001,
+  "message": "具体错误信息",
   "data": null
 }
 ```

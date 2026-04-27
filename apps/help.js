@@ -5,11 +5,27 @@ import { buildCommandReg, COMMAND_PREFIXES, formatCommand } from '../utils/comma
 function buildDefaultMenuGroups () {
   return [
     {
-      groupTitle: '登陆部分',
+      groupTitle: 'WeGame 登录',
       menuItems: [
         {
-          cmd: '=帮助',
-          desc: '查看登陆帮助'
+          cmd: formatCommand('wx登陆'),
+          desc: '使用微信扫码登录 WeGame'
+        },
+        {
+          cmd: formatCommand('qq登陆'),
+          desc: '使用 QQ 扫码登录 WeGame'
+        },
+        {
+          cmd: formatCommand('wg账号列表'),
+          desc: '查看当前已绑定的 WeGame 账号'
+        },
+        {
+          cmd: formatCommand('wg切换账号 1'),
+          desc: '切换默认 WeGame 账号'
+        },
+        {
+          cmd: formatCommand('wg删除账号 1'),
+          desc: '删除指定 WeGame 绑定'
         }
       ]
     },

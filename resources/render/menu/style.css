@@ -94,12 +94,16 @@ body {
   background: url("../../img/player-bg.png") no-repeat center center;
   background-size: 100% 100%;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
   padding: 0 25px;
   box-sizing: border-box;
   /* 确保文字不会跟右侧的小宠物图标产生过度的文字重叠，可以在右侧留出些空间 */
   padding-right: 50px; 
+}
+
+.menu-item-text {
+  min-width: 0;
+  flex: 1;
 }
 
 /* 上半部分指令 */

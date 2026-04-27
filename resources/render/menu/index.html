@@ -21,8 +21,10 @@
           <div class="group-items">
             {{each group.menuItems item}}
             <div class="menu-item">
-              <div class="menu-item-cmd">{{item.cmd}}</div>
-              <div class="menu-item-desc">{{item.desc}}</div>
+              <div class="menu-item-text">
+                <div class="menu-item-cmd">{{item.cmd}}</div>
+                <div class="menu-item-desc">{{item.desc}}</div>
+              </div>
             </div>
             {{/each}}
           </div>
