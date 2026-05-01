@@ -272,6 +272,23 @@ function extractUidFromAccount (account = {}) {
   )
 }
 
+function formatPlayerSearchError (error) {
+  const message = trimText(error?.message || error)
+  if (/连接提前关闭/.test(message)) {
+    return '玩家搜索失败：连接提前关闭'
+  }
+
+  if (/Ingame\s*任务等待超时/.test(message)) {
+    return '玩家搜索失败，任务等待超时'
+  }
+
+  if (/Ingame\s*任务失败/.test(message)) {
+    return '玩家搜索失败，任务失败'
+  }
+
+  return `玩家搜索失败：${message || '未知错误'}`
+}
+
 export class RocomPlayerSearch extends plugin {
   constructor (e) {
     super({
@@ -297,7 +314,14 @@ export class RocomPlayerSearch extends plugin {
       const uid = await this.resolveSearchUid()
       await this.reply(`正在搜索玩家 UID：${uid}`)
 
-      const data = await this.api.searchPlayer(uid)
+      let queuedNotified = false
+      const data = await this.api.searchPlayer(uid, {
+        onQueued: async () => {
+          if (queuedNotified) return
+          queuedNotified = true
+          await this.reply(`玩家 UID：${uid} 查询已进入队列，正在排队等待结果...`)
+        }
+      })
       const forwardMsg = await common.makeForwardMsg(
         this.e,
         this.buildForwardNodes(uid, data),
@@ -307,7 +331,7 @@ export class RocomPlayerSearch extends plugin {
       return true
     } catch (error) {
       logger.error('[WeGame-plugin][rocom] 玩家搜索失败', error)
-      await this.reply(`玩家搜索失败：${error.message || error}`)
+      await this.reply(formatPlayerSearchError(error))
       return true
     }
   }

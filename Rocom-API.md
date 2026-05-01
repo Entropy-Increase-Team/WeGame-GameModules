@@ -82,12 +82,12 @@
 - 适合做玩家 UID 搜索、名片资料页、基础社交资料展示
 - `GET` 使用 query 参数 `uid`
 - `POST` 使用 JSON 请求体 `{"uid":123456}`
-- `POST` 可选传 `wait_ms`，用于覆盖外置 gateway 默认同步等待时间
+- `GET` 和 `POST` 都可选传 `wait_ms`，用于覆盖外置 gateway 默认同步等待时间
 
 `GET /api/v1/games/rocom/ingame/player/search` 请求示例：
 
 ```http
-GET /api/v1/games/rocom/ingame/player/search?uid=123456
+GET /api/v1/games/rocom/ingame/player/search?uid=123456&wait_ms=5000
 X-API-Key: <wegame-api-key>
 Accept: application/json
 ```
@@ -180,12 +180,12 @@ X-API-Key: <wegame-api-key>
 - 适合做远行商人页、商店商品列表、刷新时间展示
 - `GET` 使用 query 参数 `shop_id`
 - `POST` 使用 JSON 请求体 `{"shop_id":3019}`
-- `POST` 可选传 `wait_ms`，用于覆盖外置 gateway 默认同步等待时间
+- `GET` 和 `POST` 都可选传 `wait_ms`，用于覆盖外置 gateway 默认同步等待时间
 
 `GET /api/v1/games/rocom/ingame/merchant/info` 请求示例：
 
 ```http
-GET /api/v1/games/rocom/ingame/merchant/info?shop_id=3019
+GET /api/v1/games/rocom/ingame/merchant/info?shop_id=3019&wait_ms=5000
 X-API-Key: <wegame-api-key>
 Accept: application/json
 ```
@@ -268,6 +268,48 @@ X-API-Key: <wegame-api-key>
 GET /api/v1/games/rocom/ingame/tasks/tsk_xxx
 X-API-Key: <wegame-api-key>
 Accept: application/json
+```
+
+### Gateway 健康与队列状态
+
+- `GET /api/v1/games/rocom/ingame/health`
+
+说明：
+
+- 代理外置 RocoMITMServer gateway 的 `/health`
+- 用于查看 gateway、PostgreSQL、Redis、Redis 队列长度和 worker 心跳状态
+- 该接口经过 Go 后端认证与 `game:rocom` 权限校验；外置 gateway 内部 API key 不需要调用方传入
+
+请求示例：
+
+```http
+GET /api/v1/games/rocom/ingame/health
+X-API-Key: <wegame-api-key>
+Accept: application/json
+```
+
+响应示例，HTTP `200`：
+
+```json
+{
+  "status": "ok",
+  "services": {
+    "postgres": {
+      "status": "ok"
+    },
+    "redis": {
+      "status": "ok"
+    }
+  },
+  "queue_key": "rkms:v1:queue",
+  "queue_length": 0,
+  "workers": [
+    {
+      "worker_id": "worker-a",
+      "age_seconds": 1.234
+    }
+  ]
+}
 ```
 
 ### Ingame 返回规则

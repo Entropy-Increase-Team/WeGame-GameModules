@@ -21,6 +21,14 @@ function normalizeTaskStatus (value = '') {
   return trimText(value).toLowerCase()
 }
 
+function isPlainObject (value) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function normalizeIngameMethod (value = '') {
+  return trimText(value).toLowerCase() === 'get' ? 'get' : 'post'
+}
+
 function isIngameTaskPayload (payload = {}) {
   return Boolean(payload && typeof payload === 'object' && trimText(payload.task_id || payload.taskId))
 }
@@ -85,6 +93,20 @@ function extractTaskErrorMessage (payload = {}, fallbackStatus = '') {
   return trimText(payload.status || fallbackStatus) || 'failed'
 }
 
+async function notifyIngameQueued (payload = {}, options = {}) {
+  if (typeof options.onQueued !== 'function') return
+
+  try {
+    await options.onQueued({
+      taskId: trimText(payload.task_id || payload.taskId),
+      status: normalizeTaskStatus(payload.status),
+      payload
+    })
+  } catch (error) {
+    global.logger?.warn?.(`[WeGame-plugin][rocom] Ingame 排队提示发送失败：${error.message || error}`)
+  }
+}
+
 export default class RocomApi extends WeGameApi {
   requestRocomGet (urlPath, frameworkToken, params = {}) {
     return this.requestGameFrameworkGet(urlPath, frameworkToken, GAME_CODE, params)
@@ -104,6 +126,51 @@ export default class RocomApi extends WeGameApi {
       data,
       needBaseAuth: true
     })
+  }
+
+  async requestRocomPublicRawGet (urlPath, params = {}) {
+    let response
+
+    try {
+      response = await this.client.request({
+        url: `${this.getBaseUrl()}${urlPath}`,
+        method: 'get',
+        params: {
+          device_fingerprint: this.getDeviceFingerprint(),
+          ...(isPlainObject(params) ? params : {})
+        },
+        headers: {
+          ...this.getDeviceHeaders(),
+          ...(await this.getBaseAuthHeaders())
+        }
+      })
+    } catch (error) {
+      throw new Error(error?.message || '请求失败')
+    }
+
+    const body = response.data
+
+    if (response.status >= 400) {
+      throw new Error(body?.message || response.statusText || `请求失败：HTTP ${response.status}`)
+    }
+
+    if (body && typeof body === 'object' && Object.prototype.hasOwnProperty.call(body, 'code')) {
+      if (Number(body.code) !== 0) {
+        throw new Error(body.message || `请求失败：业务码 ${body.code}`)
+      }
+      return body.data ?? {}
+    }
+
+    return body
+  }
+
+  async requestRocomIngameGet (urlPath, params = {}, options = {}) {
+    const payload = await this.requestRocomPublicGet(urlPath, {
+      wait_ms: Number(options.waitMs ?? DEFAULT_INGAME_WAIT_MS) || DEFAULT_INGAME_WAIT_MS,
+      ...params
+    })
+
+    return this.resolveIngameTask(payload, options)
   }
 
   async requestRocomIngamePost (urlPath, data = {}, options = {}) {
@@ -135,6 +202,8 @@ export default class RocomApi extends WeGameApi {
     }
 
     const taskId = trimText(payload.task_id || payload.taskId)
+    await notifyIngameQueued(payload, options)
+
     const timeoutMs = Math.max(1000, Number(options.timeoutMs ?? DEFAULT_INGAME_TASK_TIMEOUT_MS) || DEFAULT_INGAME_TASK_TIMEOUT_MS)
     const intervalMs = Math.max(300, Number(options.intervalMs ?? DEFAULT_INGAME_TASK_INTERVAL_MS) || DEFAULT_INGAME_TASK_INTERVAL_MS)
     const startedAt = Date.now()
@@ -181,15 +250,27 @@ export default class RocomApi extends WeGameApi {
   }
 
   searchPlayer (uid, options = {}) {
-    return this.requestRocomIngamePost('/api/v1/games/rocom/ingame/player/search', {
+    const request = normalizeIngameMethod(options.method) === 'get'
+      ? this.requestRocomIngameGet.bind(this)
+      : this.requestRocomIngamePost.bind(this)
+
+    return request('/api/v1/games/rocom/ingame/player/search', {
       uid
     }, options)
   }
 
   getIngameMerchantInfo (shopId = 3019, options = {}) {
-    return this.requestRocomIngamePost('/api/v1/games/rocom/ingame/merchant/info', {
+    const request = normalizeIngameMethod(options.method) === 'get'
+      ? this.requestRocomIngameGet.bind(this)
+      : this.requestRocomIngamePost.bind(this)
+
+    return request('/api/v1/games/rocom/ingame/merchant/info', {
       shop_id: shopId
     }, options)
+  }
+
+  getIngameHealth () {
+    return this.requestRocomPublicRawGet('/api/v1/games/rocom/ingame/health')
   }
 
   getRoleProfile (frameworkToken, params = {}) {
