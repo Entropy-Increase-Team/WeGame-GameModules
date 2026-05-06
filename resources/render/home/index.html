@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1200, initial-scale=1">
+  <link rel="stylesheet" href="{{_res_path}}render/home/style.css">
+  <title>洛克家园</title>
+</head>
+<body>
+  <div class="home-page">
+    <div class="page-bg"></div>
+
+    <header class="home-header">
+      <div class="home-title">{{title}}</div>
+      <div class="home-title-ghost">ROCOM HOME</div>
+      {{if updatedAt}}
+      <div class="update-badge">数据更新时间：{{updatedAt}}</div>
+      {{/if}}
+    </header>
+
+    <section class="profile-strip">
+      <img class="home-icon" src="{{_res_path}}render/home/img/img_HomeVisit_Icon1.png" alt="">
+      <div class="profile-main">
+        <div class="home-name-row">
+          <span class="home-owner">{{homeName}}</span>
+          <span class="uid-pill">UID {{uid}}</span>
+        </div>
+        <div class="profile-subtitle">{{subtitle}}</div>
+      </div>
+    </section>
+
+    <section class="summary-strip">
+      {{each summaryCards item}}
+      <div class="summary-item">
+        <div class="summary-label">{{item.label}}</div>
+        <div class="summary-value">{{item.value}}</div>
+      </div>
+      {{/each}}
+    </section>
+
+    <main class="content-grid">
+      <div class="left-column">
+        <section class="panel garden-panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-label">Home Garden</div>
+              <div class="garden-title-row">
+                <h2>菜园情况</h2>
+                <div class="guard-inline">
+                  <span class="guard-inline-label">守卫精灵</span>
+                  {{if guardPets.length}}
+                  {{each guardPets item}}
+                  <span class="guard-inline-name">{{item.name}}</span>
+                  <span class="status-pill status-{{item.statusClass}}">{{item.statusText}}</span>
+                  {{/each}}
+                  {{else}}
+                  <span class="guard-inline-empty">{{guardEmptyText}}</span>
+                  {{/if}}
+                </div>
+              </div>
+            </div>
+            <span class="panel-count">{{gardenCount}}</span>
+          </div>
+
+          {{if gardenPlots.length}}
+          <div class="garden-grid">
+            {{each gardenPlots item}}
+            <article class="plot-card">
+              <div class="plot-index">田地 {{item.landIndex}}</div>
+              <div class="plot-main">
+                {{if item.iconUrl}}
+                <img class="plant-icon" src="{{item.iconUrl}}" alt="">
+                {{else}}
+                <div class="empty-icon">无图</div>
+                {{/if}}
+                <div class="plot-info">
+                  <div class="plant-name">{{item.plantName}}</div>
+                  <div class="plant-state state-{{item.stateType}}">{{item.statusText}}</div>
+                  <div class="time-text">{{item.leftTimeText}}</div>
+                  <div class="plot-tags">
+                    {{if item.harvestText}}<span>{{item.harvestText}}</span>{{/if}}
+                    {{if item.stealText}}<span>{{item.stealText}}</span>{{/if}}
+                  </div>
+                </div>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" style="width: {{item.progress}}%;"></div>
+              </div>
+            </article>
+            {{/each}}
+          </div>
+          {{else}}
+          <div class="empty-state">当前没有菜园作物信息</div>
+          {{/if}}
+        </section>
+      </div>
+
+      <section class="panel indoor-panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-label">Indoor Pets</div>
+            <h2>室内精灵</h2>
+          </div>
+          <span class="panel-count">{{indoorCount}}</span>
+        </div>
+
+        {{if indoorPets.length}}
+        <div class="pet-grid">
+          {{each indoorPets item}}
+          <article class="pet-card indoor-card status-{{item.statusClass}}">
+            <div class="pet-avatar-wrap">
+              {{if item.iconUrl}}
+              <img class="pet-avatar" src="{{item.iconUrl}}" alt="">
+              {{else}}
+              <div class="pet-avatar empty-icon">无图</div>
+              {{/if}}
+              {{if item.badge}}
+              <span class="pet-badge">{{item.badge}}</span>
+              {{/if}}
+            </div>
+            <div class="pet-info">
+              <div class="pet-name">{{item.name}}</div>
+              <div class="pet-meta">
+                <span>Lv.{{item.level}}</span>
+                <span class="status-pill status-{{item.statusClass}}">{{item.statusText}}</span>
+              </div>
+              <div class="pet-note">{{item.note}}</div>
+            </div>
+          </article>
+          {{/each}}
+        </div>
+        {{else}}
+        <div class="empty-state">当前没有室内精灵信息</div>
+        {{/if}}
+      </section>
+    </main>
+  </div>
+</body>
+</html>

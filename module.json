@@ -1,7 +1,7 @@
 {
   "code": "rocom",
   "name": "洛克王国世界",
-  "description": "RoCom / NRC 游戏模块，提供档案、战绩、阵容、交换大厅、查蛋与远行商人订阅能力。",
+  "description": "RoCom / NRC 游戏模块，提供档案、家园、战绩、阵容、交换大厅、查蛋与远行商人订阅能力。",
   "version": "0.2.1",
   "apiDoc": "modules/rocom/Rocom-API.md",
   "commandPrefixes": [
@@ -20,6 +20,8 @@
     "+账号列表",
     "+档案",
     "+uid",
+    "+家园",
+    "+刷新家园",
     "+战绩",
     "+精灵列表",
     "+阵容",

@@ -46,6 +46,7 @@ function isCompletedGatewayPayload (payload = {}) {
   if (Array.isArray(payload.rows)) return true
   if (trimText(payload.title)) return true
   if (payload.source !== undefined) return true
+  if (payload.home_info !== undefined) return true
   return false
 }
 
@@ -267,6 +268,19 @@ export default class RocomApi extends WeGameApi {
     return request('/api/v1/games/rocom/ingame/merchant/info', {
       shop_id: shopId
     }, options)
+  }
+
+  getIngameHomeInfo (uid, options = {}) {
+    const request = normalizeIngameMethod(options.method) === 'post'
+      ? this.requestRocomIngamePost.bind(this)
+      : this.requestRocomIngameGet.bind(this)
+
+    return request('/api/v1/games/rocom/ingame/home/info', {
+      uid
+    }, {
+      waitMs: 20000,
+      ...options
+    })
   }
 
   getIngameHealth () {
