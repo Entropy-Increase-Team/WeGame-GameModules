@@ -9,6 +9,14 @@
 - `/api/v1/games/rocom/*`
 - `/api/v1/games/rocom/ingame/*`
 
+实现边界：
+
+- RoCom 官方 WeGame / Pallas 类接口放在 RoCom 游戏组件主体中
+- RoCom 对外 HTTP 路由和 handler 位于 `internal/game/rocom/http/`
+- 远行商人信息来自 RoCom 小程序云函数，代码位于 `internal/game/rocom/external/merchant/`
+- `ingame/*` 是外置 RocoMITMServer gateway 的薄代理，代码位于 `internal/game/rocom/external/ingame/`
+- 宠物体型查询来自第三方服务，代码位于 `internal/game/rocom/external/petsize/`
+
 在调用本文件中的接口前，请先参考 [WeGame-API.md](./WeGame-API.md) 完成：
 
 - 基础认证
@@ -21,12 +29,15 @@
 
 ## 前置要求
 
-当前洛克王国世界模块包含两组前缀：
+当前洛克王国世界模块包含两类路由前缀：
 
 - `/api/v1/games/rocom/*`
 - `/api/v1/games/rocom/ingame/*`
 
-以下认证规则主要针对非 `ingame` 接口，请先记住：
+这里的 `ingame` 只指 `/api/v1/games/rocom/ingame/*` 这一组代理 RocoMITMServer gateway 的接口。
+`/api/v1/games/rocom/merchant/info` 和 `/api/v1/games/rocom/pet/size-query` 虽然也是外置上游，但它们不是 ingame 接口，而是普通 RoCom 路由下的外置 API 服务代理。
+
+以下认证规则主要针对普通 RoCom 路由，请先记住：
 
 - 当前模块的大部分查询接口至少需要一种基础认证：`Authorization: Bearer <web-jwt>`、`X-Anonymous-Token`、或 `X-API-Key`
 - 除了明确标注为“**不需要 `X-Framework-Token`**”的接口外，大部分游戏数据接口都需要通过 `X-Framework-Token` 指定一份已保存的 WeGame 凭证
@@ -35,7 +46,7 @@
 - 如果 API Key 请求使用的是按第三方用户作用域创建 / 归属的 `frameworkToken` 或绑定记录，后续请求还需要继续带同一个 `user_identifier`；可放在 query 参数，或 `X-User-Identifier` 请求头
 - 如果这份 `frameworkToken` 来自 Web 授权流程，且授权请求里传过 `platform_id`，这里的 `user_identifier` 也应该和当时的 `platform_id` 保持一致
 - 当前只开放 HAR 中已验证的核心查询接口
-- 非 `ingame` 接口成功时，`data` 中通常会包一层上游 WeGame 响应
+- 官方 WeGame / Pallas 类接口成功时，`data` 中通常会包一层上游 WeGame 响应；外置 API 服务代理会按各自章节说明返回
 
 通用成功响应示例：
 
@@ -52,316 +63,9 @@
 }
 ```
 
-## RoCom / NRC Ingame 接口
+## API接口
 
-这组接口统一使用：
-
-- `/api/v1/games/rocom/ingame/*`
-
-认证方式：
-
-- `Authorization: Bearer <web-jwt>`
-- `X-Anonymous-Token`
-- `X-API-Key`
-
-如果使用 `X-API-Key`：
-
-- 统一使用开发者 `WeGame API Key`
-- 该 API Key 仍需已获批 `game:rocom` 下的对应权限
-- 当前默认公开权限为 `rocom.access`
-
-这组接口当前不要求 `X-Framework-Token`。
-
-### 玩家搜索
-
-- `GET /api/v1/games/rocom/ingame/player/search?uid=<UID>`
-- `POST /api/v1/games/rocom/ingame/player/search`
-
-说明：
-
-- 适合做玩家 UID 搜索、名片资料页、基础社交资料展示
-- `GET` 使用 query 参数 `uid`
-- `POST` 使用 JSON 请求体 `{"uid":123456}`
-- `GET` 和 `POST` 都可选传 `wait_ms`，用于覆盖外置 gateway 默认同步等待时间
-
-`GET /api/v1/games/rocom/ingame/player/search` 请求示例：
-
-```http
-GET /api/v1/games/rocom/ingame/player/search?uid=123456&wait_ms=5000
-X-API-Key: <wegame-api-key>
-Accept: application/json
-```
-
-`POST /api/v1/games/rocom/ingame/player/search` 请求示例：
-
-```http
-POST /api/v1/games/rocom/ingame/player/search
-Content-Type: application/json
-X-API-Key: <wegame-api-key>
-
-{"uid":123456,"wait_ms":5000}
-```
-
-同步成功响应示例，HTTP `200`：
-
-```json
-{
-  "code": 0,
-  "message": "ok",
-  "data": {
-    "source": "live",
-    "title": "[0x02A5] FriendSearchRsp - ZoneFriendSearchPlayerRsp",
-    "rows": [
-      {
-        "level": 0,
-        "field": "ret_info",
-        "label": "返回码",
-        "value": "(RetInfo, 2B)"
-      },
-      {
-        "level": 1,
-        "field": "ret_code",
-        "label": "返回码",
-        "value": "0"
-      },
-      {
-        "level": 1,
-        "field": "uin",
-        "label": "用户ID",
-        "value": "123456"
-      },
-      {
-        "level": 1,
-        "field": "name",
-        "label": "昵称",
-        "value": "'一二三四五六'"
-      },
-      {
-        "level": 1,
-        "field": "level",
-        "label": "等级",
-        "value": "48"
-      },
-      {
-        "level": 1,
-        "field": "signature",
-        "label": "个性签名",
-        "value": "'大柚子'"
-      }
-    ],
-    "notes": [
-      "unlocked_rel_node_num          已解锁关系节点 0",
-      "(外层/未知字段 1 个，已跳过)"
-    ],
-    "meta": {}
-  }
-}
-```
-
-字段补充：
-
-- `source`：结果来源，可能是 `live` 或 `cache`
-- `title`：当前查询标题
-- `rows`：结构化字段列表，适合前端直接按表格或树形结构渲染
-- `notes`：附加说明
-- `meta`：外置 gateway 返回的附加元信息
-- `rows[].level`：层级深度
-- `rows[].field`：字段名
-- `rows[].label`：字段中文名
-- `rows[].value`：字段值
-
-### 商店信息
-
-- `GET /api/v1/games/rocom/ingame/merchant/info?shop_id=<SHOP_ID>`
-- `POST /api/v1/games/rocom/ingame/merchant/info`
-
-说明：
-
-- 适合做远行商人页、商店商品列表、刷新时间展示
-- `GET` 使用 query 参数 `shop_id`
-- `POST` 使用 JSON 请求体 `{"shop_id":3019}`
-- `GET` 和 `POST` 都可选传 `wait_ms`，用于覆盖外置 gateway 默认同步等待时间
-
-`GET /api/v1/games/rocom/ingame/merchant/info` 请求示例：
-
-```http
-GET /api/v1/games/rocom/ingame/merchant/info?shop_id=3019&wait_ms=5000
-X-API-Key: <wegame-api-key>
-Accept: application/json
-```
-
-`POST /api/v1/games/rocom/ingame/merchant/info` 请求示例：
-
-```http
-POST /api/v1/games/rocom/ingame/merchant/info
-Content-Type: application/json
-X-API-Key: <wegame-api-key>
-
-{"shop_id":3019,"wait_ms":5000}
-```
-
-同步成功响应示例，HTTP `200`：
-
-```json
-{
-  "code": 0,
-  "message": "ok",
-  "data": {
-    "source": "live",
-    "title": "商店查询结果 - shop_id=3019",
-    "rows": [
-      {
-        "level": 0,
-        "field": "shop_id",
-        "label": "商店ID",
-        "value": "3019"
-      },
-      {
-        "level": 0,
-        "field": "ret_code",
-        "label": "返回码",
-        "value": "0"
-      },
-      {
-        "level": 0,
-        "field": "goods_count",
-        "label": "商品数量",
-        "value": "1"
-      },
-      {
-        "level": 1,
-        "field": "goods_id",
-        "label": "商品ID",
-        "value": "67005"
-      },
-      {
-        "level": 1,
-        "field": "next_refresh_time",
-        "label": "下次刷新时间",
-        "value": "1776830400 (2026-04-22 12:00:00 CST)"
-      },
-      {
-        "level": 1,
-        "field": "real_price",
-        "label": "现价",
-        "value": "6000"
-      }
-    ],
-    "notes": [],
-    "meta": {}
-  }
-}
-```
-
-### 任务状态
-
-- `GET /api/v1/games/rocom/ingame/tasks/{task_id}`
-
-说明：
-
-- 玩家搜索或商店查询返回 HTTP `202` 时，使用返回的 `task_id` 查询异步任务状态
-- 任务完成后，返回结构仍然是外置 gateway 的统一 JSON 响应
-
-请求示例：
-
-```http
-GET /api/v1/games/rocom/ingame/tasks/tsk_xxx
-X-API-Key: <wegame-api-key>
-Accept: application/json
-```
-
-### Gateway 健康与队列状态
-
-- `GET /api/v1/games/rocom/ingame/health`
-
-说明：
-
-- 代理外置 RocoMITMServer gateway 的 `/health`
-- 用于查看 gateway、PostgreSQL、Redis、Redis 队列长度和 worker 心跳状态
-- 该接口经过 Go 后端认证与 `game:rocom` 权限校验；外置 gateway 内部 API key 不需要调用方传入
-
-请求示例：
-
-```http
-GET /api/v1/games/rocom/ingame/health
-X-API-Key: <wegame-api-key>
-Accept: application/json
-```
-
-响应示例，HTTP `200`：
-
-```json
-{
-  "status": "ok",
-  "services": {
-    "postgres": {
-      "status": "ok"
-    },
-    "redis": {
-      "status": "ok"
-    }
-  },
-  "queue_key": "rkms:v1:queue",
-  "queue_length": 0,
-  "workers": [
-    {
-      "worker_id": "worker-a",
-      "age_seconds": 1.234
-    }
-  ]
-}
-```
-
-### Ingame 返回规则
-
-同步成功，HTTP `200`：
-
-```json
-{
-  "code": 0,
-  "message": "ok",
-  "data": {
-    "source": "cache",
-    "title": "...",
-    "rows": [],
-    "notes": [],
-    "meta": {}
-  }
-}
-```
-
-排队中，HTTP `202`：
-
-```json
-{
-  "code": 0,
-  "message": "accepted",
-  "data": {
-    "task_id": "tsk_xxx",
-    "status": "queued"
-  }
-}
-```
-
-未授权，HTTP `401`：
-
-```json
-{
-  "code": 4010,
-  "message": "unauthorized",
-  "data": null
-}
-```
-
-外置 worker 查询失败，HTTP `500`：
-
-```json
-{
-  "code": 5001,
-  "message": "具体错误信息",
-  "data": null
-}
-```
+本章节描述 RoCom 普通 API，包括官方 WeGame / Pallas 类接口，以及不属于 ingame / 外置 API 服务的 RoCom 后端能力。
 
 ### 账号列表
 
@@ -869,6 +573,193 @@ Accept: application/json
 }
 ```
 
+### 宠物图鉴
+
+- `GET /api/v1/games/rocom/pet/list`
+- `GET /api/v1/games/rocom/pet/detail`
+- `GET /api/v1/games/rocom/pet/skill-users`
+
+说明：
+
+- 这些接口读取本地 `game_rocom.pet_list`、`game_rocom.pet_skills`、`game_rocom.pet_evolutions` 表
+- 数据来自 `cmd/rocom-pet-import/pet_list.json` 导入后的宠物图鉴配置
+- 这是本地资料查询，**不需要** `X-Framework-Token`
+- 仍需要 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`
+
+#### 宠物列表
+
+`GET /api/v1/games/rocom/pet/list`
+
+参数说明：
+
+- `q`：可选，按宠物名称或形态模糊搜索，例如 `喵`
+- `type`：可选，按属性筛选，例如 `草`
+- `egg_group`：可选，按蛋组筛选，例如 `动物组`
+- `skill_id`：可选，按技能 ID 筛选，例如 `7020360`
+- `skill`：可选，按技能名称模糊筛选，例如 `抓挠`
+- `page_no`：可选，页码，默认 `1`
+- `page_size`：可选，每页数量，默认 `20`，最大 `100`
+
+示例：
+
+`GET /api/v1/games/rocom/pet/list?q=喵&type=草&page_no=1&page_size=20`
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "items": [
+      {
+        "id": 3001,
+        "name": "喵喵",
+        "form": "",
+        "icon": "JL_miaomiao",
+        "pet_img_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/image.png",
+        "pet_icon_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/icon.png",
+        "unit_type": ["草"],
+        "egg_group": ["动物组", "拟人组"],
+        "attribute": {
+          "attr_hp": 65,
+          "attr_atk": 66,
+          "attr_spatk": 66,
+          "attr_def": 49,
+          "attr_spdef": 91,
+          "attr_spd": 33
+        },
+        "feature": {
+          "name": "氧循环",
+          "desc": "使用草系技能后，回复10%生命。"
+        },
+        "weight_low": 3620,
+        "weight_high": 4600,
+        "height_low": 53,
+        "height_high": 75
+      }
+    ],
+    "total": 1,
+    "page_no": 1,
+    "page_size": 20,
+    "total_pages": 1,
+    "has_more": false
+  }
+}
+```
+
+#### 宠物详情
+
+`GET /api/v1/games/rocom/pet/detail?id=3001`
+
+也可以按名称查询：
+
+`GET /api/v1/games/rocom/pet/detail?name=喵喵`
+
+参数说明：
+
+- `id`：宠物 ID，和 `name` 二选一
+- `name`：宠物名称，和 `id` 二选一；同时传入时优先使用 `id`
+
+响应补充：
+
+- 返回列表接口中的基础字段
+- `level_skill_list` 为升级技能
+- `machine_skill_list` 为技能机技能
+- `blood_skill_list` 为血脉技能
+- `evolution_list` 为进化链
+- `talent_random_list`、`breeding` 保留原始 JSON 配置
+
+响应示例（节选）：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "id": 3001,
+    "name": "喵喵",
+    "pet_img_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/image.png",
+    "pet_icon_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/icon.png",
+    "unit_type": ["草"],
+    "egg_group": ["动物组", "拟人组"],
+    "level_skill_list": [
+      {
+        "id": 7020360,
+        "name": "抓挠",
+        "level": 1,
+        "cost": "0",
+        "power": "35",
+        "families": "普通",
+        "desc": "造成物伤，自己回复1能量。"
+      }
+    ],
+    "machine_skill_list": [],
+    "blood_skill_list": [],
+    "evolution_list": [
+      {
+        "pet_id": 3001,
+        "name": "喵喵",
+        "level": 0,
+        "icon": "JL_miaomiao"
+      }
+    ]
+  }
+}
+```
+
+#### 技能可用宠物
+
+`GET /api/v1/games/rocom/pet/skill-users?skill_id=7020360`
+
+也可以按技能名模糊查询：
+
+`GET /api/v1/games/rocom/pet/skill-users?skill=抓挠`
+
+参数说明：
+
+- `skill_id`：技能 ID，和 `skill` 二选一
+- `skill`：技能名称模糊搜索，和 `skill_id` 二选一；同时传入时优先使用 `skill_id`
+
+响应说明：
+
+- `skill_source` 表示技能来源，取值为 `level`、`machine`、`blood`
+- `pet` 为会使用该技能的宠物基础信息
+- `skill` 为匹配到的技能信息
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "items": [
+      {
+        "skill_source": "level",
+        "pet": {
+          "id": 3001,
+          "name": "喵喵",
+          "pet_img_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/image.png",
+          "pet_icon_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/icon.png",
+          "unit_type": ["草"]
+        },
+        "skill": {
+          "id": 7020360,
+          "name": "抓挠",
+          "level": 1,
+          "cost": "0",
+          "power": "35",
+          "families": "普通",
+          "desc": "造成物伤，自己回复1能量。"
+        }
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
 ### 阵容助手
 
 - `GET /api/v1/games/rocom/lineup/list`
@@ -1045,129 +936,6 @@ Accept: application/json
 }
 ```
 
-### 精灵尺寸查询
-
-- `GET /api/v1/games/rocom/pet/size-query`
-
-说明：
-根据精灵尺寸（直径，单位米）与重量（单位千克）查询匹配的精灵候选列表。该接口代理第三方服务 `size.mfsky.xyz`，并在返回结果上追加精灵的 `petImage`（大图）与 `petIcon`（小图）。
-
-参数说明：
-`diameter`（必填）精灵尺寸，单位米，例如 `0.45`。
-`weight`（必填）精灵重量，单位千克，例如 `35.6`。
-
-鉴权说明：
-- 支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`
-- 本接口为工具类查询，**不需要** 传 `X-Framework-Token`
-
-响应补充：
-后端会按上游返回的 `petId` 反查本地 `sprite_base_info.item_id`，得到精灵图片资源 `id` 后，在每个 `candidates` / `exactResults` 条目上追加：
-
-- `petImage`：`https://game.gtimg.cn/images/rocom/rocodata/jingling/{id}/image.png`
-- `petIcon`：`https://game.gtimg.cn/images/rocom/rocodata/jingling/{id}/icon.png`
-
-本地尚未同步到该精灵时，不会写入 `petImage` / `petIcon`。
-
-示例：
-`GET /api/v1/games/rocom/pet/size-query?diameter=1.23&weight=45.6`
-
-响应示例：
-
-```json
-{
-  "code": 0,
-  "message": "成功",
-  "data": {
-    "candidates": [
-      {
-        "diameterMax": 0.49,
-        "diameterMin": 0.376,
-        "matchCount": 1,
-        "pet": "圣剑侍从",
-        "petId": 285,
-        "petImage": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3285/image.png",
-        "petIcon": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3285/icon.png",
-        "probability": 13.4,
-        "weightMax": 69.44,
-        "weightMin": 46.28
-      }
-    ],
-    "exactResults": [],
-    "searchMode": "nearest"
-  }
-}
-```
-
-### 远行商人信息
-
-- `GET /api/v1/games/rocom/merchant/info`
-
-说明：
-查询 RoCom 小程序 `m-common-co.getInitInfo` 里的远行商人活动数据。后端不会再对返回结构做投影或字段重命名，当前会直接透传上游 JSON，并对成功结果做短时缓存。
-
-参数：
-
-- `refresh`（选填）是否强制刷新缓存，支持 `true / false / 1 / 0`，默认 `false`
-
-鉴权说明：
-
-- 支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`
-- **不需要** 传 `X-Framework-Token`
-- API Key 调用时仍需通过游戏权限校验
-
-缓存说明：
-
-- 默认缓存 5 分钟
-- 传 `refresh=true` 时会先清掉当前进程内缓存，再重新请求上游
-
-返回说明：
-
-- 当前直接返回上游 JSON，字段名、嵌套结构、数组内容以上游实际返回为准
-- 例如 `merchantActivities`、`otherActivities`、`get_props`、`get_pets`、`get_extra_props`、`_id`、`icon_url` 等字段都会原样保留
-
-示例：
-
-`GET /api/v1/games/rocom/merchant/info?refresh=true`
-
-响应示例：
-
-```json
-{
-  "code": 0,
-  "message": "成功",
-  "data": {
-    "merchantActivities": [
-      {
-        "name": "远行商人",
-        "start_date": "2026-04-18",
-        "start_time": 1776441600000,
-        "end_time": 1776527999000,
-        "get_props": [
-          {
-            "_id": "67611185d8ac54dc9b688c9b",
-            "icon_url": "https://mmbiz.qpic.cn/example.png",
-            "name": "高级咕噜球",
-            "start_time": 1776441600000,
-            "end_time": 1776527999000
-          }
-        ],
-        "get_extra_props": [],
-        "get_pets": [
-          {
-            "name": "圣剑侍从"
-          }
-        ]
-      }
-    ],
-    "otherActivities": [
-      {
-        "name": "签到活动"
-      }
-    ]
-  }
-}
-```
-
 ### 好友关系
 
 - `GET /api/v1/games/rocom/social/friendship`
@@ -1221,8 +989,9 @@ Accept: application/json
 说明：
 
 - 该接口用于手动触发一次 RoCom 配置同步任务
-- 需要 `Authorization: Bearer <web-jwt>`
-- 调用者必须是后端管理员角色，普通 Web 用户无权调用
+- 支持后端管理员 Web JWT，或已获批 `admin.access` 的平台 API Key
+- Web JWT 调用者必须是后端管理员角色，普通 Web 用户无权调用
+- API Key 调用者需要携带 `X-API-Key`，且该 Key 已获批 `admin.access`
 - 会拉取并覆盖写入 RoCom 本地配置表
 - 当前同步资源包括：
   - `file_config`
@@ -1252,6 +1021,793 @@ Accept: application/json
       "skill.json"
     ],
     "triggered_by": "web_jwt"
+  }
+}
+```
+
+`triggered_by` 会随实际认证方式变化；使用 `admin.access` API Key 调用时通常为 `api_key`。
+
+## ingame API
+
+本章节只描述真正的 ingame 接口，即代理外置 RocoMITMServer gateway 的 `/api/v1/games/rocom/ingame/*`。
+不要把 `/merchant/info` 或 `/pet/size-query` 归入 ingame；它们在后文“外置API”章节中单独说明。
+
+认证方式：
+
+- `Authorization: Bearer <web-jwt>`
+- `X-Anonymous-Token`
+- `X-API-Key`
+
+如果使用 `X-API-Key`：
+
+- 统一使用开发者 `WeGame API Key`
+- 该 API Key 仍需已获批 `game:rocom` 下的对应权限
+- 当前默认公开权限为 `rocom.access`
+
+这组接口当前不要求 `X-Framework-Token`。
+
+上游说明：
+
+- Go 后端通过 `WEGAME_ROCOM_INGAME_BASE_URL` 指向外置 RocoMITMServer gateway
+- Go 后端会用 `WEGAME_ROCOM_INGAME_API_KEY` 调用外置 gateway，调用方只需要传本项目的认证凭证
+- Go 后端只做项目内认证、权限校验和上游 API Key 注入，ingame 响应状态码、`Content-Type` 和响应体按外置 gateway 返回透传
+- Go 后端不会对 ingame 响应做二次包装、字段重命名、字段投影或结构统一
+- 外置 gateway 负责短 TTL 缓存、single-flight 去重、Redis 队列和 worker 查询
+- `wait_ms` 不传时使用外置 gateway 配置里的 `api.sync_wait_ms`
+
+### 玩家搜索
+
+- `GET /api/v1/games/rocom/ingame/player/search?uid=<UID>`
+- `POST /api/v1/games/rocom/ingame/player/search`
+
+说明：
+
+- 适合做玩家 UID 搜索、名片资料页、基础社交资料展示
+- `GET` 使用 query 参数 `uid`
+- `POST` 使用 JSON 请求体 `{"uid":123456}`
+- `GET` 和 `POST` 都可选传 `wait_ms`，用于覆盖外置 gateway 默认同步等待时间
+
+`GET /api/v1/games/rocom/ingame/player/search` 请求示例：
+
+```http
+GET /api/v1/games/rocom/ingame/player/search?uid=123456&wait_ms=5000
+X-API-Key: <wegame-api-key>
+Accept: application/json
+```
+
+`POST /api/v1/games/rocom/ingame/player/search` 请求示例：
+
+```http
+POST /api/v1/games/rocom/ingame/player/search
+Content-Type: application/json
+X-API-Key: <wegame-api-key>
+
+{"uid":123456,"wait_ms":5000}
+```
+
+外置 gateway 同步成功响应示例，Go 后端透传，HTTP `200`：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "source": "live",
+    "title": "[0x02A5] FriendSearchRsp - ZoneFriendSearchPlayerRsp",
+    "rows": [
+      {
+        "level": 0,
+        "field": "ret_info",
+        "label": "返回码",
+        "value": "(RetInfo, 2B)"
+      },
+      {
+        "level": 1,
+        "field": "ret_code",
+        "label": "返回码",
+        "value": "0"
+      },
+      {
+        "level": 1,
+        "field": "uin",
+        "label": "用户ID",
+        "value": "123456"
+      },
+      {
+        "level": 1,
+        "field": "name",
+        "label": "昵称",
+        "value": "'一二三四五六'"
+      },
+      {
+        "level": 1,
+        "field": "level",
+        "label": "等级",
+        "value": "48"
+      },
+      {
+        "level": 1,
+        "field": "signature",
+        "label": "个性签名",
+        "value": "'大柚子'"
+      }
+    ],
+    "notes": [
+      "unlocked_rel_node_num          已解锁关系节点 0",
+      "(外层/未知字段 1 个，已跳过)"
+    ],
+    "meta": {}
+  }
+}
+```
+
+字段补充：
+
+- `source`：结果来源，可能是 `live` 或 `cache`
+- `title`：当前查询标题
+- `rows`：结构化字段列表，适合前端直接按表格或树形结构渲染
+- `notes`：附加说明
+- `meta`：外置 gateway 返回的附加元信息
+- `rows[].level`：层级深度
+- `rows[].field`：字段名
+- `rows[].label`：字段中文名
+- `rows[].value`：字段值
+
+### 商店信息
+
+- `GET /api/v1/games/rocom/ingame/merchant/info?shop_id=<SHOP_ID>`
+- `POST /api/v1/games/rocom/ingame/merchant/info`
+
+说明：
+
+- 适合做远行商人页、商店商品列表、刷新时间展示
+- `GET` 使用 query 参数 `shop_id`
+- `POST` 使用 JSON 请求体 `{"shop_id":3019}`
+- `GET` 和 `POST` 都可选传 `wait_ms`，用于覆盖外置 gateway 默认同步等待时间
+
+`GET /api/v1/games/rocom/ingame/merchant/info` 请求示例：
+
+```http
+GET /api/v1/games/rocom/ingame/merchant/info?shop_id=3019&wait_ms=5000
+X-API-Key: <wegame-api-key>
+Accept: application/json
+```
+
+`POST /api/v1/games/rocom/ingame/merchant/info` 请求示例：
+
+```http
+POST /api/v1/games/rocom/ingame/merchant/info
+Content-Type: application/json
+X-API-Key: <wegame-api-key>
+
+{"shop_id":3019,"wait_ms":5000}
+```
+
+外置 gateway 同步成功响应示例，Go 后端透传，HTTP `200`：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "source": "live",
+    "title": "商店查询结果 - shop_id=3019",
+    "rows": [
+      {
+        "level": 0,
+        "field": "shop_id",
+        "label": "商店ID",
+        "value": "3019"
+      },
+      {
+        "level": 0,
+        "field": "ret_code",
+        "label": "返回码",
+        "value": "0"
+      },
+      {
+        "level": 0,
+        "field": "goods_count",
+        "label": "商品数量",
+        "value": "1"
+      },
+      {
+        "level": 1,
+        "field": "goods_id",
+        "label": "商品ID",
+        "value": "67005"
+      },
+      {
+        "level": 1,
+        "field": "next_refresh_time",
+        "label": "下次刷新时间",
+        "value": "1776830400 (2026-04-22 12:00:00 CST)"
+      },
+      {
+        "level": 1,
+        "field": "real_price",
+        "label": "现价",
+        "value": "6000"
+      }
+    ],
+    "notes": [],
+    "meta": {}
+  }
+}
+```
+
+### 家园信息
+
+- `GET /api/v1/games/rocom/ingame/home/info?uid=<UID>`
+- `POST /api/v1/games/rocom/ingame/home/info`
+
+说明：
+
+- 适合做玩家家园资料、居住精灵、种植植物信息展示
+- `GET` 使用 query 参数 `uid`
+- `POST` 使用 JSON 请求体 `{"uid":123456}`
+- `GET` 和 `POST` 都可选传 `wait_ms`，用于覆盖外置 gateway 默认同步等待时间
+- 上游查询链路对应 `0x8106 ZoneHomeQueryFriendHomeInfoRsp`
+
+`GET /api/v1/games/rocom/ingame/home/info` 请求示例：
+
+```http
+GET /api/v1/games/rocom/ingame/home/info?uid=123456&wait_ms=5000
+X-API-Key: <wegame-api-key>
+Accept: application/json
+```
+
+`POST /api/v1/games/rocom/ingame/home/info` 请求示例：
+
+```http
+POST /api/v1/games/rocom/ingame/home/info
+Content-Type: application/json
+X-API-Key: <wegame-api-key>
+
+{"uid":123456,"wait_ms":5000}
+```
+
+外置 gateway 同步成功响应示例，Go 后端透传，HTTP `200`：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "rows": [
+      {
+        "level": 0,
+        "field": "ret_code",
+        "label": "返回码",
+        "value": "0"
+      }
+    ],
+    "home_info": {
+      "ret_info": {
+        "ret_code": 0
+      },
+      "uin": 123456,
+      "friend_cell_home_brief_info": {
+        "home_pet_info": {
+          "home_pet_list": [
+            {
+              "pet_gid": "1000000001",
+              "pet_cfg_id": 1001,
+              "status": 1,
+              "pos": 1
+            }
+          ]
+        },
+        "home_plant_info": {
+          "home_plant_land_list": [
+            {
+              "land_index": 0,
+              "home_plant_list": [
+                {
+                  "plant_cfg_id": 2001,
+                  "status": 1,
+                  "left_time": 3600
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "meta": {
+      "task_id": "tsk_xxx",
+      "worker_id": "worker-a",
+      "created_at": 1777353600.123,
+      "finished_at": 1777353602.456
+    }
+  }
+}
+```
+
+字段补充：
+
+- `rows`：当前主要包含返回码等扁平字段
+- `home_info`：家园原始结构化信息，包含返回信息、家园简要信息、居住精灵和种植植物等
+- `meta`：外置 gateway 写入的任务与 worker 元信息
+
+### 任务状态
+
+- `GET /api/v1/games/rocom/ingame/tasks/{task_id}`
+
+说明：
+
+- 玩家搜索、商店查询或家园信息返回 HTTP `202` 时，使用返回的 `task_id` 查询异步任务状态
+- 任务完成后，Go 后端仍然透传外置 gateway 的任务查询响应
+
+请求示例：
+
+```http
+GET /api/v1/games/rocom/ingame/tasks/tsk_xxx
+X-API-Key: <wegame-api-key>
+Accept: application/json
+```
+
+### Gateway 健康与队列状态
+
+- `GET /api/v1/games/rocom/ingame/health`
+
+说明：
+
+- 代理外置 RocoMITMServer gateway 的 `/health`
+- 用于查看 gateway、PostgreSQL、Redis、Redis 队列长度和 worker 心跳状态
+- 该接口经过 Go 后端认证与 `game:rocom` 权限校验；外置 gateway 内部 API key 不需要调用方传入
+
+请求示例：
+
+```http
+GET /api/v1/games/rocom/ingame/health
+X-API-Key: <wegame-api-key>
+Accept: application/json
+```
+
+响应示例，HTTP `200`：
+
+```json
+{
+  "status": "ok",
+  "services": {
+    "postgres": {
+      "status": "ok"
+    },
+    "redis": {
+      "status": "ok"
+    }
+  },
+  "queue_key": "rkms:v1:queue",
+  "queue_length": 0,
+  "workers": [
+    {
+      "worker_id": "worker-a",
+      "age_seconds": 1.234
+    }
+  ]
+}
+```
+
+### Ingame 透传返回规则
+
+以下结构均来自外置 RocoMITMServer gateway，Go 后端只透传。
+
+同步成功，HTTP `200`：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "source": "cache",
+    "title": "...",
+    "rows": [],
+    "notes": [],
+    "meta": {}
+  }
+}
+```
+
+说明：玩家搜索和商店信息通常返回 `source/title/rows/notes/meta`；家园信息当前上游重点返回 `rows/home_info/meta`。
+
+排队中，HTTP `202`：
+
+```json
+{
+  "code": 0,
+  "message": "accepted",
+  "data": {
+    "task_id": "tsk_xxx",
+    "status": "queued"
+  }
+}
+```
+
+未授权，HTTP `401`：
+
+```json
+{
+  "code": 4010,
+  "message": "unauthorized",
+  "data": null
+}
+```
+
+外置 worker 查询失败，HTTP `500`：
+
+```json
+{
+  "code": 5001,
+  "message": "具体错误信息",
+  "data": null
+}
+```
+
+## 外置API
+
+本章节描述挂在普通 RoCom 路由下、但上游不是 WeGame / Pallas 的外置 API 服务。
+这些接口不是 ingame 接口，也不会代理 RocoMITMServer gateway。
+
+### 精灵尺寸查询
+
+- `GET /api/v1/games/rocom/pet/size-query`
+
+说明：
+根据精灵尺寸（直径，单位米）与重量（单位千克）查询匹配的精灵候选列表。该接口代理第三方服务 `size.mfsky.xyz`，不属于 ingame。后端会在返回结果上追加精灵的 `petImage`（大图）与 `petIcon`（小图）。
+
+参数说明：
+`diameter`（必填）精灵尺寸，单位米，例如 `0.45`。
+`weight`（必填）精灵重量，单位千克，例如 `35.6`。
+
+鉴权说明：
+- 支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`
+- 本接口为工具类查询，**不需要** 传 `X-Framework-Token`
+
+响应补充：
+后端会按上游返回的 `petId` 反查本地 `sprite_base_info.item_id`，得到精灵图片资源 `id` 后，在每个 `candidates` / `exactResults` 条目上追加：
+
+- `petImage`：`https://game.gtimg.cn/images/rocom/rocodata/jingling/{id}/image.png`
+- `petIcon`：`https://game.gtimg.cn/images/rocom/rocodata/jingling/{id}/icon.png`
+
+本地尚未同步到该精灵时，不会写入 `petImage` / `petIcon`。
+
+示例：
+`GET /api/v1/games/rocom/pet/size-query?diameter=1.23&weight=45.6`
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "candidates": [
+      {
+        "diameterMax": 0.49,
+        "diameterMin": 0.376,
+        "matchCount": 1,
+        "pet": "圣剑侍从",
+        "petId": 285,
+        "petImage": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3285/image.png",
+        "petIcon": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3285/icon.png",
+        "probability": 13.4,
+        "weightMax": 69.44,
+        "weightMin": 46.28
+      }
+    ],
+    "exactResults": [],
+    "searchMode": "nearest"
+  }
+}
+```
+
+### 公告列表
+
+- `GET /api/v1/games/rocom/announcement/list`
+
+说明：
+
+- 查询 RoCom 小程序公告/社区内容分页列表
+- 这是普通 RoCom 路由下的外置 API 服务代理，不属于 ingame
+- 后端代理上游 `morefun.game.qq.com/gw2/rocom/E80EH8LJ/threadSearch`
+- 列表接口固定返回轻量卡片字段，不返回 `content.text`、图片索引或视频索引
+- 公告正文、图片、视频等富文本资源请用“公告详情”接口按 `thread_id` 查询
+
+参数：
+
+- `category_id`（选填）公告分类，默认 `99`
+- `categoryID`（选填）兼容上游命名；当 `category_id` 未传时生效
+- `page`（选填）页码，从 `1` 开始，默认 `1`
+- `limit`（选填）每页数量，默认 `10`，最大 `50`
+- `order`（选填）排序，默认 `ttDesc`
+
+已知分类：
+
+- `99` 全部/聚合
+- `1` 活动预告、商城时装、版本更新等
+- `2` 壁纸、攻略、动画短片等
+- `3` 联动、活动、创作激励等
+
+鉴权说明：
+
+- 支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`
+- **不需要** 传 `X-Framework-Token`
+- API Key 调用时仍需通过游戏权限校验
+
+示例：
+
+`GET /api/v1/games/rocom/announcement/list?category_id=99&page=1&limit=10`
+`GET /api/v1/games/rocom/announcement/list?category_id=99&page=2&limit=10`
+`GET /api/v1/games/rocom/announcement/list?category_id=99&page=9&limit=10`
+
+响应示例（节选）：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "currentTime": "2026-05-07 20:19:40",
+    "category_id": 99,
+    "page": 1,
+    "limit": 10,
+    "order": "ttDesc",
+    "count": 10,
+    "has_more": true,
+    "next_page": 2,
+    "list": [
+      {
+        "id": 73,
+        "title": "页游联动福利 | 不褪色的羁绊",
+        "categoryID": 3,
+        "cover": "https://res.mfoa.qq.com/rocom/community/example.png",
+        "summary": "你是几年小洛克？分享洛克报告领称号和奖牌！",
+        "author": {
+          "nickname": "洛克王国：世界",
+          "avatar": "https://res.mfoa.qq.com/rocom/community/example.png"
+        },
+        "contentType": 0,
+        "infoType": 0,
+        "publishAt": "2026-03-03 10:00:00",
+        "createdAt": "2026-03-03 10:00:00",
+        "editedAt": "2026-03-03 10:00:00",
+        "viewCount": 8258452,
+        "likedCount": 0,
+        "collectCount": 0,
+        "shareCount": 0,
+        "isStick": 1,
+        "isRecommend": 0,
+        "status": 0
+      }
+    ]
+  }
+}
+```
+
+### 最新公告
+
+- `GET /api/v1/games/rocom/announcement/latest`
+
+说明：
+
+- 获取最新的一条 RoCom 公告，用于客户端轮询检查是否有新公告
+- 后端代理上游 `threadSearch` 的 `category_id=99&page=1&limit=10`
+- 为避免旧置顶公告长期占据第一位，本接口会优先返回第一页中的第一条非置顶公告
+- 如果第一页只有置顶公告，则返回第一条置顶公告作为兜底
+- 返回轻量公告字段，不返回 `content.text`、图片索引或视频索引；完整内容请用“公告详情”接口查询
+
+参数：
+
+- `category_id`（选填）公告分类，默认 `99`
+- `categoryID`（选填）兼容上游命名；当 `category_id` 未传时生效
+- `order`（选填）排序，默认 `ttDesc`
+
+鉴权说明：
+
+- 支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`
+- **不需要** 传 `X-Framework-Token`
+- API Key 调用时仍需通过游戏权限校验
+
+示例：
+
+`GET /api/v1/games/rocom/announcement/latest`
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "id": 222,
+    "thread_id": 222,
+    "title": "活动预告 | 奇丽草大量出没",
+    "summary": "",
+    "categoryID": 1,
+    "cover": "https://res.mfoa.qq.com/rocom/community/example.jpg",
+    "publishAt": "2026-05-07 19:00:00",
+    "published_at": "2026-05-07 19:00:00",
+    "published_at_ts": 1778151600,
+    "createdAt": "2026-05-07 19:00:00",
+    "isStick": 0,
+    "status": 0,
+    "currentTime": "2026-05-08 10:51:28",
+    "category_id": 99,
+    "order": "ttDesc"
+  }
+}
+```
+
+客户端轮询示例：
+
+```javascript
+let lastKnownTimestamp = 0;
+
+async function checkLatestRoComAnnouncement() {
+  const res = await fetch('/api/v1/games/rocom/announcement/latest', {
+    headers: { 'X-API-Key': API_KEY }
+  });
+  const { data } = await res.json();
+  if (data.published_at_ts > lastKnownTimestamp) {
+    lastKnownTimestamp = data.published_at_ts;
+    // 发现新公告后，可用 data.thread_id 请求公告详情
+  }
+}
+
+setInterval(checkLatestRoComAnnouncement, 2 * 60 * 1000);
+```
+
+### 公告详情
+
+- `GET /api/v1/games/rocom/announcement/detail`
+
+说明：
+
+- 根据公告 ID 查询 RoCom 小程序公告/社区内容详情
+- 这是普通 RoCom 路由下的外置 API 服务代理，不属于 ingame
+- 后端代理上游 `morefun.game.qq.com/gw2/rocom/E80EH8LJ/threadDetail`
+- 成功时返回上游 `data` 对象；`content.text` 为 HTML 富文本，图片资源通常在 `content.indexes` 中同步列出
+
+参数：
+
+- `thread_id`（必填）公告 ID，对应公告列表返回的 `id`
+- `threadID`（选填）兼容上游命名；当 `thread_id` 未传时生效
+
+鉴权说明：
+
+- 支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`
+- **不需要** 传 `X-Framework-Token`
+- API Key 调用时仍需通过游戏权限校验
+
+示例：
+
+`GET /api/v1/games/rocom/announcement/detail?thread_id=219`
+
+响应示例（节选）：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "id": 219,
+    "title": "「不褪色的羁绊」和「故乡的礼物」限时活动即将结束！",
+    "categoryID": 3,
+    "cover": "https://res.mfoa.qq.com/rocom/community/example.png",
+    "summary": "",
+    "content": {
+      "text": "<p style=\"line-height: 2;\">...</p>",
+      "indexes": [
+        {
+          "type": 101,
+          "imageUrl": [
+            "https://res.mfoa.qq.com/rocom/community/example.png"
+          ],
+          "imagePreviewUrl": [
+            "https://res.mfoa.qq.com/rocom/community/p_example.png"
+          ]
+        }
+      ]
+    },
+    "publishAt": "2026-05-07 08:00:00",
+    "createdAt": "2026-05-07 08:00:00",
+    "editedAt": "2026-05-07 11:21:51",
+    "viewCount": 35758,
+    "shareCount": 0,
+    "likedCount": 0,
+    "collectCount": 197,
+    "isStick": 0,
+    "status": 0
+  }
+}
+```
+
+### 远行商人信息
+
+- `GET /api/v1/games/rocom/merchant/info`
+
+说明：
+
+- 查询 RoCom 小程序 `m-common-co.getInitInfo` 里的远行商人活动数据
+- 这是普通 RoCom 路由下的外置 API 服务代理，不属于 ingame
+- 后端只保留上游返回里的 `merchantActivities`，并附带本地 `RANDOM_GOODS_CONF` 入库后的随机商品配置
+
+参数：
+
+- `refresh`（选填）是否强制刷新缓存，支持 `true / false / 1 / 0`，默认 `false`
+- `random_goods`（选填）随机商品配置返回范围，默认只返回 `goods_name` 与远行商人 `get_props[].name` 相同的配置；传 `all / full / true / 1 / yes` 时返回数据库里存储的全部随机商品配置
+
+鉴权说明：
+
+- 支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`
+- **不需要** 传 `X-Framework-Token`
+- API Key 调用时仍需通过游戏权限校验
+- `refresh=true` 只允许持有 `rocom.access` 的 API Key 或后台管理员 Web JWT 使用；匿名令牌和普通 Web 用户只能读取缓存
+
+缓存说明：
+
+- 默认缓存 5 分钟
+- 传 `refresh=true` 时会尝试强制刷新，但服务端有 30 秒刷新冷却；冷却期内会直接复用最近一次成功缓存
+- 同一时刻发生的缓存未命中或强制刷新会合并为一次上游请求，避免并发请求击穿上游
+
+返回说明：
+
+- `merchantActivities` 保留上游远行商人活动数组
+- `random_goods` 返回本地随机商品配置数组；默认按 `merchantActivities[].get_props[].name` 匹配 `random_goods.goods_name`
+- `banner_list`、`index_top_list`、`otherActivities` 等上游其它字段不会再返回
+
+示例：
+
+`GET /api/v1/games/rocom/merchant/info?refresh=true`
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "merchantActivities": [
+      {
+        "name": "远行商人",
+        "start_date": "2026-04-18",
+        "start_time": 1776441600000,
+        "end_time": 1776527999000,
+        "get_props": [
+          {
+            "_id": "67611185d8ac54dc9b688c9b",
+            "icon_url": "https://mmbiz.qpic.cn/example.png",
+            "name": "高级咕噜球",
+            "start_time": 1776441600000,
+            "end_time": 1776527999000
+          }
+        ],
+        "get_extra_props": [],
+        "get_pets": [
+          {
+            "name": "圣剑侍从"
+          }
+        ]
+      }
+    ],
+    "random_goods": [
+      {
+        "id": 67001,
+        "goods_name": "黑晶琉璃",
+        "package_id": 1,
+        "enable": true,
+        "Type": 1,
+        "item_id": 100628,
+        "item_num": 1,
+        "price_goods_type": 2,
+        "price_goods_id": 1,
+        "origin_price": 1000,
+        "price": 1000,
+        "buy_limit_num": 100,
+        "weight": 1
+      }
+    ]
   }
 }
 ```

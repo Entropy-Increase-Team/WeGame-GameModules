@@ -8,7 +8,9 @@ function trimText (value = '') {
 }
 
 function tryParseNumber (value = '') {
-  const numeric = Number(value)
+  const text = trimText(value).replace(/(?:kg|千克|公斤|m|米)$/i, '')
+  if (!text) return null
+  const numeric = Number(text)
   return Number.isFinite(numeric) ? numeric : null
 }
 
@@ -25,8 +27,8 @@ function buildUsageText () {
   return [
     '查蛋用法：',
     `${formatCommand('查蛋 <精灵名>')} 查询精灵蛋组和可配种精灵`,
-    `${formatCommand('查蛋 25 1.5')} 按身高(cm)+体重(kg)反查`,
-    `${formatCommand('查蛋 身高25 体重1.5')} 支持带前缀写法`,
+    `${formatCommand('查蛋 0.29 3.294')} 按直径(m)+体重(kg)反查`,
+    `${formatCommand('查蛋 直径0.29 体重3.294')} 支持带前缀写法`,
     '',
     '配种用法：',
     `${formatCommand('配种 <精灵名>')} 查看想要该精灵时的父体候选`,
@@ -66,7 +68,7 @@ export class RocomEggs extends plugin {
       }
 
       const parsed = this.parseEggArgs(raw)
-      if (parsed.height !== null || parsed.weight !== null) {
+      if (parsed.diameter !== null || parsed.weight !== null) {
         return this.queryBySize(parsed)
       }
 
@@ -183,13 +185,13 @@ export class RocomEggs extends plugin {
     const tokens = trimText(raw).split(/\s+/).filter(Boolean)
     const nameParts = []
     const numericParts = []
-    let height = null
+    let diameter = null
     let weight = null
 
     for (const token of tokens) {
-      const parsedHeight = parsePrefixedNumber(token, ['身高', 'h', 'H'])
-      if (parsedHeight !== null) {
-        height = parsedHeight
+      const parsedDiameter = parsePrefixedNumber(token, ['直径', '尺寸', 'd', 'D', '身高', 'h', 'H'])
+      if (parsedDiameter !== null) {
+        diameter = parsedDiameter
         continue
       }
 
@@ -208,8 +210,8 @@ export class RocomEggs extends plugin {
       nameParts.push(token)
     }
 
-    if (height === null && numericParts.length > 0) {
-      height = numericParts[0]
+    if (diameter === null && numericParts.length > 0) {
+      diameter = numericParts[0]
     }
 
     if (weight === null && numericParts.length > 1) {
@@ -217,33 +219,33 @@ export class RocomEggs extends plugin {
     }
 
     return {
-      height,
+      diameter,
       weight,
       name: nameParts.join(' ').trim()
     }
   }
 
-  async queryBySize ({ height = null, weight = null } = {}) {
+  async queryBySize ({ diameter = null, weight = null } = {}) {
     const commandHint = `发送 ${formatCommand('查蛋 <精灵名>')} 查看详细蛋组`
     const copyright = DEFAULT_COPYRIGHT
     let renderData = null
     let fallbackText = ''
 
-    if (height !== null && weight !== null) {
+    if (diameter !== null && weight !== null) {
       try {
         const apiResult = await this.api.getPetSizeQuery({
-          diameter: height / 100,
+          diameter,
           weight
         })
-        renderData = eggService.buildSizeSearchDataFromApi(height, weight, apiResult, {
-          dimensionLabel: '身高',
-          dimensionUnit: 'cm',
+        renderData = eggService.buildSizeSearchDataFromApi(diameter, weight, apiResult, {
+          dimensionLabel: '直径',
+          dimensionUnit: 'm',
           commandHint,
           copyright
         })
-        fallbackText = eggService.buildSizeSearchTextFromApi(height, weight, apiResult, {
-          dimensionLabel: '身高',
-          dimensionUnit: 'cm'
+        fallbackText = eggService.buildSizeSearchTextFromApi(diameter, weight, apiResult, {
+          dimensionLabel: '直径',
+          dimensionUnit: 'm'
         })
       } catch (error) {
         logger.warn(`[WeGame-plugin][rocom] 查蛋尺寸后端查询失败，回退本地数据：${error.message || error}`)
@@ -251,12 +253,13 @@ export class RocomEggs extends plugin {
     }
 
     if (!renderData) {
-      const localResult = eggService.searchBySize(height, weight)
-      renderData = eggService.buildSizeSearchData(height, weight, localResult, {
+      const localHeightCm = diameter !== null && diameter !== undefined ? diameter * 100 : diameter
+      const localResult = eggService.searchBySize(localHeightCm, weight)
+      renderData = eggService.buildSizeSearchData(localHeightCm, weight, localResult, {
         commandHint,
         copyright
       })
-      fallbackText = eggService.buildSizeSearchText(height, weight, localResult)
+      fallbackText = eggService.buildSizeSearchText(localHeightCm, weight, localResult)
     }
 
     return this.replyEggImage('render/searcheggs/size', renderData, fallbackText)
