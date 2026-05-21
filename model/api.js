@@ -4,6 +4,9 @@ const GAME_CODE = 'rocom'
 const DEFAULT_INGAME_WAIT_MS = 5000
 const DEFAULT_INGAME_TASK_TIMEOUT_MS = 5 * 60 * 1000
 const DEFAULT_INGAME_TASK_INTERVAL_MS = 3000
+const DEFAULT_INGAME_HOME_TASK_TIMEOUT_MS = 3 * 60 * 1000
+const DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS = 10000
+const DEFAULT_INGAME_HOME_TASK_INTERVAL_MS = 5000
 
 function sleep (ms = 0) {
   if (global.Bot?.sleep) {
@@ -113,18 +116,20 @@ export default class RocomApi extends WeGameApi {
     return this.requestGameFrameworkGet(urlPath, frameworkToken, GAME_CODE, params)
   }
 
-  requestRocomPublicGet (urlPath, params = {}) {
+  requestRocomPublicGet (urlPath, params = {}, requestOptions = {}) {
     return this.request(urlPath, {
       method: 'get',
       params,
+      timeout: requestOptions.timeout,
       needBaseAuth: true
     })
   }
 
-  requestRocomPublicPost (urlPath, data = {}) {
+  requestRocomPublicPost (urlPath, data = {}, requestOptions = {}) {
     return this.request(urlPath, {
       method: 'post',
       data,
+      timeout: requestOptions.timeout,
       needBaseAuth: true
     })
   }
@@ -169,6 +174,8 @@ export default class RocomApi extends WeGameApi {
     const payload = await this.requestRocomPublicGet(urlPath, {
       wait_ms: Number(options.waitMs ?? DEFAULT_INGAME_WAIT_MS) || DEFAULT_INGAME_WAIT_MS,
       ...params
+    }, {
+      timeout: options.httpTimeoutMs
     })
 
     return this.resolveIngameTask(payload, options)
@@ -178,18 +185,22 @@ export default class RocomApi extends WeGameApi {
     const payload = await this.requestRocomPublicPost(urlPath, {
       wait_ms: Number(options.waitMs ?? DEFAULT_INGAME_WAIT_MS) || DEFAULT_INGAME_WAIT_MS,
       ...data
+    }, {
+      timeout: options.httpTimeoutMs
     })
 
     return this.resolveIngameTask(payload, options)
   }
 
-  async getIngameTask (taskId = '') {
+  async getIngameTask (taskId = '', options = {}) {
     const normalizedTaskId = trimText(taskId)
     if (!normalizedTaskId) {
       throw new Error('缺少 Ingame 任务 ID')
     }
 
-    return this.requestRocomPublicGet(`/api/v1/games/rocom/ingame/tasks/${encodeURIComponent(normalizedTaskId)}`)
+    return this.requestRocomPublicGet(`/api/v1/games/rocom/ingame/tasks/${encodeURIComponent(normalizedTaskId)}`, {}, {
+      timeout: options.taskHttpTimeoutMs ?? options.httpTimeoutMs
+    })
   }
 
   async resolveIngameTask (payload = {}, options = {}) {
@@ -221,7 +232,7 @@ export default class RocomApi extends WeGameApi {
 
       await sleep(intervalMs)
 
-      const taskPayload = await this.getIngameTask(taskId)
+      const taskPayload = await this.getIngameTask(taskId, options)
       const completedPayload = extractCompletedTaskPayload(taskPayload)
       if (completedPayload) {
         return completedPayload
@@ -278,7 +289,11 @@ export default class RocomApi extends WeGameApi {
     return request('/api/v1/games/rocom/ingame/home/info', {
       uid
     }, {
-      waitMs: 20000,
+      waitMs: 5000,
+      httpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,
+      taskHttpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,
+      intervalMs: DEFAULT_INGAME_HOME_TASK_INTERVAL_MS,
+      timeoutMs: DEFAULT_INGAME_HOME_TASK_TIMEOUT_MS,
       ...options
     })
   }

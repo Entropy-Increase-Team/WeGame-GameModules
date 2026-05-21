@@ -1248,6 +1248,10 @@ X-API-Key: <wegame-api-key>
 - `POST` 使用 JSON 请求体 `{"uid":123456}`
 - `GET` 和 `POST` 都可选传 `wait_ms`，用于覆盖外置 gateway 默认同步等待时间
 - 上游查询链路对应 `0x8106 ZoneHomeQueryFriendHomeInfoRsp`
+- 插件侧家园查询固定使用 `wait_ms=5000`，单次 HTTP 请求超时 `10000ms`
+- 如果 `home/info` 直接返回 HTTP `200`，插件会直接渲染返回结果
+- 如果返回 HTTP `202`，插件会读取 `data.task_id`，随后每 `5` 秒请求一次 `/api/v1/games/rocom/ingame/tasks/{task_id}`
+- 单次 task 查询 HTTP 超时同样为 `10000ms`，最多轮询 `3` 分钟
 
 `GET /api/v1/games/rocom/ingame/home/info` 请求示例：
 

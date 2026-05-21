@@ -10,7 +10,10 @@ const REFRESH_HOME_REG = buildCommandReg('(?:刷新家园|rehome)(?:\\s*(\\d+))?
 const PLANT_MAP_PATH = path.join(process.cwd(), 'plugins', 'WeGame-plugin', 'modules', 'rocom', 'utils', 'map', 'home_item_list.json')
 const LOCAL_PLANT_MAP_PATH = path.join(process.cwd(), 'utils', 'map', 'home_item_list.json')
 const RENDER_PLANT_MAP_PATH = path.join(process.cwd(), 'plugins', 'WeGame-plugin', 'modules', 'rocom', 'resources', 'render', 'home', 'data', 'home_item_list.json')
-const DEFAULT_INGAME_TIMEOUT_MS = 5 * 60 * 1000
+const HOME_INGAME_WAIT_MS = 5000
+const HOME_INGAME_HTTP_TIMEOUT_MS = 10000
+const HOME_INGAME_TASK_INTERVAL_MS = 5000
+const HOME_INGAME_TASK_TIMEOUT_MS = 3 * 60 * 1000
 
 let plantMapCache = null
 
@@ -356,7 +359,11 @@ export class RocomHome extends plugin {
 
       let queuedNotified = false
       const payload = await this.api.getIngameHomeInfo(uid, {
-        timeoutMs: DEFAULT_INGAME_TIMEOUT_MS,
+        waitMs: HOME_INGAME_WAIT_MS,
+        httpTimeoutMs: HOME_INGAME_HTTP_TIMEOUT_MS,
+        taskHttpTimeoutMs: HOME_INGAME_HTTP_TIMEOUT_MS,
+        intervalMs: HOME_INGAME_TASK_INTERVAL_MS,
+        timeoutMs: HOME_INGAME_TASK_TIMEOUT_MS,
         onQueued: async () => {
           if (queuedNotified) return
           queuedNotified = true
