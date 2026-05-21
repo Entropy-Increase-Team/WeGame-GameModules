@@ -14,6 +14,7 @@ const HOME_INGAME_WAIT_MS = 5000
 const HOME_INGAME_HTTP_TIMEOUT_MS = 10000
 const HOME_INGAME_TASK_INTERVAL_MS = 5000
 const HOME_INGAME_TASK_TIMEOUT_MS = 3 * 60 * 1000
+const ROCOM_HEADICON_BASE_URL = 'https://silverwing.elysia.beauty/RocomUID/resource/headicon'
 
 let plantMapCache = null
 
@@ -109,6 +110,13 @@ function buildPetIconUrl (petId) {
   return `https://game.gtimg.cn/images/rocom/rocodata/jingling/${id}/icon.png`
 }
 
+function buildHeadIconUrl (petId, mutationType = 0) {
+  const id = assetPetId(petId)
+  if (!id) return ''
+  const suffix = [1, 9].includes(toNumber(mutationType, 0)) ? '_1' : ''
+  return `${ROCOM_HEADICON_BASE_URL}/${id}${suffix}.png`
+}
+
 function pickHomePayload (payload = {}) {
   if (payload?.home_info?.friend_home_brief_info) return payload.home_info
   if (payload?.home_info?.home_info?.friend_home_brief_info) return payload.home_info.home_info
@@ -123,9 +131,9 @@ function extractPet (item = {}, now = Math.floor(Date.now() / 1000), guard = fal
   const feedInfo = homePetInfo?.feed_info && typeof homePetInfo.feed_info === 'object' ? homePetInfo.feed_info : null
   const petId = homePetInfo?.pet_cfg_id || homePetInfo?.pet_id || homePetInfo?.pet_base_id || item?.pet_cfg_id || item?.pet_id || item?.id
 
-  if (!toNumber(petId, 0) && !guard) return null
-
   const name = trimText(homePetInfo?.name || homePetInfo?.pet_name || item?.name || item?.pet_name) || `精灵 ${petId || ''}`.trim()
+  if (!toNumber(petId, 0) && !guard) return null
+  const mutationType = toNumber(displayInfo?.mutation_type || displayInfo?.mutationType || item?.mutation_type || item?.mutationType, 0)
   const beginTime = feedInfo ? normalizeTimestampSeconds(feedInfo.begin_time) : 0
   const timeCost = feedInfo ? normalizeDurationSeconds(feedInfo.time_cost) : 0
   let ripTime = normalizeTimestampSeconds(homePetInfo?.pet_rip_time || item?.pet_rip_time || item?.rip_time)
@@ -145,14 +153,18 @@ function extractPet (item = {}, now = Math.floor(Date.now() / 1000), guard = fal
     id: String(petId || ''),
     name,
     level: trimText(displayInfo?.level || item?.level || homePetInfo?.level || '--'),
-    iconUrl: buildPetIconUrl(petId),
+    iconUrl: buildHeadIconUrl(petId, mutationType) || buildPetIconUrl(petId),
+    fallbackIconUrl: buildPetIconUrl(petId),
+    starIconUrl: [1, 8, 9].includes(mutationType) ? `render/home/img/rocomuid/star_${mutationType}.png` : '',
     badge: isGuard ? '守' : '',
+    mutationType,
     isGuard,
     statusText,
     statusClass,
     note: hasInspiration ? formatRemaining(ripTime, now) : (isGuard ? '家园守卫位' : '暂无灵感倒计时'),
     inspireReady,
-    readyAt: ripTime
+    readyAt: ripTime,
+    progress: hasInspiration ? buildProgress(ripTime, timeCost, now) : 0
   }
 }
 
@@ -430,11 +442,13 @@ export class RocomHome extends plugin {
       })),
       indoorPets: (data.indoorPets || []).map((pet) => ({
         ...pet,
-        iconUrl: pet.iconUrl || ''
+        iconUrl: pet.iconUrl && !String(pet.iconUrl).startsWith('http') ? buildResUrl(pet.iconUrl) : (pet.iconUrl || ''),
+        starIconUrl: pet.starIconUrl ? buildResUrl(pet.starIconUrl) : ''
       })),
       guardPets: (data.guardPets || []).map((pet) => ({
         ...pet,
-        iconUrl: pet.iconUrl || ''
+        iconUrl: pet.iconUrl && !String(pet.iconUrl).startsWith('http') ? buildResUrl(pet.iconUrl) : (pet.iconUrl || ''),
+        starIconUrl: pet.starIconUrl ? buildResUrl(pet.starIconUrl) : ''
       }))
     }
   }
