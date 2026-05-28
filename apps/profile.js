@@ -372,7 +372,7 @@ export class RocomProfile extends plugin {
     const aiCommentText = petSummary?.summary_content || '暂无 AI 点评。'
 
     return {
-      saveId: `profile-card-${this.e.user_id}-${Date.now()}`,
+      saveId: `profile-card-${(String(this.e.user_id).includes(':') ? String(this.e.user_id).slice(11) : this.e.user_id)}-${Date.now()}`,
       userName: toDisplayText(role?.name, '洛克玩家'),
       userLevel: toDisplayText(role?.level),
       userUid: toDisplayText(role?.id || role?.openid || credential?.tgpId),

@@ -239,7 +239,7 @@ export class RocomRecord extends plugin {
     const battles = Array.isArray(battlePage?.battles) ? battlePage.battles : []
 
     return {
-      saveId: `record-card-${this.e.user_id}-${Date.now()}`,
+      saveId: `record-card-${(String(this.e.user_id).includes(':') ? String(this.e.user_id).slice(11) : this.e.user_id)}-${Date.now()}`,
       userName: toDisplayText(role?.name || battles[0]?.nickname, '洛克玩家'),
       userLevel: toDisplayText(role?.level),
       userUid: toDisplayText(role?.id || role?.openid || credential?.tgpId),

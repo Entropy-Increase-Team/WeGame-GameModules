@@ -238,7 +238,7 @@ export class RocomPets extends plugin {
     const emptySlotCount = normalizedPets.length > 0 ? Math.max(defaultPageSize - normalizedPets.length, 0) : 0
 
     return {
-      saveId: `pet-list-${this.e.user_id}-${Date.now()}`,
+      saveId: `pet-list-${(String(this.e.user_id).includes(':') ? String(this.e.user_id).slice(11) : this.e.user_id)}-${Date.now()}`,
       pageTitle: '我的精灵',
       userName: toDisplayText(role?.name || binding?.nickname, '洛克玩家'),
       userLevel: toDisplayText(role?.level),
