@@ -316,6 +316,7 @@ export class RocomPlayerSearch extends plugin {
 
       let queuedNotified = false
       const data = await this.api.searchPlayer(uid, {
+        userIdentifier: this.accountService.getUserIdentifier(),
         onQueued: async () => {
           if (queuedNotified) return
           queuedNotified = true

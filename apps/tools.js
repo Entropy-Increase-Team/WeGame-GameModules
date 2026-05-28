@@ -1,4 +1,5 @@
 import { renderModuleTemplate } from '../../../model/moduleRender.js'
+import WeGameAccountService from '../../../model/accountService.js'
 import { replyLargeText } from '../../../utils/queryHelper.js'
 import RocomApi from '../model/api.js'
 import eggService from '../model/eggService.js'
@@ -72,13 +73,16 @@ export class RocomTools extends plugin {
 
     this.e = e
     this.api = new RocomApi()
+    this.accountService = new WeGameAccountService(e)
   }
 
   async queryPetSize () {
     try {
       const args = parseSizeQueryArgs(extractMatchArg(this.e.msg, SIZE_QUERY_REG))
       await this.reply(`正在查询精灵尺寸：直径 ${args.diameter} 米，重量 ${args.weight} 千克...`)
-      const data = await this.api.getPetSizeQuery(args)
+      const data = await this.api.getPetSizeQuery(args, {
+        userIdentifier: this.accountService.getUserIdentifier()
+      })
       const renderData = eggService.buildSizeSearchDataFromApi(args.diameter, args.weight, data, {
         dimensionLabel: '直径',
         dimensionUnit: 'm',
@@ -120,7 +124,9 @@ export class RocomTools extends plugin {
   async queryMerchantInfo () {
     try {
       await this.reply('正在查询远行商人信息...')
-      const data = await merchantService.getInfo()
+      const data = await merchantService.getInfo(false, {
+        userIdentifier: this.accountService.getUserIdentifier()
+      })
       const renderData = merchantService.buildRenderData(data)
 
       const image = await renderModuleTemplate(

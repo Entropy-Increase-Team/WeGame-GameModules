@@ -62,6 +62,7 @@ export class RocomExchange extends plugin {
     try {
       const args = this.parseArgs()
       const { credential } = await this.accountService.resolveActiveCredential()
+      const userIdentifier = this.accountService.getUserIdentifier()
       await this.reply(args.refresh ? `正在刷新交换大厅，第 ${args.pageNo} 页...` : `正在查询交换大厅，第 ${args.pageNo} 页...`)
 
       const params = {
@@ -74,7 +75,7 @@ export class RocomExchange extends plugin {
         params.account_type = accountType
       }
 
-      const data = await this.api.getExchangePosters(credential.frameworkToken, params)
+      const data = await this.api.getExchangePosters(credential.frameworkToken, params, { userIdentifier })
       ensureUpstreamSuccess(data)
 
       const posters = Array.isArray(data?.posters) ? data.posters : []

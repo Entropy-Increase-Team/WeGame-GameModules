@@ -89,12 +89,13 @@ export class RocomRecord extends plugin {
     try {
       const pageNo = this.parsePageArg()
       const { credential } = await this.accountService.resolveActiveCredential()
+      const userIdentifier = this.accountService.getUserIdentifier()
       await this.reply(`正在查询闪耀大赛战绩，第 ${pageNo} 页...`)
 
       const [roleData, battleOverviewData, battlePage] = await Promise.all([
-        this.loadRoleProfile(credential.frameworkToken),
-        this.loadBattleOverview(credential.frameworkToken),
-        this.loadBattlePage(credential.frameworkToken, credential?.loginType, pageNo)
+        this.loadRoleProfile(credential.frameworkToken, userIdentifier),
+        this.loadBattleOverview(credential.frameworkToken, userIdentifier),
+        this.loadBattlePage(credential.frameworkToken, credential?.loginType, pageNo, userIdentifier)
       ])
 
       const renderData = this.buildRenderData({
@@ -159,9 +160,9 @@ export class RocomRecord extends plugin {
     return undefined
   }
 
-  async loadRoleProfile (frameworkToken) {
+  async loadRoleProfile (frameworkToken, userIdentifier = '') {
     try {
-      const data = await this.api.getRoleProfile(frameworkToken)
+      const data = await this.api.getRoleProfile(frameworkToken, {}, { userIdentifier })
       ensureUpstreamSuccess(data)
       return data
     } catch (error) {
@@ -170,9 +171,9 @@ export class RocomRecord extends plugin {
     }
   }
 
-  async loadBattleOverview (frameworkToken) {
+  async loadBattleOverview (frameworkToken, userIdentifier = '') {
     try {
-      const data = await this.api.getBattleOverview(frameworkToken)
+      const data = await this.api.getBattleOverview(frameworkToken, {}, { userIdentifier })
       ensureUpstreamSuccess(data)
       return data
     } catch (error) {
@@ -181,7 +182,7 @@ export class RocomRecord extends plugin {
     }
   }
 
-  async loadBattlePage (frameworkToken, loginType = '', pageNo = 1) {
+  async loadBattlePage (frameworkToken, loginType = '', pageNo = 1, userIdentifier = '') {
     const zone = this.resolveZone(loginType)
     let afterTime = ''
     let currentPage = 1
@@ -196,7 +197,7 @@ export class RocomRecord extends plugin {
         params.after_time = afterTime
       }
 
-      const data = await this.api.getBattleList(frameworkToken, params)
+      const data = await this.api.getBattleList(frameworkToken, params, { userIdentifier })
       ensureUpstreamSuccess(data)
 
       const battles = Array.isArray(data?.battles) ? data.battles : []
@@ -239,7 +240,7 @@ export class RocomRecord extends plugin {
     const battles = Array.isArray(battlePage?.battles) ? battlePage.battles : []
 
     return {
-      saveId: `record-card-${(String(this.e.user_id).includes(':') ? String(this.e.user_id).slice(11) : this.e.user_id)}-${Date.now()}`,
+      saveId: `record-card-${this.e.user_id}-${Date.now()}`,
       userName: toDisplayText(role?.name || battles[0]?.nickname, '洛克玩家'),
       userLevel: toDisplayText(role?.level),
       userUid: toDisplayText(role?.id || role?.openid || credential?.tgpId),

@@ -1,6 +1,5 @@
 import WeGameApi from '../../../model/api.js'
 
-const GAME_CODE = 'rocom'
 const DEFAULT_INGAME_WAIT_MS = 5000
 const DEFAULT_INGAME_TASK_TIMEOUT_MS = 5 * 60 * 1000
 const DEFAULT_INGAME_TASK_INTERVAL_MS = 3000
@@ -111,31 +110,56 @@ async function notifyIngameQueued (payload = {}, options = {}) {
   }
 }
 
+function buildScopedPayload (api, userIdentifier = '', payload = {}) {
+  const scoped = api.buildOptionalUserScopeOptions(userIdentifier)
+  return {
+    headers: isPlainObject(scoped.headers) ? scoped.headers : {},
+    payload: {
+      ...(isPlainObject(scoped.params) ? scoped.params : {}),
+      ...(isPlainObject(payload) ? payload : {})
+    }
+  }
+}
+
 export default class RocomApi extends WeGameApi {
-  requestRocomGet (urlPath, frameworkToken, params = {}) {
-    return this.requestGameFrameworkGet(urlPath, frameworkToken, GAME_CODE, params)
+  requestRocomGet (urlPath, frameworkToken, params = {}, requestOptions = {}) {
+    const scoped = buildScopedPayload(this, requestOptions.userIdentifier, params)
+    return this.request(urlPath, {
+      method: 'get',
+      params: scoped.payload,
+      headers: {
+        ...this.buildFrameworkHeaders(frameworkToken),
+        ...scoped.headers
+      },
+      needBaseAuth: true
+    })
   }
 
   requestRocomPublicGet (urlPath, params = {}, requestOptions = {}) {
+    const scoped = buildScopedPayload(this, requestOptions.userIdentifier, params)
     return this.request(urlPath, {
       method: 'get',
-      params,
+      params: scoped.payload,
+      headers: scoped.headers,
       timeout: requestOptions.timeout,
       needBaseAuth: true
     })
   }
 
   requestRocomPublicPost (urlPath, data = {}, requestOptions = {}) {
+    const scoped = buildScopedPayload(this, requestOptions.userIdentifier, data)
     return this.request(urlPath, {
       method: 'post',
-      data,
+      data: scoped.payload,
+      headers: scoped.headers,
       timeout: requestOptions.timeout,
       needBaseAuth: true
     })
   }
 
-  async requestRocomPublicRawGet (urlPath, params = {}) {
+  async requestRocomPublicRawGet (urlPath, params = {}, requestOptions = {}) {
     let response
+    const scoped = buildScopedPayload(this, requestOptions.userIdentifier, params)
 
     try {
       response = await this.client.request({
@@ -143,10 +167,11 @@ export default class RocomApi extends WeGameApi {
         method: 'get',
         params: {
           device_fingerprint: this.getDeviceFingerprint(),
-          ...(isPlainObject(params) ? params : {})
+          ...scoped.payload
         },
         headers: {
           ...this.getDeviceHeaders(),
+          ...scoped.headers,
           ...(await this.getBaseAuthHeaders())
         }
       })
@@ -175,6 +200,7 @@ export default class RocomApi extends WeGameApi {
       wait_ms: Number(options.waitMs ?? DEFAULT_INGAME_WAIT_MS) || DEFAULT_INGAME_WAIT_MS,
       ...params
     }, {
+      userIdentifier: options.userIdentifier,
       timeout: options.httpTimeoutMs
     })
 
@@ -186,6 +212,7 @@ export default class RocomApi extends WeGameApi {
       wait_ms: Number(options.waitMs ?? DEFAULT_INGAME_WAIT_MS) || DEFAULT_INGAME_WAIT_MS,
       ...data
     }, {
+      userIdentifier: options.userIdentifier,
       timeout: options.httpTimeoutMs
     })
 
@@ -199,6 +226,7 @@ export default class RocomApi extends WeGameApi {
     }
 
     return this.requestRocomPublicGet(`/api/v1/games/rocom/ingame/tasks/${encodeURIComponent(normalizedTaskId)}`, {}, {
+      userIdentifier: options.userIdentifier,
       timeout: options.taskHttpTimeoutMs ?? options.httpTimeoutMs
     })
   }
@@ -302,47 +330,47 @@ export default class RocomApi extends WeGameApi {
     return this.requestRocomPublicRawGet('/api/v1/games/rocom/ingame/health')
   }
 
-  getRoleProfile (frameworkToken, params = {}) {
-    return this.requestRocomGet('/api/v1/games/rocom/profile/role', frameworkToken, params)
+  getRoleProfile (frameworkToken, params = {}, options = {}) {
+    return this.requestRocomGet('/api/v1/games/rocom/profile/role', frameworkToken, params, options)
   }
 
-  getProfileEvaluation (frameworkToken, params = {}) {
-    return this.requestRocomGet('/api/v1/games/rocom/profile/evaluation', frameworkToken, params)
+  getProfileEvaluation (frameworkToken, params = {}, options = {}) {
+    return this.requestRocomGet('/api/v1/games/rocom/profile/evaluation', frameworkToken, params, options)
   }
 
-  getPetSummary (frameworkToken, params = {}) {
-    return this.requestRocomGet('/api/v1/games/rocom/profile/pet-summary', frameworkToken, params)
+  getPetSummary (frameworkToken, params = {}, options = {}) {
+    return this.requestRocomGet('/api/v1/games/rocom/profile/pet-summary', frameworkToken, params, options)
   }
 
-  getCollection (frameworkToken, params = {}) {
-    return this.requestRocomGet('/api/v1/games/rocom/profile/collection', frameworkToken, params)
+  getCollection (frameworkToken, params = {}, options = {}) {
+    return this.requestRocomGet('/api/v1/games/rocom/profile/collection', frameworkToken, params, options)
   }
 
-  getBattleOverview (frameworkToken, params = {}) {
-    return this.requestRocomGet('/api/v1/games/rocom/profile/battle-overview', frameworkToken, params)
+  getBattleOverview (frameworkToken, params = {}, options = {}) {
+    return this.requestRocomGet('/api/v1/games/rocom/profile/battle-overview', frameworkToken, params, options)
   }
 
-  getBattleList (frameworkToken, params = {}) {
-    return this.requestRocomGet('/api/v1/games/rocom/battle/list', frameworkToken, params)
+  getBattleList (frameworkToken, params = {}, options = {}) {
+    return this.requestRocomGet('/api/v1/games/rocom/battle/list', frameworkToken, params, options)
   }
 
-  getBattlePets (frameworkToken, params = {}) {
-    return this.requestRocomGet('/api/v1/games/rocom/battle/pets', frameworkToken, params)
+  getBattlePets (frameworkToken, params = {}, options = {}) {
+    return this.requestRocomGet('/api/v1/games/rocom/battle/pets', frameworkToken, params, options)
   }
 
-  getPetSizeQuery (params = {}) {
-    return this.requestRocomPublicGet('/api/v1/games/rocom/pet/size-query', params)
+  getPetSizeQuery (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/pet/size-query', params, options)
   }
 
-  getMerchantInfo (params = {}) {
-    return this.requestRocomPublicGet('/api/v1/games/rocom/merchant/info', params)
+  getMerchantInfo (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/merchant/info', params, options)
   }
 
-  getLineupList (frameworkToken, params = {}) {
-    return this.requestRocomGet('/api/v1/games/rocom/lineup/list', frameworkToken, params)
+  getLineupList (frameworkToken, params = {}, options = {}) {
+    return this.requestRocomGet('/api/v1/games/rocom/lineup/list', frameworkToken, params, options)
   }
 
-  getExchangePosters (frameworkToken, params = {}) {
-    return this.requestRocomGet('/api/v1/games/rocom/exchange/posters', frameworkToken, params)
+  getExchangePosters (frameworkToken, params = {}, options = {}) {
+    return this.requestRocomGet('/api/v1/games/rocom/exchange/posters', frameworkToken, params, options)
   }
 }

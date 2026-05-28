@@ -106,8 +106,8 @@ class MerchantService {
     this.api = new RocomApi()
   }
 
-  async getInfo (refresh = false) {
-    return this.api.getMerchantInfo({ refresh })
+  async getInfo (refresh = false, options = {}) {
+    return this.api.getMerchantInfo({ refresh }, options)
   }
 
   getCurrentRound (date = new Date()) {

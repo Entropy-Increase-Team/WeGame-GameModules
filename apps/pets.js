@@ -80,6 +80,7 @@ export class RocomPets extends plugin {
     try {
       const args = this.parseCommandArgs()
       const { credential, binding } = await this.accountService.resolveActiveCredential()
+      const userIdentifier = this.accountService.getUserIdentifier()
       const subsetLabel = getPetTabText(args.petSubset)
 
       await this.reply(`正在查询${subsetLabel}，第 ${args.pageNo} 页...`)
@@ -97,8 +98,8 @@ export class RocomPets extends plugin {
       }
 
       const [petData, roleProfile] = await Promise.all([
-        this.api.getBattlePets(credential.frameworkToken, params),
-        this.loadRoleProfile(credential.frameworkToken)
+        this.api.getBattlePets(credential.frameworkToken, params, { userIdentifier }),
+        this.loadRoleProfile(credential.frameworkToken, userIdentifier)
       ])
 
       ensureUpstreamSuccess(petData)
@@ -142,9 +143,9 @@ export class RocomPets extends plugin {
     }
   }
 
-  async loadRoleProfile (frameworkToken) {
+  async loadRoleProfile (frameworkToken, userIdentifier = '') {
     try {
-      const data = await this.api.getRoleProfile(frameworkToken)
+      const data = await this.api.getRoleProfile(frameworkToken, {}, { userIdentifier })
       ensureUpstreamSuccess(data)
       return data
     } catch (error) {
@@ -238,7 +239,7 @@ export class RocomPets extends plugin {
     const emptySlotCount = normalizedPets.length > 0 ? Math.max(defaultPageSize - normalizedPets.length, 0) : 0
 
     return {
-      saveId: `pet-list-${(String(this.e.user_id).includes(':') ? String(this.e.user_id).slice(11) : this.e.user_id)}-${Date.now()}`,
+      saveId: `pet-list-${this.e.user_id}-${Date.now()}`,
       pageTitle: '我的精灵',
       userName: toDisplayText(role?.name || binding?.nickname, '洛克玩家'),
       userLevel: toDisplayText(role?.level),

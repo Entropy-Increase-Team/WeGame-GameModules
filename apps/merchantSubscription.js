@@ -131,7 +131,10 @@ export class RocomMerchantSubscription extends plugin {
       const entries = Object.entries(subscriptions || {})
       if (entries.length === 0) return
 
-      const payload = await merchantService.getInfo(true)
+      const requestOwner = trimText(entries.find(([, item]) => trimText(item?.updated_by))?.[1]?.updated_by)
+      const payload = await merchantService.getInfo(true, {
+        userIdentifier: requestOwner
+      })
       const { products } = merchantService.extractProducts(payload)
       const roundInfo = merchantService.getCurrentRound()
 

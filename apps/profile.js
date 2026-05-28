@@ -253,7 +253,12 @@ export class RocomProfile extends plugin {
 
       const profileParams = this.buildProfileParams(credential?.loginType)
       const battleListParams = this.buildBattleListParams(credential?.loginType)
-      const profileData = await this.loadProfileSections(credential.frameworkToken, profileParams, battleListParams)
+      const profileData = await this.loadProfileSections(
+        credential.frameworkToken,
+        profileParams,
+        battleListParams,
+        this.accountService.getUserIdentifier()
+      )
       const renderData = this.buildRenderData({
         credential,
         ...profileData
@@ -303,7 +308,7 @@ export class RocomProfile extends plugin {
     return params
   }
 
-  async loadProfileSections (frameworkToken, profileParams = {}, battleListParams = {}) {
+  async loadProfileSections (frameworkToken, profileParams = {}, battleListParams = {}, userIdentifier = '') {
     const tasks = [
       { key: 'roleData', method: 'getRoleProfile', params: profileParams },
       { key: 'evaluationData', method: 'getProfileEvaluation', params: profileParams },
@@ -314,7 +319,7 @@ export class RocomProfile extends plugin {
     ]
 
     const settled = await Promise.allSettled(tasks.map(async (task) => {
-      const data = await this.api[task.method](frameworkToken, task.params)
+      const data = await this.api[task.method](frameworkToken, task.params, { userIdentifier })
       ensureUpstreamSuccess(data)
       return {
         key: task.key,
@@ -372,7 +377,7 @@ export class RocomProfile extends plugin {
     const aiCommentText = petSummary?.summary_content || '暂无 AI 点评。'
 
     return {
-      saveId: `profile-card-${(String(this.e.user_id).includes(':') ? String(this.e.user_id).slice(11) : this.e.user_id)}-${Date.now()}`,
+      saveId: `profile-card-${this.e.user_id}-${Date.now()}`,
       userName: toDisplayText(role?.name, '洛克玩家'),
       userLevel: toDisplayText(role?.level),
       userUid: toDisplayText(role?.id || role?.openid || credential?.tgpId),

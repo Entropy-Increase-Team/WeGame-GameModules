@@ -371,6 +371,7 @@ export class RocomHome extends plugin {
 
       let queuedNotified = false
       const payload = await this.api.getIngameHomeInfo(uid, {
+        userIdentifier: this.accountService.getUserIdentifier(),
         waitMs: HOME_INGAME_WAIT_MS,
         httpTimeoutMs: HOME_INGAME_HTTP_TIMEOUT_MS,
         taskHttpTimeoutMs: HOME_INGAME_HTTP_TIMEOUT_MS,

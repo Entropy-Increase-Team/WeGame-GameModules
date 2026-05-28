@@ -1,4 +1,5 @@
 import { renderModuleTemplate } from '../../../model/moduleRender.js'
+import WeGameAccountService from '../../../model/accountService.js'
 import RocomApi from '../model/api.js'
 import eggService, { DEFAULT_COPYRIGHT, SEARCH_RESULT_TYPES } from '../model/eggService.js'
 import { buildCommandReg, formatCommand, stripCommandPrefix } from '../utils/command.js'
@@ -57,6 +58,7 @@ export class RocomEggs extends plugin {
 
     this.e = e
     this.api = new RocomApi()
+    this.accountService = new WeGameAccountService(e)
   }
 
   async queryEggs () {
@@ -236,6 +238,8 @@ export class RocomEggs extends plugin {
         const apiResult = await this.api.getPetSizeQuery({
           diameter,
           weight
+        }, {
+          userIdentifier: this.accountService.getUserIdentifier()
         })
         renderData = eggService.buildSizeSearchDataFromApi(diameter, weight, apiResult, {
           dimensionLabel: '直径',

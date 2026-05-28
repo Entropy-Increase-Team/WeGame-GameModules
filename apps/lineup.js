@@ -79,6 +79,7 @@ export class RocomLineup extends plugin {
     try {
       const args = this.parseLineupArgs()
       const { credential } = await this.accountService.resolveActiveCredential()
+      const userIdentifier = this.accountService.getUserIdentifier()
       await this.reply(`正在查询阵容助手，第 ${args.pageNo} 页...`)
 
       const params = {
@@ -93,7 +94,7 @@ export class RocomLineup extends plugin {
         params.account_type = accountType
       }
 
-      const data = await this.api.getLineupList(credential.frameworkToken, params)
+      const data = await this.api.getLineupList(credential.frameworkToken, params, { userIdentifier })
       ensureUpstreamSuccess(data)
 
       const lineups = Array.isArray(data?.lineups) ? data.lineups : []
@@ -224,7 +225,9 @@ export class RocomLineup extends plugin {
         params.account_type = accountType
       }
 
-      const data = await this.api.getLineupList(credential.frameworkToken, params)
+      const data = await this.api.getLineupList(credential.frameworkToken, params, {
+        userIdentifier: this.accountService.getUserIdentifier()
+      })
       ensureUpstreamSuccess(data)
 
       totalPages = Math.max(1, toNumber(data?.total_pages, 1))
