@@ -41,6 +41,7 @@
 - 如果使用 `X-API-Key`，统一使用开发者 `WeGame API Key`
 - 该 API Key 还必须已经获批 `game:rocom` 下的对应权限，当前默认公开权限为 `rocom.access`
 - 游戏路由默认进入订阅扣费链路；默认配置把 `/api/v1/games/*` 设为 `standard`，每次请求扣 `1` 积分
+- 账号数据接口会先完成 `X-Framework-Token` 本地校验，再进入订阅扣费和上游请求
 - 匿名令牌可以通过基础认证；默认收费配置下，匿名令牌在扣费前会返回 `401`，请使用 Web JWT 或归属到用户的 API Key 完成扣费调用
 - 订阅扣费失败会返回 `402`，套餐频率超限会返回 `429`，成功响应会带 `X-Plan`、`X-Request-Cost`、`X-Credits-Balance` 等响应头
 - 如果 API Key 请求使用的是按第三方用户作用域创建 / 归属的 `frameworkToken` 或绑定记录，后续请求还需要继续带同一个 `user_identifier`；可放在 query 参数或 `X-User-Identifier` 请求头
@@ -476,7 +477,7 @@ Accept: application/json
 `battle_time` 表示挑战时间。
 `pet_base_info` 和 `enemy_pet_base_info` 中每一项都包含：
 `pet_base_id` 精灵 ID。
-`pet_name` 从本地 `sprite_base_info` 表映射得到的精灵名称。
+`pet_name` 从本地 `pet_base` 表映射得到的精灵名称。
 `pet_img_url` 按 `https://game.gtimg.cn/images/rocom/rocodata/jingling/{pet_base_id}/image.png` 拼出的精灵图片地址。
 
 示例：
@@ -881,7 +882,7 @@ Accept: application/json
 后端会在顶层补充 `page_no`、`page_size`、`total`、`total_pages`、`has_more`，用于表示 API 侧分页结果。
 响应会保留 `lineup.pets[].id` 和 `lineup.pets[].skills`。
 后端会为每个 `lineup.pets[]` 追加：
-`pet_name` 从本地 `sprite_base_info` 表映射得到的精灵名称。
+`pet_name` 从本地 `pet_base` 表映射得到的精灵名称。
 `pet_img_url` 按 `https://game.gtimg.cn/images/rocom/rocodata/jingling/{id}/icon.png` 拼出的精灵图片地址。
 `bloodline_info` 来自本地 `lineup_bloodlines` 表，包含 `id`、`name`、`icon`。
 `skills_info` 数组，其中每一项都包含：
@@ -1098,11 +1099,13 @@ Accept: application/json
 - 只有所有配置资源都无法同步时，接口才会返回失败
 - 当前同步资源包括：
   - `file_config`
-  - `LineupData`
   - `headicon_config`
   - `videoList`
   - `config_info`
-  - `base_info.json`
+  - `linkInfo`
+  - `pet_base`
+  - `lineupSettings`
+  - `spiritList`
   - `skill.json`
 
 响应示例：
@@ -1116,10 +1119,12 @@ Accept: application/json
     "synced_at": "2026-04-07T20:30:00+08:00",
     "resources": [
       "file_config",
-      "LineupData",
       "videoList",
       "config_info",
-      "base_info.json",
+      "linkInfo",
+      "pet_base",
+      "lineupSettings",
+      "spiritList",
       "skill.json"
     ],
     "skipped_resources": [
@@ -1648,7 +1653,6 @@ Accept: application/json
 参数：
 
 - `category_id`（选填）公告分类，默认 `99`
-- `categoryID`（选填）兼容历史命名；当 `category_id` 未传时生效
 - `page`（选填）页码，从 `1` 开始，默认 `1`
 - `limit`（选填）每页数量，默认 `10`，最大 `50`
 - `order`（选填）排序，默认 `ttDesc`
@@ -1731,7 +1735,6 @@ Accept: application/json
 参数：
 
 - `category_id`（选填）公告分类，默认 `99`
-- `categoryID`（选填）兼容历史命名；当 `category_id` 未传时生效
 - `order`（选填）排序，默认 `ttDesc`
 
 鉴权说明：
@@ -1802,7 +1805,6 @@ setInterval(checkLatestRoComAnnouncement, 2 * 60 * 1000);
 参数：
 
 - `thread_id`（必填）公告 ID，对应公告列表返回的 `id`
-- `threadID`（选填）兼容历史命名；当 `thread_id` 未传时生效
 
 鉴权说明：
 

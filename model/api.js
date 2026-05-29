@@ -27,6 +27,14 @@ function isPlainObject (value) {
   return value && typeof value === 'object' && !Array.isArray(value)
 }
 
+function trimObject (payload = {}) {
+  if (!isPlainObject(payload)) return {}
+
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined && value !== null && value !== '')
+  )
+}
+
 function normalizeIngameMethod (value = '') {
   return trimText(value).toLowerCase() === 'get' ? 'get' : 'post'
 }
@@ -121,6 +129,17 @@ function buildScopedPayload (api, userIdentifier = '', payload = {}) {
   }
 }
 
+function buildScopedOptions (api, userIdentifier = '', params = {}) {
+  const scoped = api.buildOptionalUserScopeOptions(userIdentifier)
+  return {
+    headers: isPlainObject(scoped.headers) ? scoped.headers : {},
+    params: {
+      ...(isPlainObject(scoped.params) ? scoped.params : {}),
+      ...(isPlainObject(params) ? params : {})
+    }
+  }
+}
+
 export default class RocomApi extends WeGameApi {
   requestRocomGet (urlPath, frameworkToken, params = {}, requestOptions = {}) {
     const scoped = buildScopedPayload(this, requestOptions.userIdentifier, params)
@@ -128,6 +147,7 @@ export default class RocomApi extends WeGameApi {
       method: 'get',
       params: scoped.payload,
       headers: {
+        Accept: 'application/json',
         ...this.buildFrameworkHeaders(frameworkToken),
         ...scoped.headers
       },
@@ -140,18 +160,26 @@ export default class RocomApi extends WeGameApi {
     return this.request(urlPath, {
       method: 'get',
       params: scoped.payload,
-      headers: scoped.headers,
+      headers: {
+        Accept: 'application/json',
+        ...scoped.headers
+      },
       timeout: requestOptions.timeout,
       needBaseAuth: true
     })
   }
 
   requestRocomPublicPost (urlPath, data = {}, requestOptions = {}) {
-    const scoped = buildScopedPayload(this, requestOptions.userIdentifier, data)
+    const scoped = buildScopedOptions(this, requestOptions.userIdentifier, requestOptions.params)
     return this.request(urlPath, {
       method: 'post',
-      data: scoped.payload,
-      headers: scoped.headers,
+      params: scoped.params,
+      data: isPlainObject(data) ? data : {},
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        ...scoped.headers
+      },
       timeout: requestOptions.timeout,
       needBaseAuth: true
     })
@@ -170,6 +198,7 @@ export default class RocomApi extends WeGameApi {
           ...scoped.payload
         },
         headers: {
+          Accept: 'application/json',
           ...this.getDeviceHeaders(),
           ...scoped.headers,
           ...(await this.getBaseAuthHeaders())
@@ -286,7 +315,18 @@ export default class RocomApi extends WeGameApi {
   }
 
   getAccounts (userIdentifier, params = {}) {
-    return this.requestUserScopedGet('/api/v1/games/rocom/accounts', userIdentifier, params)
+    const scoped = this.buildUserScopeOptions(userIdentifier)
+    return this.request('/api/v1/games/rocom/accounts', {
+      method: 'get',
+      headers: {
+        Accept: 'application/json',
+        ...scoped.headers
+      },
+      params: {
+        ...(isPlainObject(scoped.params) ? scoped.params : {}),
+        ...(isPlainObject(params) ? params : {})
+      }
+    })
   }
 
   searchPlayer (uid, options = {}) {
@@ -299,14 +339,14 @@ export default class RocomApi extends WeGameApi {
     }, options)
   }
 
-  getIngameMerchantInfo (shopId = 3019, options = {}) {
+  getIngameMerchantInfo (shopId = undefined, options = {}) {
     const request = normalizeIngameMethod(options.method) === 'get'
       ? this.requestRocomIngameGet.bind(this)
       : this.requestRocomIngamePost.bind(this)
 
-    return request('/api/v1/games/rocom/ingame/merchant/info', {
+    return request('/api/v1/games/rocom/ingame/merchant/info', trimObject({
       shop_id: shopId
-    }, options)
+    }), options)
   }
 
   getIngameHomeInfo (uid, options = {}) {
@@ -358,6 +398,18 @@ export default class RocomApi extends WeGameApi {
     return this.requestRocomGet('/api/v1/games/rocom/battle/pets', frameworkToken, params, options)
   }
 
+  getPetList (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/pet/list', params, options)
+  }
+
+  getPetDetail (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/pet/detail', params, options)
+  }
+
+  getPetSkillUsers (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/pet/skill-users', params, options)
+  }
+
   getPetSizeQuery (params = {}, options = {}) {
     return this.requestRocomPublicGet('/api/v1/games/rocom/pet/size-query', params, options)
   }
@@ -372,5 +424,37 @@ export default class RocomApi extends WeGameApi {
 
   getExchangePosters (frameworkToken, params = {}, options = {}) {
     return this.requestRocomGet('/api/v1/games/rocom/exchange/posters', frameworkToken, params, options)
+  }
+
+  getFriendship (frameworkToken, params = {}, options = {}) {
+    return this.requestRocomGet('/api/v1/games/rocom/social/friendship', frameworkToken, params, options)
+  }
+
+  getStudentState (frameworkToken, params = {}, options = {}) {
+    return this.requestRocomGet('/api/v1/games/rocom/activity/student-state', frameworkToken, params, options)
+  }
+
+  getActivityPerks (frameworkToken, params = {}, options = {}) {
+    return this.requestRocomGet('/api/v1/games/rocom/activity/perks', frameworkToken, params, options)
+  }
+
+  syncConfig (data = {}, options = {}) {
+    return this.requestRocomPublicPost('/api/v1/games/rocom/config/sync', data, options)
+  }
+
+  getAnnouncementList (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/announcement/list', params, options)
+  }
+
+  getLatestAnnouncement (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/announcement/latest', params, options)
+  }
+
+  getAnnouncementDetail (threadIdOrParams, options = {}) {
+    const params = isPlainObject(threadIdOrParams)
+      ? threadIdOrParams
+      : { thread_id: threadIdOrParams }
+
+    return this.requestRocomPublicGet('/api/v1/games/rocom/announcement/detail', params, options)
   }
 }

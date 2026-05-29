@@ -35,7 +35,8 @@ function formatWinRate (value) {
 
 function normalizeBattleResult (value) {
   const text = String(value ?? '').trim().toLowerCase()
-  if (Number(value) === 1) return 'win'
+  if (Number(value) === 0) return 'win'
+  if (Number(value) === 1) return 'fail'
   if (['win', 'success', 'true'].includes(text)) return 'win'
   return 'fail'
 }
@@ -94,7 +95,7 @@ export class RocomRecord extends plugin {
 
       const [roleData, battleOverviewData, battlePage] = await Promise.all([
         this.loadRoleProfile(credential.frameworkToken, userIdentifier),
-        this.loadBattleOverview(credential.frameworkToken, userIdentifier),
+        this.loadBattleOverview(credential.frameworkToken, credential?.loginType, userIdentifier),
         this.loadBattlePage(credential.frameworkToken, credential?.loginType, pageNo, userIdentifier)
       ])
 
@@ -171,9 +172,11 @@ export class RocomRecord extends plugin {
     }
   }
 
-  async loadBattleOverview (frameworkToken, userIdentifier = '') {
+  async loadBattleOverview (frameworkToken, loginType = '', userIdentifier = '') {
     try {
-      const data = await this.api.getBattleOverview(frameworkToken, {}, { userIdentifier })
+      const zone = this.resolveZone(loginType)
+      const params = zone !== undefined ? { zone } : {}
+      const data = await this.api.getBattleOverview(frameworkToken, params, { userIdentifier })
       ensureUpstreamSuccess(data)
       return data
     } catch (error) {

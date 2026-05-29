@@ -221,7 +221,8 @@ function normalizeBattlePets (petInfoList = [], petIdList = []) {
 
 function normalizeBattleResult (value) {
   const text = String(value ?? '').trim().toLowerCase()
-  if (Number(value) === 1) return 'win'
+  if (Number(value) === 0) return 'win'
+  if (Number(value) === 1) return 'fail'
   if (['win', 'success', 'true'].includes(text)) return 'win'
   return 'fail'
 }
@@ -253,9 +254,11 @@ export class RocomProfile extends plugin {
 
       const profileParams = this.buildProfileParams(credential?.loginType)
       const battleListParams = this.buildBattleListParams(credential?.loginType)
+      const battleOverviewParams = this.buildBattleOverviewParams(credential?.loginType)
       const profileData = await this.loadProfileSections(
         credential.frameworkToken,
         profileParams,
+        battleOverviewParams,
         battleListParams,
         this.accountService.getUserIdentifier()
       )
@@ -308,13 +311,20 @@ export class RocomProfile extends plugin {
     return params
   }
 
-  async loadProfileSections (frameworkToken, profileParams = {}, battleListParams = {}, userIdentifier = '') {
+  buildBattleOverviewParams (loginType = '') {
+    const normalized = String(loginType || '').trim().toLowerCase()
+    if (normalized === 'qq') return { zone: 0 }
+    if (normalized === 'wechat') return { zone: 1 }
+    return {}
+  }
+
+  async loadProfileSections (frameworkToken, profileParams = {}, battleOverviewParams = {}, battleListParams = {}, userIdentifier = '') {
     const tasks = [
       { key: 'roleData', method: 'getRoleProfile', params: profileParams },
       { key: 'evaluationData', method: 'getProfileEvaluation', params: profileParams },
       { key: 'petSummaryData', method: 'getPetSummary', params: profileParams },
       { key: 'collectionData', method: 'getCollection', params: profileParams },
-      { key: 'battleOverviewData', method: 'getBattleOverview', params: {} },
+      { key: 'battleOverviewData', method: 'getBattleOverview', params: battleOverviewParams },
       { key: 'battleListData', method: 'getBattleList', params: battleListParams }
     ]
 
