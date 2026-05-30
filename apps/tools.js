@@ -5,13 +5,10 @@ import RocomApi from '../model/api.js'
 import eggService from '../model/eggService.js'
 import merchantService from '../model/merchantService.js'
 import { buildCommandReg, formatCommand } from '../utils/command.js'
+import { trimText, encodeAssetPath } from '../utils/rocom.js'
 
 const SIZE_QUERY_REG = buildCommandReg('(?:尺寸查询|精灵尺寸)(?:\\s+(.+))?')
 const MERCHANT_INFO_REG = buildCommandReg('(?:(?:远行|旅行)商人|商人信息)')
-
-function trimText (value = '') {
-  return String(value || '').trim()
-}
 
 function extractMatchArg (message = '', pattern = '') {
   const match = String(message || '').trim().match(new RegExp(pattern))
@@ -42,14 +39,6 @@ function parseSizeQueryArgs (raw = '') {
     diameter: parsePositiveNumber(tokens[0], '直径'),
     weight: parsePositiveNumber(tokens[1], '重量')
   }
-}
-
-function encodeAssetPath (assetPath = '') {
-  return String(assetPath || '')
-    .split('/')
-    .filter(Boolean)
-    .map((part) => encodeURIComponent(part))
-    .join('/')
 }
 
 export class RocomTools extends plugin {

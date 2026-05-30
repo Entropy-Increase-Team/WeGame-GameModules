@@ -4,6 +4,7 @@ import WeGameAccountService from '../../../model/accountService.js'
 import { renderModuleTemplate } from '../../../model/moduleRender.js'
 import RocomApi from '../model/api.js'
 import { buildCommandReg, formatCommand } from '../utils/command.js'
+import { trimText, toNumber, encodeAssetPath, pickPrimaryAccount, extractUidFromAccount } from '../utils/rocom.js'
 
 const HOME_REG = buildCommandReg('(?:家园|home)(?:\\s*(\\d+))?')
 const REFRESH_HOME_REG = buildCommandReg('(?:刷新家园|rehome)(?:\\s*(\\d+))?')
@@ -17,23 +18,6 @@ const HOME_INGAME_TASK_TIMEOUT_MS = 3 * 60 * 1000
 const ROCOM_HEADICON_BASE_URL = 'https://silverwing.elysia.beauty/RocomUID/resource/headicon'
 
 let plantMapCache = null
-
-function trimText (value = '') {
-  return String(value ?? '').trim()
-}
-
-function toNumber (value, fallback = 0) {
-  const num = Number(value)
-  return Number.isFinite(num) ? num : fallback
-}
-
-function encodeAssetPath (assetPath = '') {
-  return String(assetPath || '')
-    .split('/')
-    .filter(Boolean)
-    .map((part) => encodeURIComponent(part))
-    .join('/')
-}
 
 function loadPlantMap () {
   if (plantMapCache) return plantMapCache
@@ -322,21 +306,6 @@ function normalizeHomeInfo (payload = {}, uid = '') {
     guardCount: guardPets.length,
     guardEmptyText: '后端当前返回中没有守卫精灵字段'
   }
-}
-
-function pickPrimaryAccount (accounts = []) {
-  return accounts.find((item) => item?.binding?.is_primary === true || item?.binding?.isPrimary === true) ||
-    accounts[0] ||
-    null
-}
-
-function extractUidFromAccount (account = {}) {
-  return trimText(
-    account?.role?.id ||
-    account?.role_id ||
-    account?.binding?.role_id ||
-    account?.binding?.roleId
-  )
 }
 
 export class RocomHome extends plugin {

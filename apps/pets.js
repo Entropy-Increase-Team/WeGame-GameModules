@@ -5,6 +5,13 @@ import RocomConfig from '../utils/config.js'
 import { buildCommandReg, formatCommand, stripCommandPrefix } from '../utils/command.js'
 import { ensureUpstreamSuccess } from '../../../utils/queryHelper.js'
 import { getLoginTypeLabel } from '../../../utils/common.js'
+import {
+  toNumber,
+  normalizeUrl,
+  toDisplayText,
+  encodeAssetPath,
+  resolveZone
+} from '../utils/rocom.js'
 
 const PET_SUBSETS = {
   全部: 0,
@@ -29,31 +36,6 @@ function getPetSubsetLabel (value) {
 function getPetTabText (value) {
   const label = getPetSubsetLabel(value)
   return label === '全部' ? '全部' : `${label}精灵`
-}
-
-function encodeAssetPath (assetPath = '') {
-  return String(assetPath || '')
-    .split('/')
-    .filter(Boolean)
-    .map((part) => encodeURIComponent(part))
-    .join('/')
-}
-
-function normalizeUrl (value) {
-  const text = String(value || '').trim()
-  if (!text) return ''
-  if (text.startsWith('//')) return `https:${text}`
-  return text
-}
-
-function toDisplayText (value, fallback = '--') {
-  if (value === undefined || value === null || value === '') return fallback
-  return String(value)
-}
-
-function toNumber (value, fallback = 0) {
-  const num = Number(value)
-  return Number.isFinite(num) ? num : fallback
 }
 
 export class RocomPets extends plugin {
@@ -92,7 +74,7 @@ export class RocomPets extends plugin {
         page_size: getPageSize()
       }
 
-      const zone = this.resolveZone(loginType)
+      const zone = resolveZone(loginType)
       if (zone !== undefined) {
         params.zone = zone
       }
@@ -187,12 +169,6 @@ export class RocomPets extends plugin {
     }
 
     return { petSubset, pageNo }
-  }
-
-  resolveZone (loginType = '') {
-    if (loginType === 'qq') return 0
-    if (loginType === 'wechat') return 1
-    return undefined
   }
 
   extractPetList (payload = {}, depth = 0) {

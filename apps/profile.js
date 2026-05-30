@@ -3,6 +3,15 @@ import RocomApi from '../model/api.js'
 import { renderModuleTemplate } from '../../../model/moduleRender.js'
 import { buildCommandReg, formatCommand } from '../utils/command.js'
 import { ensureUpstreamSuccess } from '../../../utils/queryHelper.js'
+import {
+  encodeAssetPath,
+  normalizeUrl,
+  toDisplayText,
+  toNumber,
+  formatWinRate,
+  normalizeBattleResult,
+  normalizeBattlePets
+} from '../utils/rocom.js'
 
 const RADAR_AXES = [
   { key: 'strength', name: '战力', labelX: 128, labelY: 12, anchor: 'middle', dx: 0, dy: -18 },
@@ -10,33 +19,6 @@ const RADAR_AXES = [
   { key: 'capture', name: '捉宠', labelX: 128, labelY: 215, anchor: 'middle', dx: 0, dy: 18 },
   { key: 'collection', name: '收藏', labelX: 34, labelY: 110, anchor: 'end', dx: -20, dy: 0 }
 ]
-
-function encodeAssetPath (assetPath = '') {
-  return String(assetPath || '')
-    .split('/')
-    .filter(Boolean)
-    .map((part) => encodeURIComponent(part))
-    .join('/')
-}
-
-function normalizeRemoteUrl (value) {
-  const text = String(value || '').trim()
-  if (!text) return ''
-  if (/^data:image\//.test(text)) return text
-  if (text.startsWith('//')) return `https:${text}`
-  if (/^https?:\/\//.test(text)) return text
-  return ''
-}
-
-function toDisplayText (value, fallback = '--') {
-  if (value === undefined || value === null || value === '') return fallback
-  return String(value)
-}
-
-function toNumber (value, fallback = 0) {
-  const num = Number(value)
-  return Number.isFinite(num) ? num : fallback
-}
 
 function clampPercent (value) {
   return Math.max(0, Math.min(100, toNumber(value, 0)))
@@ -53,12 +35,6 @@ function formatScore (value) {
 
   const text = String(value).trim()
   return text.endsWith('分') ? text : `${text}分`
-}
-
-function formatWinRate (value) {
-  const num = Number(value)
-  if (!Number.isFinite(num)) return '--'
-  return `${num.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')}%`
 }
 
 function hasMeaningfulEvaluation (evaluation = {}) {
@@ -89,7 +65,7 @@ function hasMeaningfulBattleOverview (battleOverview = {}) {
   if (toNumber(battleOverview?.total_match, 0) > 0) return true
   if (toNumber(battleOverview?.total_win, 0) > 0) return true
   if (String(battleOverview?.tier || '').trim()) return true
-  return Boolean(normalizeRemoteUrl(battleOverview?.tier_icon_url))
+  return Boolean(normalizeUrl(battleOverview?.tier_icon_url))
 }
 
 function hasMeaningfulBattleRecord (battle = {}) {
@@ -199,32 +175,6 @@ function buildRadarModel (evaluation = {}) {
     radarValueBadges,
     radarAxisLabels
   }
-}
-
-function normalizeBattlePets (petInfoList = [], petIdList = []) {
-  if (Array.isArray(petInfoList) && petInfoList.length > 0) {
-    return petInfoList.slice(0, 6).map((item, index) => ({
-      name: toDisplayText(item?.pet_name, `精灵 ${index + 1}`),
-      icon: normalizeRemoteUrl(item?.pet_img_url)
-    }))
-  }
-
-  if (Array.isArray(petIdList) && petIdList.length > 0) {
-    return petIdList.slice(0, 6).map((petBaseId, index) => ({
-      name: `精灵 ${index + 1}`,
-      icon: ''
-    }))
-  }
-
-  return []
-}
-
-function normalizeBattleResult (value) {
-  const text = String(value ?? '').trim().toLowerCase()
-  if (Number(value) === 0) return 'win'
-  if (Number(value) === 1) return 'fail'
-  if (['win', 'success', 'true'].includes(text)) return 'win'
-  return 'fail'
 }
 
 export class RocomProfile extends plugin {
@@ -391,13 +341,13 @@ export class RocomProfile extends plugin {
       userName: toDisplayText(role?.name, '洛克玩家'),
       userLevel: toDisplayText(role?.level),
       userUid: toDisplayText(role?.id || role?.openid || credential?.tgpId),
-      userAvatar: normalizeRemoteUrl(role?.avatar_url || latestBattle?.avatar_url || role?.avatar),
+      userAvatar: normalizeUrl(role?.avatar_url || latestBattle?.avatar_url || role?.avatar),
       enrollDays: toDisplayText(role?.enroll_days),
       starName: toDisplayText(starName),
       hasAiProfileData,
       summaryTitleParts,
       bestPetName,
-      bestPetImage: normalizeRemoteUrl(petSummary?.best_pet_img_url),
+      bestPetImage: normalizeUrl(petSummary?.best_pet_img_url),
       scoreText: formatScore(evaluation?.score),
       aiCommentText,
       currentCollectionCount: toDisplayText(collection?.current_collection_count, '0'),
@@ -409,7 +359,7 @@ export class RocomProfile extends plugin {
       itemCount: toDisplayText(collection?.item_count, '0'),
       collectionHint: `输入“${formatCommand('精灵列表')}”查看精灵总览`,
       hasBattleData,
-      tierBadgeUrl: normalizeRemoteUrl(battleOverview?.tier_icon_url || latestBattle?.tier_url),
+      tierBadgeUrl: normalizeUrl(battleOverview?.tier_icon_url || latestBattle?.tier_url),
       totalMatch: toDisplayText(battleOverview?.total_match, '0'),
       totalWin: toDisplayText(battleOverview?.total_win, '0'),
       winRate: formatWinRate(battleOverview?.win_rate),
@@ -417,7 +367,7 @@ export class RocomProfile extends plugin {
       leftTeamPets: normalizeBattlePets(latestBattle?.pet_base_info, latestBattle?.pet_base_id),
       rightTeamPets: normalizeBattlePets(latestBattle?.enemy_pet_base_info, latestBattle?.enemy_pet_base_id),
       opponentName: toDisplayText(latestBattle?.enemy_nickname, '未知对手'),
-      opponentAvatar: normalizeRemoteUrl(latestBattle?.enemy_avatar_url),
+      opponentAvatar: normalizeUrl(latestBattle?.enemy_avatar_url),
       ...buildRadarModel(evaluation)
     }
   }
@@ -431,17 +381,17 @@ export class RocomProfile extends plugin {
       ...data,
       defaultAvatar,
       fallbackPetImage,
-      userAvatarDisplay: normalizeRemoteUrl(data.userAvatar) || defaultAvatar,
-      bestPetImageDisplay: normalizeRemoteUrl(data.bestPetImage) || fallbackPetImage,
-      tierBadgeUrl: normalizeRemoteUrl(data.tierBadgeUrl),
-      opponentAvatarDisplay: normalizeRemoteUrl(data.opponentAvatar) || defaultAvatar,
+      userAvatarDisplay: normalizeUrl(data.userAvatar) || defaultAvatar,
+      bestPetImageDisplay: normalizeUrl(data.bestPetImage) || fallbackPetImage,
+      tierBadgeUrl: normalizeUrl(data.tierBadgeUrl),
+      opponentAvatarDisplay: normalizeUrl(data.opponentAvatar) || defaultAvatar,
       leftTeamPets: (data.leftTeamPets || []).map((pet) => ({
         ...pet,
-        icon: normalizeRemoteUrl(pet.icon) || fallbackPetImage
+        icon: normalizeUrl(pet.icon) || fallbackPetImage
       })),
       rightTeamPets: (data.rightTeamPets || []).map((pet) => ({
         ...pet,
-        icon: normalizeRemoteUrl(pet.icon) || fallbackPetImage
+        icon: normalizeUrl(pet.icon) || fallbackPetImage
       }))
     }
   }

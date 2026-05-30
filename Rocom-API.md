@@ -39,7 +39,7 @@
 - 当前模块的大部分查询接口至少需要一种基础认证：`Authorization: Bearer <web-jwt>`、`X-Anonymous-Token`、或 `X-API-Key`
 - 除了明确标注为“**不需要 `X-Framework-Token`**”的接口外，大部分游戏数据接口都需要通过 `X-Framework-Token` 指定一份已保存的 WeGame 凭证
 - 如果使用 `X-API-Key`，统一使用开发者 `WeGame API Key`
-- 该 API Key 还必须已经获批 `game:rocom` 下的对应权限，当前默认公开权限为 `rocom.access`
+- 该 API Key 还必须已经获批 `game:rocom` 下的对应权限；普通开放接口使用 `rocom.access`，换蛋广场 API Key 发帖使用 `rocom.egg_exchange.post`
 - 游戏路由默认进入订阅扣费链路；默认配置把 `/api/v1/games/*` 设为 `standard`，每次请求扣 `1` 积分
 - 账号数据接口会先完成 `X-Framework-Token` 本地校验，再进入订阅扣费和上游请求
 - 匿名令牌可以通过基础认证；默认收费配置下，匿名令牌在扣费前会返回 `401`，请使用 Web JWT 或归属到用户的 API Key 完成扣费调用
@@ -58,7 +58,7 @@
 
 | 请求头 | 处理位置 / 用途 | 适用场景 |
 |---|---|---|
-| `X-API-Key` | RoCom 游戏路由统一认证、管理接口统一认证 | 第三方客户端基础认证；调用 RoCom 接口时需要具备 `game:rocom` 对应权限，默认公开权限为 `rocom.access` |
+| `X-API-Key` | RoCom 游戏路由统一认证、管理接口统一认证 | 第三方客户端基础认证；调用 RoCom 接口时需要具备 `game:rocom` 对应权限 |
 | `Authorization: Bearer <web-jwt>` | RoCom 游戏路由统一认证、管理接口统一认证 | Web 用户基础认证；管理接口要求后端管理员身份 |
 | `X-Anonymous-Token` | RoCom 游戏路由统一认证 | 匿名基础认证；默认收费配置下没有用户归属会返回 `401` |
 | `Authorization: Bearer anon_xxx` | RoCom 游戏路由统一认证 | 匿名令牌的 Bearer 写法，等价于 `X-Anonymous-Token` |
@@ -73,8 +73,8 @@
 
 | 请求头 | 归属链路 | RoCom 游戏路由处理 |
 |---|---|---|
-| `X-Client-Type` | WeGame 登录 / 绑定链路的客户端类型 | 无业务读取 |
-| `X-Client-ID` | WeGame 登录 / 绑定链路的客户端标识 | 无业务读取 |
+| `X-Client-Type` | WeGame 登录 / 绑定链路的客户端类型 | 换蛋发帖和订阅接口用于客户端归属；支持 `web` / `bot` / `app` |
+| `X-Client-ID` | WeGame 登录 / 绑定链路的客户端标识 | 换蛋发帖和订阅接口用于客户端归属 |
 | `X-Client-User-ID` | WritableAuth 可写代理接口的客户端用户标识 | 无业务读取 |
 | `X-Client-User-Type` | WritableAuth 可写代理接口的客户端用户类型 | 无业务读取 |
 
@@ -149,8 +149,9 @@ Accept: application/json
 |---|---|---|
 | 账号列表 | `GET /api/v1/games/rocom/accounts` | Web 用户带 `Authorization`；API Key 调用带 `X-API-Key` 和 `X-User-Identifier`；不需要 `X-Framework-Token` |
 | 账号数据 | `profile/*`、`battle/*`、`lineup/list`、`exchange/posters`、`social/friendship`、`activity/student-state`、`activity/perks` | 带一种基础认证；同时必须带 `X-Framework-Token`；API Key 用户作用域还必须带同一个 `X-User-Identifier` |
+| UID 绑定 | `POST /api/v1/games/rocom/uid/bind` | 带一种基础认证；API Key 调用带 `X-API-Key` 和 `X-User-Identifier`；响应头返回 `X-Framework-Token` |
 | 本地资料 / 内容查询 | `pet/list`、`pet/detail`、`pet/skill-users`、`pet/size-query`、`merchant/info`、`announcement/*` | 带一种基础认证；不需要 `X-Framework-Token` |
-| Ingame 查询 | `ingame/*` | 带一种基础认证；不需要 `X-Framework-Token`；`POST` 请求带 `Content-Type: application/json` |
+| Ingame 查询 | `ingame/*` | 带一种基础认证；已绑定 UID 时可省略 `uid`；也可带 UID 绑定返回的 `X-Framework-Token`；`POST` 请求带 `Content-Type: application/json` |
 | 配置同步 | `POST /api/v1/games/rocom/config/sync` | 后端管理员 Web JWT，或具备 `admin.access` 的 `X-API-Key`；不需要 `X-Framework-Token` |
 
 第三方插件调用账号数据接口时，建议统一在请求封装层注入 `X-API-Key`、`X-Framework-Token`、`X-User-Identifier`。
@@ -251,6 +252,47 @@ Accept: application/json
     ],
     "total": 1,
     "bindings_total": 2
+  }
+}
+```
+
+### UID 绑定
+
+- `POST /api/v1/games/rocom/uid/bind`
+
+说明：
+
+- 手动绑定 RoCom 角色 UID，UID 即角色资料里的 `role.id`
+- 成功后响应头返回 `X-Framework-Token`，后续 ingame 查询可直接带这个 token 并省略 `uid`
+- 同一用户可绑定多个 UID；首次绑定的 UID 会成为默认 UID
+- 如果后续通过 WeGame QQ / 微信扫码登录识别到同一个 UID，服务端会更新这条 UID 绑定，补上 WeGame 绑定、`tgp_id` 和角色资料
+
+请求示例：
+
+```http
+POST /api/v1/games/rocom/uid/bind
+Content-Type: application/json
+X-API-Key: <wegame-api-key>
+X-User-Identifier: <platform-user-id>
+Accept: application/json
+
+{"uid":"704693375"}
+```
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "frameworkToken": "4f1f2fc2-16bc-4f6d-9f0b-53afde3d38f5",
+    "binding": {
+      "uid": "704693375",
+      "source": "manual",
+      "verified": false,
+      "is_primary": true
+    }
   }
 }
 ```
@@ -1040,6 +1082,227 @@ Accept: application/json
 }
 ```
 
+### 换蛋广场
+
+换蛋帖字段：
+
+- `post_id`：帖子内部 ID，用于关闭、查询审核状态
+- `id`：游戏内学号
+- `have_text`：我有
+- `want_text`：想要
+- `want_note`：补充标签，例如性格、体型
+- `remark`：在线时间 / 交换说明
+- `status`：`active` / `closed` / `deleted`
+- `review_status`：`pending` / `manual_pending` / `approved` / `rejected`
+- `expires_at`：过期时间；发布时可选，默认 30 天
+- `closed_by`：`owner` / `admin` / `system`
+- `close_reason`：`traded` / `cancel` / `expired` / `admin`
+- `pinned_until`：置顶截止时间
+
+#### 公开列表
+
+`GET /api/v1/games/rocom/community/egg-exchanges`
+
+公开列表只返回 `status=active`、`review_status=approved` 且未过期的帖子，置顶帖排在普通帖前面。
+
+Query 参数：
+
+- `page_no`：可选，默认 `1`
+- `page_size`：可选，默认 `20`，最大 `100`
+- `q`：可选，按学号、我有、想要、补充标签和备注模糊搜索；兼容 `keyword`
+- `id`：可选，按学号精确筛选
+- `have_text`：可选，按“我有”模糊筛选
+- `want_text`：可选，按“想要”模糊筛选
+- `want_note`：可选，按补充标签模糊筛选
+- `sort`：可选，`-created_at` 最新优先，`created_at` 最早优先；默认 `-created_at`
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "items": [
+      {
+        "post_id": "6658f0f3d8e7a3f38b552a11",
+        "id": "470557585",
+        "have_text": "雪怪果实，大块头异色粉耳星兔",
+        "want_text": "上岸蛙，二代水开图鉴",
+        "want_note": "固执大块头",
+        "remark": "全天在线",
+        "status": "active",
+        "review_status": "approved",
+        "created_at": "2026-05-29T12:00:00+08:00",
+        "expires_at": "2026-06-29T12:00:00+08:00",
+        "pinned_until": "2026-06-01T00:00:00+08:00"
+      }
+    ],
+    "total": 1,
+    "page_no": 1,
+    "page_size": 20,
+    "total_pages": 1,
+    "has_more": false
+  }
+}
+```
+
+#### 发帖与我的帖子
+
+以下接口支持 Web JWT 和 API Key：
+
+- Web 端使用 `Authorization: Bearer <web-jwt>`，后端按 JWT 中的 Web 用户 ID 判断帖子归属
+- API Key 端使用 `X-API-Key`，并携带 `X-Client-Type`、`X-Client-ID`，后端按 `API Key ID + X-Client-Type + X-Client-ID` 判断帖子归属
+- API Key 发布和关闭换蛋帖需要 `game:rocom` 下的 `rocom.egg_exchange.post` 权限
+
+`X-Client-ID` 表示第三方客户端实例或渠道，例如一个机器人、一个网页站点或一个小程序；终端用户归属仍由 Web JWT 或 API Key 所属用户决定。
+同一把 API Key 下的 `X-Client-ID` 属于客户端自报标识，适合可信渠道间做逻辑隔离；需要强隔离的渠道建议使用不同 API Key。
+
+接口权限：
+
+| 接口 | 用途 | API Key 权限 |
+|---|---|---|
+| `POST /api/v1/games/rocom/community/egg-exchanges` | 发布换蛋帖 | `rocom.egg_exchange.post` |
+| `GET /api/v1/games/rocom/community/egg-exchanges/my` | 查询当前归属下的帖子 | `rocom.access` 或 `rocom.egg_exchange.post` |
+| `GET /api/v1/games/rocom/community/egg-exchanges/:post_id/review-status` | 查询当前归属下指定帖子的审核状态 | `rocom.access` 或 `rocom.egg_exchange.post` |
+| `POST /api/v1/games/rocom/community/egg-exchanges/:post_id/close` | 关闭当前归属下的帖子 | `rocom.egg_exchange.post` |
+
+后台管理员的审核、后台关闭、置顶和取消置顶接口记录在 `DOCS-API/WeGame-Web-API.md` 的后台管理接口中。
+
+发布后默认进入 `pending`；AI 审核通过后进入 `approved`，AI 审核失败或审核服务未配置时进入 `manual_pending`。发布响应会返回 `similar_posts`，用于展示相似推荐。
+
+发布请求：
+
+```json
+{
+  "id": "470557585",
+  "have_text": "雪怪果实，大块头异色粉耳星兔",
+  "want_text": "上岸蛙，二代水开图鉴",
+  "want_note": "固执大块头",
+  "remark": "全天在线",
+  "expires_at": "2026-06-29T12:00:00+08:00"
+}
+```
+
+我的列表额外支持 query 参数：
+
+- `status`
+- `review_status`
+
+关闭请求：
+
+```json
+{
+  "close_reason": "traded"
+}
+```
+
+`close_reason` 支持：
+
+- `traded`：成交关闭
+- `cancel`：取消关闭；默认值
+
+#### 换蛋订阅
+
+订阅接口用于第三方客户端定时拉取审核通过的新帖。订阅接口支持 Web JWT 和 API Key。
+
+API Key 请求头：
+
+- `X-API-Key: <api-key>`
+- `X-Client-Type: bot`
+- `X-Client-ID: <client-id>`
+
+订阅接口使用 `rocom.access` 权限。订阅归属按 `API Key ID + X-Client-Type + X-Client-ID` 判断。第三方客户端保存 `subscription_id` 和 `next_event_id` 即可；同一个 API Key 下，不同 `X-Client-ID` 的订阅互相隔离。相同客户端和相同筛选重复创建订阅时，后端返回已有 `subscription_id`。
+
+订阅接口：
+
+| 接口 | 用途 | API Key 权限 |
+|---|---|---|
+| `POST /api/v1/games/rocom/community/egg-exchange-subscriptions` | 创建订阅 | `rocom.access` |
+| `GET /api/v1/games/rocom/community/egg-exchange-subscriptions` | 查询订阅列表 | `rocom.access` |
+| `DELETE /api/v1/games/rocom/community/egg-exchange-subscriptions/:subscription_id` | 删除订阅 | `rocom.access` |
+| `GET /api/v1/games/rocom/community/egg-exchange-events` | 拉取订阅事件 | `rocom.access` |
+
+创建订阅：
+
+```json
+{
+  "filters": {
+    "q": "",
+    "id": "",
+    "have_text": "",
+    "want_text": "上岸蛙",
+    "want_note": "固执"
+  }
+}
+```
+
+订阅筛选字段：
+
+- `q`
+- `id`
+- `have_text`
+- `want_text`
+- `want_note`
+
+创建订阅响应：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "subscription": {
+      "subscription_id": "6658f0f3d8e7a3f38b552a22",
+      "event_type": "egg_exchange.approved",
+      "filters": {
+        "want_text": "上岸蛙",
+        "want_note": "固执"
+      },
+      "status": "active",
+      "created_at": "2026-05-29T12:00:00+08:00",
+      "updated_at": "2026-05-29T12:00:00+08:00"
+    }
+  }
+}
+```
+
+拉取事件：
+
+- `subscription_id`：必填
+- `after_event_id`：可选，默认 `0`
+- `limit`：可选，默认 `50`，最大 `100`
+
+事件类型固定为 `egg_exchange.approved`，只推送订阅创建后的审核通过帖子。客户端保存响应中的 `next_event_id`，下一次请求传入 `after_event_id`。
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "items": [
+      {
+        "event_id": 124,
+        "event_type": "egg_exchange.approved",
+        "post": {
+          "post_id": "6658f0f3d8e7a3f38b552a11",
+          "id": "470557585",
+          "have_text": "雪怪果实",
+          "want_text": "上岸蛙",
+          "status": "active",
+          "review_status": "approved",
+          "created_at": "2026-05-29T12:00:00+08:00",
+          "expires_at": "2026-06-29T12:00:00+08:00"
+        },
+        "created_at": "2026-05-29T12:01:00+08:00"
+      }
+    ],
+    "next_event_id": 124,
+    "has_more": false
+  }
+}
+```
+
 ### 好友关系
 
 - `GET /api/v1/games/rocom/social/friendship`
@@ -1162,6 +1425,9 @@ Accept: application/json
 公共规则：
 
 - 调用方只需要传本项目认证凭证
+- 已绑定 UID 时，`player/search` 和 `home/info` 可以省略 `uid`
+- 带 UID 绑定返回的 `X-Framework-Token` 时，会使用该 token 对应的 UID
+- 不带 `X-Framework-Token` 且省略 `uid` 时，会使用当前用户默认 UID
 - `wait_ms` 可选，用于指定同步等待查询结果的毫秒数
 - `wait_ms` 省略时使用服务端默认等待时间
 
@@ -1173,8 +1439,9 @@ Accept: application/json
 说明：
 
 - 适合做玩家 UID 搜索、名片资料页、基础社交资料展示
-- `GET` 使用 query 参数 `uid`
-- `POST` 使用 JSON 请求体 `{"uid":123456}`
+- `GET` 可使用 query 参数 `uid`
+- `POST` 可使用 JSON 请求体 `{"uid":123456}`
+- 省略 `uid` 时按 UID 绑定规则自动补齐
 - `GET` 和 `POST` 都可选传 `wait_ms`，用于指定同步等待查询结果的毫秒数
 
 `GET /api/v1/games/rocom/ingame/player/search` 请求示例：
@@ -1378,8 +1645,9 @@ Accept: application/json
 说明：
 
 - 适合做玩家家园资料、居住精灵、种植植物信息展示
-- `GET` 使用 query 参数 `uid`
-- `POST` 使用 JSON 请求体 `{"uid":123456}`
+- `GET` 可使用 query 参数 `uid`
+- `POST` 可使用 JSON 请求体 `{"uid":123456}`
+- 省略 `uid` 时按 UID 绑定规则自动补齐
 - `GET` 和 `POST` 都可选传 `wait_ms`，用于指定同步等待查询结果的毫秒数
 
 `GET /api/v1/games/rocom/ingame/home/info` 请求示例：

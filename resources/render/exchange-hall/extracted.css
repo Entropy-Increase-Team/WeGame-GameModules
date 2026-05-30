@@ -117,11 +117,16 @@ body:not(.page-out-client).helper-v3 .popbox-preview {
 }
 
 .page-container {
-  width:100vw;height:100vh;top:0;left:0;position:absolute;padding-left:var(--sidebar-gap);transition:var(--transition-padding-navbar);display:flex;align-items:center;justify-content:center
+  width: auto !important;
+  height: auto !important;
+  position: static !important;
+  padding-left: 0 !important;
+  display: block !important;
 }
 
 .page-container-inner .page-section-main {
-  width:11.2rem;height:6.7rem
+  width: auto !important;
+  height: auto !important;
 }
 
 .page-section-main {
@@ -181,7 +186,8 @@ body:not(.page-out-client).helper-v3 .popbox-preview {
 }
 
 .exchange-cont {
-  width:10.67rem!important;margin:0 auto
+  width: fit-content !important;
+  margin: 0 auto;
 }
 
 .exchange-cont .helper-nodata {
@@ -390,4 +396,24 @@ body:not(.page-out-client).helper-v3 .popbox-preview {
 
 .record-recent .match-item .player-avatar .helper-image {
   width:.285rem;height:.285rem
+}
+
+/* ====== 截图专用：去掉全屏容器，让内容自适应 ====== */
+html,
+body {
+  width: fit-content !important;
+  height: fit-content !important;
+  overflow: visible !important;
+  margin: 0;
+  padding: 0;
+}
+.page-container,
+.page-container-inner,
+.page-section-main,
+.exchange-cont {
+  min-width: unset !important;
+  max-width: none !important;
+}
+.exchange-card-list {
+  width: fit-content !important;
 }

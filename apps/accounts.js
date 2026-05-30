@@ -3,7 +3,8 @@ import { renderModuleTemplate } from '../../../model/moduleRender.js'
 import { formatCommand as formatCoreCommand } from '../../../utils/command.js'
 import { getLoginTypeLabel } from '../../../utils/common.js'
 import RocomApi from '../model/api.js'
-import { buildCommandReg } from '../utils/command.js'
+import { buildCommandReg, formatCommand, stripCommandPrefix } from '../utils/command.js'
+import { trimText } from '../utils/rocom.js'
 
 function normalizeRocomAccount (payload = {}) {
   if (!payload || typeof payload !== 'object') return null
@@ -176,6 +177,10 @@ export class RocomAccounts extends plugin {
         {
           reg: buildCommandReg('账号列表'),
           fnc: 'listAccounts'
+        },
+        {
+          reg: buildCommandReg('绑定UID(?:\\s+(\\S+))?'),
+          fnc: 'bindUid'
         }
       ]
     })
@@ -250,6 +255,49 @@ export class RocomAccounts extends plugin {
       } else {
         await this.reply(`查询账号列表失败：${error.message || error}`)
       }
+      return true
+    }
+  }
+
+  async bindUid () {
+    try {
+      const match = String(this.e.msg || '').match(new RegExp(buildCommandReg('绑定UID(?:\\s+(\\S+))?')))
+      const uid = trimText(match?.[1])
+      if (!uid) {
+        throw new Error(`格式：${formatCommand('绑定UID <UID>')}\nUID 即角色资料中的 role.id`)
+      }
+
+      if (!/^\d+$/.test(uid)) {
+        throw new Error('UID 必须为纯数字')
+      }
+
+      await this.reply(`正在绑定 UID：${uid}...`)
+
+      const data = await this.api.bindUid(uid, {
+        userIdentifier: this.accountService.getUserIdentifier()
+      })
+
+      const frameworkToken = trimText(data?.frameworkToken)
+      const binding = data?.binding || {}
+      const isPrimary = binding.is_primary === true
+      const source = trimText(binding.source)
+
+      const lines = [
+        `✅ UID 绑定成功！`,
+        `UID：${uid}`,
+        isPrimary ? '状态：主账号（首次绑定）' : '状态：已绑定',
+      ]
+
+      if (source) lines.push(`来源：${source}`)
+      if (frameworkToken) {
+        lines.push(`\n已生成凭证，后续 ingame 查询可直接使用。`)
+      }
+
+      await this.reply(lines.join('\n'))
+      return true
+    } catch (error) {
+      logger.error('[WeGame-plugin][rocom] 绑定 UID 失败', error)
+      await this.reply(`绑定 UID 失败：${error.message || error}`)
       return true
     }
   }

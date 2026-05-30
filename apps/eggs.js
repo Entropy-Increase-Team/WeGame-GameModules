@@ -3,10 +3,7 @@ import WeGameAccountService from '../../../model/accountService.js'
 import RocomApi from '../model/api.js'
 import eggService, { DEFAULT_COPYRIGHT, SEARCH_RESULT_TYPES } from '../model/eggService.js'
 import { buildCommandReg, formatCommand, stripCommandPrefix } from '../utils/command.js'
-
-function trimText (value = '') {
-  return String(value || '').trim()
-}
+import { trimText } from '../utils/rocom.js'
 
 function tryParseNumber (value = '') {
   const text = trimText(value).replace(/(?:kg|千克|公斤|m|米)$/i, '')

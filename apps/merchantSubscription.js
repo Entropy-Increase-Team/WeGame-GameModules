@@ -6,25 +6,7 @@ import merchantSubscriptionService, {
 } from '../model/merchantSubscriptionService.js'
 import RocomConfig from '../utils/config.js'
 import { buildCommandReg, formatCommand, stripCommandPrefix } from '../utils/command.js'
-
-function trimText (value = '') {
-  return String(value || '').trim()
-}
-
-function encodeAssetPath (assetPath = '') {
-  return String(assetPath || '')
-    .split('/')
-    .filter(Boolean)
-    .map((part) => encodeURIComponent(part))
-    .join('/')
-}
-
-function normalizeUrl (value = '') {
-  const text = trimText(value)
-  if (!text) return ''
-  if (text.startsWith('//')) return `https:${text}`
-  return text
-}
+import { trimText, encodeAssetPath, normalizeUrl } from '../utils/rocom.js'
 
 function getDefaultMerchantItems () {
   const values = RocomConfig.get('merchant', 'subscription_default_items')

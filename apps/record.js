@@ -3,43 +3,17 @@ import { renderModuleTemplate } from '../../../model/moduleRender.js'
 import RocomApi from '../model/api.js'
 import { buildCommandReg, formatCommand, stripCommandPrefix } from '../utils/command.js'
 import { ensureUpstreamSuccess } from '../../../utils/queryHelper.js'
+import {
+  encodeAssetPath,
+  normalizeUrl,
+  toDisplayText,
+  formatWinRate,
+  normalizeBattleResult,
+  normalizeBattlePets,
+  resolveZone
+} from '../utils/rocom.js'
 
 const PAGE_SIZE = 4
-
-function encodeAssetPath (assetPath = '') {
-  return String(assetPath || '')
-    .split('/')
-    .filter(Boolean)
-    .map((part) => encodeURIComponent(part))
-    .join('/')
-}
-
-function normalizeUrl (value) {
-  const text = String(value || '').trim()
-  if (!text) return ''
-  if (text.startsWith('//')) return `https:${text}`
-  if (/^https?:\/\//.test(text)) return text
-  return ''
-}
-
-function toDisplayText (value, fallback = '--') {
-  if (value === undefined || value === null || value === '') return fallback
-  return String(value)
-}
-
-function formatWinRate (value) {
-  const num = Number(value)
-  if (!Number.isFinite(num)) return '--'
-  return `${num.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')}%`
-}
-
-function normalizeBattleResult (value) {
-  const text = String(value ?? '').trim().toLowerCase()
-  if (Number(value) === 0) return 'win'
-  if (Number(value) === 1) return 'fail'
-  if (['win', 'success', 'true'].includes(text)) return 'win'
-  return 'fail'
-}
 
 function formatBattleTime (value) {
   const date = new Date(String(value || '').trim())
@@ -55,15 +29,6 @@ function formatBattleTime (value) {
     time: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
     date: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
   }
-}
-
-function normalizeBattlePets (petInfoList = []) {
-  if (!Array.isArray(petInfoList)) return []
-
-  return petInfoList.slice(0, 6).map((item, index) => ({
-    name: toDisplayText(item?.pet_name, `精灵 ${index + 1}`),
-    icon: normalizeUrl(item?.pet_img_url)
-  }))
 }
 
 export class RocomRecord extends plugin {
@@ -154,13 +119,6 @@ export class RocomRecord extends plugin {
     return stripCommandPrefix(this.e.msg, '大赛战绩') || stripCommandPrefix(this.e.msg, '战绩')
   }
 
-  resolveZone (loginType = '') {
-    const normalized = String(loginType || '').trim().toLowerCase()
-    if (normalized === 'qq') return 0
-    if (normalized === 'wechat') return 1
-    return undefined
-  }
-
   async loadRoleProfile (frameworkToken, userIdentifier = '') {
     try {
       const data = await this.api.getRoleProfile(frameworkToken, {}, { userIdentifier })
@@ -174,7 +132,7 @@ export class RocomRecord extends plugin {
 
   async loadBattleOverview (frameworkToken, loginType = '', userIdentifier = '') {
     try {
-      const zone = this.resolveZone(loginType)
+      const zone = resolveZone(loginType)
       const params = zone !== undefined ? { zone } : {}
       const data = await this.api.getBattleOverview(frameworkToken, params, { userIdentifier })
       ensureUpstreamSuccess(data)
@@ -186,7 +144,7 @@ export class RocomRecord extends plugin {
   }
 
   async loadBattlePage (frameworkToken, loginType = '', pageNo = 1, userIdentifier = '') {
-    const zone = this.resolveZone(loginType)
+    const zone = resolveZone(loginType)
     let afterTime = ''
     let currentPage = 1
     let lastResponse = null

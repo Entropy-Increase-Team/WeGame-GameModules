@@ -1,6 +1,7 @@
 @font-face {
     font-family: 'Mianfeiziti';
-    src: url('{{_res_path}}ttf/SourceHanSansCN-Regular.ttf') format('truetype');
+    src: url('../../ttf/HYWenHei-85W-1.ttf') format('truetype');
+    font-display: swap;
 }
 
 :root {
@@ -11,18 +12,40 @@
     --accent-color: #ffc966;
 }
 
+html {
+    font-size: 100px;
+}
+
 html, body {
     margin: 0;
-    padding: 30px;
-    background: url("{{_res_path}}img/bg.C8CUoi7I.jpg") no-repeat center top;
-    background-size: cover;
-    font-size: 100px;
+    padding: 0;
+    width: 100%;
+    min-width: 1330px;
+    background: transparent;
     font-family: 'Mianfeiziti', system-ui, -apple-system, sans-serif;
+    min-height: 100%;
+    overflow-x: hidden;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    display: block;
+    background: url("../../img/bg.C8CUoi7I.jpg") center center / cover no-repeat;
 }
 
 .lineup-page {
-    max-width: 12.8rem;
-    margin: 0 auto;
+    width: 100%;
+    min-width: 13rem;
+    box-sizing: border-box;
+    min-height: 100%;
+    margin: 0;
+    padding: 0.3rem;
+    background: url("../../img/bg.C8CUoi7I.jpg") center center no-repeat;
+    background-size: cover;
+    background-attachment: local;
 }
 
 /* ====== Header ====== */

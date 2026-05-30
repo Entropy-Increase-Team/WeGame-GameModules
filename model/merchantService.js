@@ -1,4 +1,5 @@
 import RocomApi from './api.js'
+import { trimText } from '../utils/rocom.js'
 
 const CHINA_TIMEZONE = 'Asia/Shanghai'
 
@@ -19,10 +20,6 @@ const chinaDateTimeFormatter = new Intl.DateTimeFormat('zh-CN', {
   second: '2-digit',
   hour12: false
 })
-
-function trimText (value = '') {
-  return String(value || '').trim()
-}
 
 function padNumber (value) {
   return String(value).padStart(2, '0')

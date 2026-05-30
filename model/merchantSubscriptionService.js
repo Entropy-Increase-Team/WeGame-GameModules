@@ -1,12 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { trimText } from '../utils/rocom.js'
 
 const DATA_DIR = path.join(process.cwd(), 'data', 'wegame-plugin')
 const DATA_PATH = path.join(DATA_DIR, 'rocom_merchant_subscriptions.json')
-
-function trimText (value = '') {
-  return String(value || '').trim()
-}
 
 function deepClone (payload) {
   return payload === undefined ? undefined : JSON.parse(JSON.stringify(payload))

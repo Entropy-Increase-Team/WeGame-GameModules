@@ -2,6 +2,7 @@ import common from '../../../../../lib/common/common.js'
 import WeGameAccountService from '../../../model/accountService.js'
 import RocomApi from '../model/api.js'
 import { buildCommandReg, formatCommand } from '../utils/command.js'
+import { trimText, pickPrimaryAccount, extractUidFromAccount } from '../utils/rocom.js'
 
 const UID_SEARCH_REG = buildCommandReg('(?:uid|UID)(?:\\s*(\\d+))?')
 const EMPTY_BUFFER_VALUE_REG = /^<\s*\d+B\s*>$/
@@ -85,10 +86,6 @@ const DISPLAY_FIELDS = [
 ]
 const CARD_IMAGE_FIELDS = ['background_url', 'card_url', 'card_image', 'name_card']
 const CARD_IMAGE_LABELS = ['名片', '名片链接', '名片地址']
-
-function trimText (value = '') {
-  return String(value || '').trim()
-}
 
 function stripWrappedQuotes (value = '') {
   const text = trimText(value)
@@ -255,21 +252,6 @@ function resolveCardImage (rows = []) {
     fields: CARD_IMAGE_FIELDS,
     rowLabels: CARD_IMAGE_LABELS
   })
-}
-
-function pickPrimaryAccount (accounts = []) {
-  return accounts.find((item) => item?.binding?.is_primary === true || item?.binding?.isPrimary === true) ||
-    accounts[0] ||
-    null
-}
-
-function extractUidFromAccount (account = {}) {
-  return trimText(
-    account?.role?.id ||
-    account?.role_id ||
-    account?.binding?.role_id ||
-    account?.binding?.roleId
-  )
 }
 
 function formatPlayerSearchError (error) {

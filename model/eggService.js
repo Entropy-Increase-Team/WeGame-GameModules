@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { pluginRoot } from '../../../model/path.js'
+import { trimText, encodeAssetPath, normalizeUrl } from '../utils/rocom.js'
 
 const GAME_CODE = 'rocom'
 const DEFAULT_DATA_DIR = path.join(
@@ -48,10 +49,6 @@ const PRECIOUS_EGG_TYPE_MAP = Object.freeze({
   7: '特殊蛋'
 })
 
-function trimText (value = '') {
-  return String(value || '').trim()
-}
-
 function dedupeList (items = []) {
   const output = []
   const seen = new Set()
@@ -64,21 +61,6 @@ function dedupeList (items = []) {
   }
 
   return output
-}
-
-function encodeAssetPath (assetPath = '') {
-  return String(assetPath || '')
-    .split('/')
-    .filter(Boolean)
-    .map((part) => encodeURIComponent(part))
-    .join('/')
-}
-
-function normalizeRenderUrl (value = '') {
-  const text = trimText(value)
-  if (!text || text.includes('{{_res_path}}')) return ''
-  if (text.startsWith('//')) return `https:${text}`
-  return text
 }
 
 function getEggGroupLabel (groupId) {
@@ -761,15 +743,15 @@ class EggService {
     const fallbackIcon = buildResUrl('img/roco_icon.png')
     const patchCard = (card = {}) => ({
       ...card,
-      icon: normalizeRenderUrl(card?.icon) || fallbackIcon,
-      image: normalizeRenderUrl(card?.image) || fallbackIcon
+      icon: normalizeUrl(card?.icon) || fallbackIcon,
+      image: normalizeUrl(card?.image) || fallbackIcon
     })
 
     return {
       ...data,
       fallbackIcon,
-      pet_icon: normalizeRenderUrl(data?.pet_icon) || fallbackIcon,
-      pet_image: normalizeRenderUrl(data?.pet_image) || fallbackIcon,
+      pet_icon: normalizeUrl(data?.pet_icon) || fallbackIcon,
+      pet_image: normalizeUrl(data?.pet_image) || fallbackIcon,
       target: data?.target ? patchCard(data.target) : data?.target,
       fathers: (data?.fathers || []).map((card) => patchCard(card)),
       candidates: (data?.candidates || []).map((card) => patchCard(card)),

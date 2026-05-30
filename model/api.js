@@ -1,10 +1,11 @@
 import WeGameApi from '../../../model/api.js'
+import { trimText } from '../utils/rocom.js'
 
 const DEFAULT_INGAME_WAIT_MS = 5000
 const DEFAULT_INGAME_TASK_TIMEOUT_MS = 5 * 60 * 1000
 const DEFAULT_INGAME_TASK_INTERVAL_MS = 3000
 const DEFAULT_INGAME_HOME_TASK_TIMEOUT_MS = 3 * 60 * 1000
-const DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS = 10000
+const DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS = 15000
 const DEFAULT_INGAME_HOME_TASK_INTERVAL_MS = 5000
 
 function sleep (ms = 0) {
@@ -13,10 +14,6 @@ function sleep (ms = 0) {
   }
 
   return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-function trimText (value = '') {
-  return String(value || '').trim()
 }
 
 function normalizeTaskStatus (value = '') {
@@ -456,5 +453,65 @@ export default class RocomApi extends WeGameApi {
       : { thread_id: threadIdOrParams }
 
     return this.requestRocomPublicGet('/api/v1/games/rocom/announcement/detail', params, options)
+  }
+
+  bindUid (uid, options = {}) {
+    return this.requestRocomPublicPost('/api/v1/games/rocom/uid/bind', { uid }, options)
+  }
+
+  getEggExchanges (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/community/egg-exchanges', params, options)
+  }
+
+  postEggExchange (data = {}, options = {}) {
+    return this.requestRocomPublicPost('/api/v1/games/rocom/community/egg-exchanges', data, options)
+  }
+
+  getMyEggExchanges (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/community/egg-exchanges/my', params, options)
+  }
+
+  getEggExchangeReviewStatus (postId, options = {}) {
+    return this.requestRocomPublicGet(
+      `/api/v1/games/rocom/community/egg-exchanges/${encodeURIComponent(postId)}/review-status`,
+      {},
+      options
+    )
+  }
+
+  closeEggExchange (postId, data = {}, options = {}) {
+    return this.requestRocomPublicPost(
+      `/api/v1/games/rocom/community/egg-exchanges/${encodeURIComponent(postId)}/close`,
+      data,
+      options
+    )
+  }
+
+  createEggExchangeSubscription (data = {}, options = {}) {
+    return this.requestRocomPublicPost('/api/v1/games/rocom/community/egg-exchange-subscriptions', data, options)
+  }
+
+  getEggExchangeSubscriptions (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/community/egg-exchange-subscriptions', params, options)
+  }
+
+  deleteEggExchangeSubscription (subscriptionId, options = {}) {
+    const scoped = buildScopedPayload(this, options.userIdentifier, {})
+    return this.request(
+      `/api/v1/games/rocom/community/egg-exchange-subscriptions/${encodeURIComponent(subscriptionId)}`,
+      {
+        method: 'delete',
+        params: scoped.payload,
+        headers: {
+          Accept: 'application/json',
+          ...scoped.headers
+        },
+        needBaseAuth: true
+      }
+    )
+  }
+
+  getEggExchangeEvents (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/community/egg-exchange-events', params, options)
   }
 }

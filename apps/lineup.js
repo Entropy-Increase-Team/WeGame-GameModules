@@ -4,37 +4,7 @@ import RocomApi from '../model/api.js'
 import RocomConfig from '../utils/config.js'
 import { buildCommandReg, formatCommand, stripCommandPrefix } from '../utils/command.js'
 import { ensureUpstreamSuccess } from '../../../utils/queryHelper.js'
-
-function trimText (value = '') {
-  return String(value || '').trim()
-}
-
-function toNumber (value, fallback = 0) {
-  const numeric = Number(value)
-  return Number.isFinite(numeric) ? numeric : fallback
-}
-
-function normalizeUrl (value = '') {
-  const text = trimText(value)
-  if (!text) return ''
-  if (text.startsWith('//')) return `https:${text}`
-  return text
-}
-
-function encodeAssetPath (assetPath = '') {
-  return String(assetPath || '')
-    .split('/')
-    .filter(Boolean)
-    .map((part) => encodeURIComponent(part))
-    .join('/')
-}
-
-function resolveAccountType (loginType = '') {
-  const normalized = trimText(loginType).toLowerCase()
-  if (normalized === 'qq') return 1
-  if (normalized === 'wechat') return 2
-  return undefined
-}
+import { trimText, toNumber, normalizeUrl, encodeAssetPath, resolveAccountType } from '../utils/rocom.js'
 
 function getDetailSearchPages () {
   return Number(RocomConfig.get('lineup', 'detail_search_pages')) ||
