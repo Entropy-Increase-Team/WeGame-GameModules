@@ -4,11 +4,13 @@ import { replyLargeText } from '../../../utils/queryHelper.js'
 import RocomApi from '../model/api.js'
 import eggService from '../model/eggService.js'
 import merchantService from '../model/merchantService.js'
+import activitiesService from '../model/activitiesService.js'
 import { buildCommandReg, formatCommand } from '../utils/command.js'
 import { trimText, encodeAssetPath } from '../utils/rocom.js'
 
 const SIZE_QUERY_REG = buildCommandReg('(?:尺寸查询|精灵尺寸)(?:\\s+(.+))?')
 const MERCHANT_INFO_REG = buildCommandReg('(?:(?:远行|旅行)商人|商人信息)')
+const ACTIVITIES_INFO_REG = buildCommandReg('(?:洛克)?日历')
 
 function extractMatchArg (message = '', pattern = '') {
   const match = String(message || '').trim().match(new RegExp(pattern))
@@ -56,6 +58,10 @@ export class RocomTools extends plugin {
         {
           reg: MERCHANT_INFO_REG,
           fnc: 'queryMerchantInfo'
+        },
+        {
+          reg: ACTIVITIES_INFO_REG,
+          fnc: 'queryActivitiesInfo'
         }
       ]
     })
@@ -143,6 +149,52 @@ export class RocomTools extends plugin {
       logger.error('[WeGame-plugin][rocom] 远行商人信息查询失败', error)
       await this.reply(`远行商人信息查询失败：${error.message || error}`)
       return true
+    }
+  }
+
+  async queryActivitiesInfo () {
+    try {
+      await this.reply('正在查询活动日历...')
+      const data = await activitiesService.getInfo(false, {
+        userIdentifier: this.accountService.getUserIdentifier()
+      })
+      const renderData = activitiesService.buildRenderData(data)
+
+      const image = await renderModuleTemplate(
+        this.e,
+        'rocom',
+        'render/activities/index',
+        {
+          saveId: `activities-${this.e.user_id}-${Date.now()}`,
+          ...renderData
+        },
+        {
+          retType: 'base64',
+          beforeRender: ({ data }) => this.withActivitiesAssets(data)
+        }
+      )
+
+      if (image) {
+        await this.reply(image)
+        return true
+      }
+
+      await replyLargeText(this, '活动日历', activitiesService.buildFallbackText(data))
+      return true
+    } catch (error) {
+      logger.error('[WeGame-plugin][rocom] 活动日历查询失败', error)
+      await this.reply(`活动日历查询失败：${error.message || error}`)
+      return true
+    }
+  }
+
+  withActivitiesAssets (data = {}) {
+    return {
+      ...data,
+      activities: (data.activities || []).map((item) => ({
+        ...item,
+        cover: String(item?.cover || '').trim()
+      }))
     }
   }
 

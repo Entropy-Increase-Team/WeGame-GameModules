@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=2200, initial-scale=1">
+  <title>{{title}}</title>
+  <link rel="stylesheet" href="{{_res_path}}render/activities/style.css">
+</head>
+<body>
+  <div class="activity-calendar-page">
+    <div class="calendar-header">
+      <div class="super-title">ROCOM WORLD</div>
+      <div class="title-wrap">
+        <div class="bg-word">CALENDAR</div>
+        <div class="main-title">
+          <div class="title-mark"></div>
+          <h1>{{title}}</h1>
+          <div class="dot-line"><span></span><span></span><span></span><span></span></div>
+        </div>
+        <div class="subtitle">{{subtitle}}</div>
+      </div>
+      <img class="header-logo" src="{{_res_path}}img/logo.cVSpb3sL.png" alt="">
+    </div>
+
+    <div class="axis-area">
+      <div class="axis-line-horizontal"></div>
+      {{each axis_dates d}}
+      <div class="axis-marker" style="left: {{d.left_pct}}%;">
+        <div class="axis-flag">{{d.label}}<i></i></div>
+        <div class="axis-line-vertical"></div>
+      </div>
+      {{/each}}
+      {{if now_line}}
+      <div class="axis-marker now-marker" style="left: {{now_line.left_pct}}%;">
+        <div class="axis-flag now-flag">{{now_line.label}}<i></i></div>
+        <div class="axis-line-vertical now-vertical"></div>
+      </div>
+      {{/if}}
+    </div>
+
+    <div class="gantt-area">
+      {{each lanes lane}}
+      <div class="gantt-row">
+        {{each lane act index}}
+        <div class="gantt-bar-wrapper" style="left: {{act.left_pct}}%; width: {{act.width_pct}}%;">
+          <div class="gantt-bar theme-{{act.theme}}">
+            {{if act.cover}}
+            <div class="bar-cover-wrap"><img class="bar-cover" src="{{act.cover}}" alt=""></div>
+            {{/if}}
+            <div class="bar-tag {{act.statusClass}}">{{act.statusText}}</div>
+            <div class="bar-content">
+              <div class="bar-bracket">[ {{act.desc}} ]</div>
+              <div class="bar-name">{{act.name}}</div>
+              <div class="bar-time">{{act.time_label}}</div>
+              <div class="bar-rewards">{{act.rewards_text}}</div>
+            </div>
+          </div>
+        </div>
+        {{/each}}
+      </div>
+      {{/each}}
+    </div>
+
+    <div class="footer">
+      <span>{{commandHint}}</span>
+      <span>{{copyright}}</span>
+    </div>
+  </div>
+</body>
+</html>

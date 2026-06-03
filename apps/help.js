@@ -73,6 +73,10 @@ function buildDefaultMenuGroups () {
           desc: '查询远行商人活动信息'
         },
         {
+          cmd: formatCommand('日历'),
+          desc: '查询当前活动日历'
+        },
+        {
           cmd: formatCommand('订阅远行商人 1 国王球 棱镜球'),
           desc: '订阅商人商品提醒'
         },

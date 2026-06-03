@@ -73,89 +73,90 @@
 
 | 请求头 | 归属链路 | RoCom 游戏路由处理 |
 |---|---|---|
-| `X-Client-Type` | WeGame 登录 / 绑定链路的客户端类型 | 换蛋发帖和订阅接口用于客户端归属；支持 `web` / `bot` / `app` |
-| `X-Client-ID` | WeGame 登录 / 绑定链路的客户端标识 | 换蛋发帖和订阅接口用于客户端归属 |
+| `X-Client-Type` | WeGame 登录 / 绑定链路的客户端类型 | UID 绑定可选写入客户端归属；换蛋发帖和订阅接口用于客户端归属；支持 `web` / `bot` / `app` |
+| `X-Client-ID` | WeGame 登录 / 绑定链路的客户端标识 | UID 绑定可选写入客户端归属；换蛋发帖和订阅接口用于客户端归属 |
 | `X-Client-User-ID` | WritableAuth 可写代理接口的客户端用户标识 | 无业务读取 |
 | `X-Client-User-Type` | WritableAuth 可写代理接口的客户端用户类型 | 无业务读取 |
 
-### 第三方插件请求头模板
+### 第三方请求头速查
 
-账号数据接口，也就是需要 `X-Framework-Token` 的接口：
+第三方客户端统一以 `X-API-Key` 作为基础认证。表内“模板名”供后文小节引用，需要用户作用域、UID 绑定或客户端归属时，再按接口类型追加其他请求头。
 
-```http
-X-API-Key: <wegame-api-key>
-X-Framework-Token: <framework-token>
-X-User-Identifier: <第三方用户标识符>
-Accept: application/json
-```
+| 模板名 / 场景 | 必带请求头 | 条件请求头 | 说明 |
+|---|---|---|---|
+| `账号列表` | `X-API-Key`、`X-User-Identifier`、`Accept: application/json` | - | `user_identifier` query 参数可替代 `X-User-Identifier`，且优先级更高 |
+| `账号数据接口` | `X-API-Key`、`X-Framework-Token`、`X-User-Identifier`、`Accept: application/json` | - | 适用于 `profile/*`、`battle/*`、`lineup/list`、`exchange/posters`、`social/friendship`、`activity/*` |
+| `不需要 X-Framework-Token 的普通查询接口` | `X-API-Key`、`Accept: application/json` | - | 适用于 `pet/*`、`announcement/*`、`merchant/info`、`activities/info`、Ingame 商店、任务、健康检查 |
+| `UID 绑定` | `X-API-Key`、`X-User-Identifier`、`Content-Type: application/json`、`Accept: application/json` | `X-Client-Type`、`X-Client-ID` | `X-Client-Type` 支持 `web` / `bot` / `app`；也可用 query 参数 `client_type` / `client_id` |
+| `Ingame 查询`，明确传 `uid` | `X-API-Key`、`Accept: application/json` | `Content-Type: application/json` | `POST` 时需要 `Content-Type: application/json` |
+| `Ingame 查询`，省略 `uid` | `X-API-Key`、`X-User-Identifier`、`Accept: application/json` | `X-Framework-Token`、`Content-Type: application/json` | `X-Framework-Token` 用于指定某条 UID 绑定；省略时使用该用户作用域下的主 UID |
+| 换蛋公开列表 | `X-API-Key`、`Accept: application/json` | - | 使用 `rocom.access` 权限 |
+| 换蛋客户端写接口 | `X-API-Key`、`X-Client-Type`、`X-Client-ID`、`Accept: application/json` | `Content-Type: application/json` | 发帖、我的帖子、关闭、审核状态；发帖和关闭需要 `rocom.egg_exchange.post` |
+| 换蛋订阅 | `X-API-Key`、`X-Client-Type`、`X-Client-ID`、`Accept: application/json` | `Content-Type: application/json` | 创建订阅是 `POST`，需要 `Content-Type: application/json` |
+| 配置同步 | `X-API-Key`、`Accept: application/json` | - | API Key 必须具备 `admin.access` |
 
-账号列表接口：
+用户作用域规则：
 
-```http
-X-API-Key: <wegame-api-key>
-X-User-Identifier: <第三方用户标识符>
-Accept: application/json
-```
+- `user_identifier` query 参数优先级高于 `X-User-Identifier`
+- 如果 `frameworkToken` 或 UID 绑定是按某个 `user_identifier` 创建、导入或绑定的，后续账号数据接口和省略 `uid` 的 Ingame 玩家 / 家园接口必须继续带同一个用户标识
+- `X-Framework-Token` 在省略 `uid` 的 Ingame 玩家 / 家园接口中用于指定某条 UID 绑定；省略时使用当前用户作用域下的主 UID
 
-普通查询接口和 Ingame `GET` 接口：
+### Web、匿名与管理请求头
 
-```http
-X-API-Key: <wegame-api-key>
-Accept: application/json
-```
-
-Ingame `POST` 接口：
-
-```http
-X-API-Key: <wegame-api-key>
-Content-Type: application/json
-Accept: application/json
-```
-
-配置同步接口使用 API Key 时：
-
-```http
-X-API-Key: <admin-api-key>
-Accept: application/json
-```
-
-### Web 和匿名请求头模板
-
-Web 用户调用账号数据接口：
-
-```http
-Authorization: Bearer <web-jwt>
-X-Framework-Token: <framework-token>
-Accept: application/json
-```
-
-Web 用户调用普通查询或 Ingame 接口：
-
-```http
-Authorization: Bearer <web-jwt>
-Accept: application/json
-```
-
-匿名调用普通查询或 Ingame 接口：
-
-```http
-X-Anonymous-Token: <anonymous-token>
-Accept: application/json
-```
-
-### 按接口类型附带请求头
-
-| 接口类型 | 接口 | 请求头要求 |
+| 调用方 / 场景 | 基础请求头 | 额外要求 |
 |---|---|---|
-| 账号列表 | `GET /api/v1/games/rocom/accounts` | Web 用户带 `Authorization`；API Key 调用带 `X-API-Key` 和 `X-User-Identifier`；不需要 `X-Framework-Token` |
-| 账号数据 | `profile/*`、`battle/*`、`lineup/list`、`exchange/posters`、`social/friendship`、`activity/student-state`、`activity/perks` | 带一种基础认证；同时必须带 `X-Framework-Token`；API Key 用户作用域还必须带同一个 `X-User-Identifier` |
-| UID 绑定 | `POST /api/v1/games/rocom/uid/bind` | 带一种基础认证；API Key 调用带 `X-API-Key` 和 `X-User-Identifier`；响应头返回 `X-Framework-Token` |
-| 本地资料 / 内容查询 | `pet/list`、`pet/detail`、`pet/skill-users`、`pet/size-query`、`merchant/info`、`announcement/*` | 带一种基础认证；不需要 `X-Framework-Token` |
-| Ingame 查询 | `ingame/*` | 带一种基础认证；已绑定 UID 时可省略 `uid`；也可带 UID 绑定返回的 `X-Framework-Token`；`POST` 请求带 `Content-Type: application/json` |
-| 配置同步 | `POST /api/v1/games/rocom/config/sync` | 后端管理员 Web JWT，或具备 `admin.access` 的 `X-API-Key`；不需要 `X-Framework-Token` |
+| Web 用户账号数据接口 | `Authorization: Bearer <web-jwt>`、`Accept: application/json` | 追加 `X-Framework-Token` |
+| Web 用户普通查询或 Ingame 接口 | `Authorization: Bearer <web-jwt>`、`Accept: application/json` | 省略 `uid` 的 Ingame 玩家 / 家园接口按 UID 绑定规则补充参数 |
+| 匿名普通查询或 Ingame 接口 | `X-Anonymous-Token: <anonymous-token>`、`Accept: application/json` | 默认收费配置下，扣费前会返回 `401` |
+| 配置同步 | 后端管理员 Web JWT，或 `X-API-Key` | API Key 必须具备 `admin.access` |
 
-第三方插件调用账号数据接口时，建议统一在请求封装层注入 `X-API-Key`、`X-Framework-Token`、`X-User-Identifier`。
-如果对应 `frameworkToken` 是按某个 `user_identifier` 创建、导入或绑定的，后续所有 RoCom 账号数据接口必须继续带同一个 `X-User-Identifier`。
+### RoCom 接口参数速查
+
+表内缩写：
+
+- 基础认证：`Authorization: Bearer <web-jwt>`、`X-Anonymous-Token` 或 `X-API-Key` 三选一，接口章节另有限制时以章节说明为准
+- API Key 用户作用域：API Key 调用时带 `X-User-Identifier` 或 `user_identifier`
+- 账号数据认证：基础认证 + `X-Framework-Token`；API Key 用户作用域调用同时带 `X-User-Identifier` 或 `user_identifier`
+- 换蛋客户端归属：Web JWT 或 API Key；API Key 调用带 `X-Client-Type` 和 `X-Client-ID`
+
+| 接口 | 必填参数 | 可选参数 | 备注 |
+|---|---|---|---|
+| `GET /api/v1/games/rocom/accounts` | 基础认证；API Key 用户作用域 | `account_type` | `user_identifier` query 优先级高于请求头 |
+| `POST /api/v1/games/rocom/uid/bind` | 基础认证；`uid`；API Key 用户作用域 | `X-Client-Type` / `client_type`、`X-Client-ID` / `client_id` | `client_type` 支持 `web` / `bot` / `app`，query 优先级高于请求头 |
+| `GET /profile/role`、`/profile/evaluation`、`/profile/pet-summary`、`/profile/collection` | 账号数据认证 | `account_type` | `account_type=1` QQ，`2` 微信 |
+| `GET /profile/battle-overview` | 账号数据认证 | `zone` | `zone=0` QQ，`1` 微信 |
+| `GET /battle/list` | 账号数据认证 | `zone`、`after_time`、`page_size` | `after_time` 推荐 RFC3339 |
+| `GET /battle/pets` | 账号数据认证 | `zone`、`pet_subset`、`pet_type`、`page_no`、`page_size` | `pet_subset=0/1/2/3` 分别表示全部、了不起、异色、炫彩 |
+| `GET /pet/list` | 基础认证 | `q`、`type`、`egg_group`、`skill`、`skill_id`、`page_no`、`page_size` | 本地资料查询 |
+| `GET /pet/detail` | 基础认证；`id` 或 `name` 二选一 | - | 同时传入时优先使用 `id` |
+| `GET /pet/skill-users` | 基础认证；`skill_id` 或 `skill` 二选一 | - | 同时传入时优先使用 `skill_id` |
+| `GET /pet/size-query` | 基础认证；`diameter`、`weight` | `sameRideEgg` | `sameRideEgg=1` 查询同乘蛋 |
+| `GET /merchant/info` | 基础认证 | `refresh`、`random_goods`、`random_goods_scope`、`include_random_goods`、`include_all_random_goods` | `refresh=true` 需要 API Key 或后台管理员 Web JWT |
+| `GET /activities/info` | 基础认证 | `refresh` | `refresh=true` 需要 API Key 或后台管理员 Web JWT |
+| `GET /announcement/list` | 基础认证 | `category_id`、`page`、`limit`、`order` | `limit` 最大 `50` |
+| `GET /announcement/latest` | 基础认证 | `category_id`、`order` | 返回最新轻量公告 |
+| `GET /announcement/detail` | 基础认证；`thread_id` | - | `thread_id` 必须为大于 `0` 的整数 |
+| `GET /lineup/list` | 账号数据认证 | `category`、`account_type`、`page_no` | 服务端每页 `6` 条 |
+| `GET /exchange/posters` | 账号数据认证 | `refresh`、`account_type`、`page_no` | 服务端每页 `6` 条 |
+| `GET /social/friendship` | 账号数据认证；`user_ids` | - | `user_ids` 使用英文逗号分隔 |
+| `GET /activity/student-state` | 账号数据认证 | `account_type` | 默认 `0` |
+| `GET /activity/perks` | 账号数据认证 | `area`、`account_type` | `area` 默认 `101` |
+| `POST /config/sync` | 后台管理员 Web JWT 或具备 `admin.access` 的 API Key | - | 触发本地配置同步 |
+| `GET /ingame/player/search`、`GET /ingame/home/info` | 基础认证；省略 `uid` 时按 UID 绑定规则带用户作用域 | `uid`、`wait_ms`、`X-Framework-Token`、`X-User-Identifier`、`user_identifier` | 明确传 `uid` 时用户作用域参数可省略 |
+| `POST /ingame/player/search`、`POST /ingame/home/info` | 基础认证；`Content-Type: application/json`；省略 body `uid` 时按 UID 绑定规则带用户作用域 | body `uid`、body/query `wait_ms`、`X-Framework-Token`、`X-User-Identifier`、`user_identifier` | body 内已有 `uid` 时按 body 查询 |
+| `GET /ingame/merchant/info` | 基础认证 | `shop_id`、`wait_ms` | 省略 `shop_id` 时使用当天远行商人商店 |
+| `POST /ingame/merchant/info` | 基础认证；`Content-Type: application/json` | body/query `shop_id`、body/query `wait_ms` | body `shop_id` 优先 |
+| `GET /ingame/tasks/{task_id}` | 基础认证；`task_id` path | - | 查询 Ingame 异步任务 |
+| `GET /ingame/health` | 基础认证 | - | 查询 Ingame 健康状态 |
+| `GET /community/egg-exchanges` | 基础认证 | `page_no`、`page`、`page_size`、`q`、`keyword`、`id`、`have_text`、`want_text`、`want_note`、`sort` | 公开列表只返回审核通过、未过期活跃帖 |
+| `POST /community/egg-exchanges` | 换蛋客户端归属；body `id`、`have_text`、`want_text` | body `want_note`、`remark`、`expires_at` | API Key 需要 `rocom.egg_exchange.post` |
+| `GET /community/egg-exchanges/my` | 换蛋客户端归属 | 公开列表全部筛选项、`status`、`review_status` | API Key 使用客户端归属隔离 |
+| `GET /community/egg-exchanges/{post_id}/review-status` | 换蛋客户端归属；`post_id` | - | 查询当前归属下帖子 |
+| `POST /community/egg-exchanges/{post_id}/close` | 换蛋客户端归属；`post_id` | body `close_reason` | API Key 需要 `rocom.egg_exchange.post` |
+| `POST /community/egg-exchange-subscriptions` | 换蛋客户端归属；body `filters` | `filters.q`、`filters.id`、`filters.have_text`、`filters.want_text`、`filters.want_note` | API Key 使用 `rocom.access` |
+| `GET /community/egg-exchange-subscriptions` | 换蛋客户端归属 | - | 查询当前客户端订阅 |
+| `DELETE /community/egg-exchange-subscriptions/{subscription_id}` | 换蛋客户端归属；`subscription_id` | - | 删除当前归属下订阅 |
+| `GET /community/egg-exchange-events` | 换蛋客户端归属；`subscription_id` | `after_event_id`、`limit` | `limit` 默认 `50`，最大 `100` |
 
 通用成功响应示例：
 
@@ -266,6 +267,9 @@ Accept: application/json
 - 成功后响应头返回 `X-Framework-Token`，后续 ingame 查询可直接带这个 token 并省略 `uid`
 - 同一用户可绑定多个 UID；首次绑定的 UID 会成为默认 UID
 - 如果后续通过 WeGame QQ / 微信扫码登录识别到同一个 UID，服务端会更新这条 UID 绑定，补上 WeGame 绑定、`tgp_id` 和角色资料
+- API Key 调用时必须带 `X-User-Identifier` 或 `user_identifier`，用于确定第三方用户作用域
+- API Key 调用可选带 `X-Client-Type` / `X-Client-ID`，也可用 query 参数 `client_type` / `client_id`
+- `client_type` 支持 `web` / `bot` / `app`；`client_id` 表示客户端实例或渠道；query 参数优先级高于请求头
 
 请求示例：
 
@@ -274,6 +278,8 @@ POST /api/v1/games/rocom/uid/bind
 Content-Type: application/json
 X-API-Key: <wegame-api-key>
 X-User-Identifier: <platform-user-id>
+X-Client-Type: bot
+X-Client-ID: rocom-bot
 Accept: application/json
 
 {"uid":"704693375"}
@@ -1108,12 +1114,13 @@ Accept: application/json
 Query 参数：
 
 - `page_no`：可选，默认 `1`
+- `page`：可选，兼容页码，优先级低于 `page_no`
 - `page_size`：可选，默认 `20`，最大 `100`
-- `q`：可选，按学号、我有、想要、补充标签和备注模糊搜索；兼容 `keyword`
-- `id`：可选，按学号精确筛选
-- `have_text`：可选，按“我有”模糊筛选
-- `want_text`：可选，按“想要”模糊筛选
-- `want_note`：可选，按补充标签模糊筛选
+- `q`：可选，按学号、我有、想要、补充标签和备注模糊搜索，最长 `120` 字；兼容 `keyword`
+- `id`：可选，按学号精确筛选，必须为 `4` 到 `20` 位数字
+- `have_text`：可选，按“我有”模糊筛选，最长 `120` 字
+- `want_text`：可选，按“想要”模糊筛选，最长 `120` 字
+- `want_note`：可选，按补充标签模糊筛选，最长 `50` 字
 - `sort`：可选，`-created_at` 最新优先，`created_at` 最早优先；默认 `-created_at`
 
 响应示例：
@@ -1156,6 +1163,7 @@ Query 参数：
 - API Key 发布和关闭换蛋帖需要 `game:rocom` 下的 `rocom.egg_exchange.post` 权限
 
 `X-Client-ID` 表示第三方客户端实例或渠道，例如一个机器人、一个网页站点或一个小程序；终端用户归属仍由 Web JWT 或 API Key 所属用户决定。
+`X-Client-Type` 支持 `web` / `bot` / `app`，`X-Client-ID` 不能为空，且长度不能超过 `64` 字符。
 同一把 API Key 下的 `X-Client-ID` 属于客户端自报标识，适合可信渠道间做逻辑隔离；需要强隔离的渠道建议使用不同 API Key。
 
 接口权限：
@@ -1184,10 +1192,21 @@ Query 参数：
 }
 ```
 
+发布字段约束：
+
+- `id`：必填，`4` 到 `20` 位数字
+- `have_text`：必填，长度 `1` 到 `120` 字
+- `want_text`：必填，长度 `1` 到 `120` 字
+- `want_note`：可选，最长 `50` 字
+- `remark`：可选，最长 `160` 字
+- `expires_at`：可选，省略时默认 `30` 天；传入时必须晚于当前时间 `1` 小时，且不能超过 `90` 天
+
 我的列表额外支持 query 参数：
 
 - `status`
 - `review_status`
+
+我的列表同时支持公开列表的所有筛选和分页参数。`status` 支持 `active` / `closed` / `deleted`，`review_status` 支持 `pending` / `manual_pending` / `approved` / `rejected`。
 
 关闭请求：
 
@@ -1239,11 +1258,11 @@ API Key 请求头：
 
 订阅筛选字段：
 
-- `q`
-- `id`
-- `have_text`
-- `want_text`
-- `want_note`
+- `q`：最长 `120` 字
+- `id`：`4` 到 `20` 位数字
+- `have_text`：最长 `120` 字
+- `want_text`：最长 `120` 字
+- `want_note`：最长 `50` 字
 
 创建订阅响应：
 
@@ -1410,9 +1429,10 @@ API Key 请求头：
 - 请求头按“Ingame 查询”模板传递
 - `GET` 请求通常带 `X-API-Key` 和 `Accept: application/json`
 - `POST` 请求带 `X-API-Key`、`Content-Type: application/json` 和 `Accept: application/json`
+- `player/search` 和 `home/info` 省略 `uid` 时，API Key 调用必须带 `X-User-Identifier`
 - Web 用户可用 `Authorization: Bearer <web-jwt>` 替代 `X-API-Key`
 - 匿名调用可用 `X-Anonymous-Token` 或 `Authorization: Bearer anon_xxx`
-- 这组接口当前不要求 `X-Framework-Token`
+- `X-Framework-Token` 只在省略 `uid` 时用于指定某条 UID 绑定；不传时使用该用户作用域下的主 UID 绑定
 
 默认订阅配置下，这组游戏路由按 `standard` 扣费，需要 Web JWT 或归属到用户的 API Key 完成扣费调用。
 
@@ -1426,8 +1446,9 @@ API Key 请求头：
 
 - 调用方只需要传本项目认证凭证
 - 已绑定 UID 时，`player/search` 和 `home/info` 可以省略 `uid`
-- 带 UID 绑定返回的 `X-Framework-Token` 时，会使用该 token 对应的 UID
-- 不带 `X-Framework-Token` 且省略 `uid` 时，会使用当前用户默认 UID
+- API Key 省略 `uid` 时，需要继续带创建 UID 绑定时使用的同一个 `X-User-Identifier`
+- 带 UID 绑定返回的 `X-Framework-Token` 时，会在当前 `X-User-Identifier` 作用域内使用该 token 对应的 UID
+- 不带 `X-Framework-Token` 且省略 `uid` 时，会使用当前 `X-User-Identifier` 下的默认 UID
 - `wait_ms` 可选，用于指定同步等待查询结果的毫秒数
 - `wait_ms` 省略时使用服务端默认等待时间
 
@@ -1442,7 +1463,8 @@ API Key 请求头：
 - `GET` 可使用 query 参数 `uid`
 - `POST` 可使用 JSON 请求体 `{"uid":123456}`
 - 省略 `uid` 时按 UID 绑定规则自动补齐
-- `GET` 和 `POST` 都可选传 `wait_ms`，用于指定同步等待查询结果的毫秒数
+- API Key 省略 `uid` 时必须带 `X-User-Identifier`；可选带 `X-Framework-Token` 指定某条 UID 绑定
+- `GET` 和 `POST` 都可选传 `wait_ms`，用于指定同步等待查询结果的毫秒数；`POST` 可放在 JSON body 或 query 参数
 
 `GET /api/v1/games/rocom/ingame/player/search` 请求示例：
 
@@ -1461,6 +1483,16 @@ X-API-Key: <wegame-api-key>
 Accept: application/json
 
 {"uid":123456,"wait_ms":5000}
+```
+
+省略 `uid` 并使用绑定 UID 查询：
+
+```http
+GET /api/v1/games/rocom/ingame/player/search?wait_ms=5000
+X-API-Key: <wegame-api-key>
+X-User-Identifier: <第三方用户标识符>
+X-Framework-Token: <uid-bind-framework-token>
+Accept: application/json
 ```
 
 成功响应示例，HTTP `200`：
@@ -1543,8 +1575,8 @@ Accept: application/json
 - 当前周期商店每天 `Asia/Shanghai` 08:01 后更新
 - 显式传 `shop_id` 时查询指定商店
 - `GET` 可使用 query 参数 `shop_id`
-- `POST` 可使用 JSON 请求体 `{"shop_id":3019}`
-- `GET` 和 `POST` 都可选传 `wait_ms`，用于指定同步等待查询结果的毫秒数
+- `POST` 可使用 JSON 请求体 `{"shop_id":3019}`，也可用 query 参数 `shop_id` 作为 body 省略时的兜底
+- `GET` 和 `POST` 都可选传 `wait_ms`，用于指定同步等待查询结果的毫秒数；`POST` 可放在 JSON body 或 query 参数
 
 `GET /api/v1/games/rocom/ingame/merchant/info` 请求示例：
 
@@ -1648,7 +1680,8 @@ Accept: application/json
 - `GET` 可使用 query 参数 `uid`
 - `POST` 可使用 JSON 请求体 `{"uid":123456}`
 - 省略 `uid` 时按 UID 绑定规则自动补齐
-- `GET` 和 `POST` 都可选传 `wait_ms`，用于指定同步等待查询结果的毫秒数
+- API Key 省略 `uid` 时必须带 `X-User-Identifier`；可选带 `X-Framework-Token` 指定某条 UID 绑定
+- `GET` 和 `POST` 都可选传 `wait_ms`，用于指定同步等待查询结果的毫秒数；`POST` 可放在 JSON body 或 query 参数
 
 `GET /api/v1/games/rocom/ingame/home/info` 请求示例：
 
@@ -1667,6 +1700,16 @@ X-API-Key: <wegame-api-key>
 Accept: application/json
 
 {"uid":123456,"wait_ms":5000}
+```
+
+省略 `uid` 并使用绑定 UID 查询：
+
+```http
+GET /api/v1/games/rocom/ingame/home/info?wait_ms=5000
+X-API-Key: <wegame-api-key>
+X-User-Identifier: <第三方用户标识符>
+X-Framework-Token: <uid-bind-framework-token>
+Accept: application/json
 ```
 
 成功响应示例，HTTP `200`：
@@ -1689,26 +1732,57 @@ Accept: application/json
         "ret_code": 0
       },
       "uin": 123456,
+      "home_feature_opened": true,
+      "friend_home_brief_info": {
+        "home_name": "一二三四五六",
+        "home_experience": 6900,
+        "home_level": 7,
+        "room_level": 1,
+        "home_comfort_level": 2650
+      },
       "friend_cell_home_brief_info": {
-        "home_pet_info": {
-          "home_pet_list": [
-            {
-              "pet_gid": "1000000001",
-              "pet_cfg_id": 1001,
-              "status": 1,
-              "pos": 1
+        "uin": 123456,
+        "home_pet_count": 3,
+        "home_pets": [
+          {
+            "have_egg": false,
+            "home_pet_info": {
+              "pet_gid": 61,
+              "pet_cfg_id": 0,
+              "status": 1704,
+              "speciality_id": 101,
+              "name": "鸭吉吉",
+              "feed_round": 0
+            },
+            "display_info": {
+              "base_conf_id": 0,
+              "gender": 0,
+              "level": 0,
+              "mutation_type": 0,
+              "energy": 0,
+              "blood_id": 0,
+              "nature": 0
             }
-          ]
-        },
+          }
+        ],
         "home_plant_info": {
+          "plant_count": 15,
+          "home_plant_land_count": 1,
+          "unlock": true,
           "home_plant_land_list": [
             {
-              "land_index": 0,
+              "plant_count": 15,
               "home_plant_list": [
                 {
-                  "plant_cfg_id": 2001,
-                  "status": 1,
-                  "left_time": 3600
+                  "plant_id": 2,
+                  "plant_state": 2,
+                  "plant_seed_id": 330010,
+                  "plant_rip_time": 1775027032,
+                  "plant_harvest_num": 6,
+                  "plant_tab_id": 1,
+                  "plant_steal_account": 2,
+                  "plant_can_steal_account": 2,
+                  "plant_steal_players": [6662715, 1906259]
                 }
               ]
             }
@@ -1727,8 +1801,11 @@ Accept: application/json
 
 字段补充：
 
-- `rows`：当前主要包含返回码等扁平字段
-- `home_info`：家园原始结构化信息，包含返回信息、家园简要信息、居住精灵和种植植物等
+- `rows`：扁平字段明细，包含返回码、家园、植物和居住精灵等展开后的展示行
+- `home_info`：家园原始结构化信息，包含 `ret_info`、`friend_home_brief_info`、`friend_cell_home_brief_info` 等
+- `friend_home_brief_info`：家园名称、等级、经验、舒适度等简要信息
+- `friend_cell_home_brief_info.home_pets`：居住精灵列表，每项包含 `home_pet_info` 和 `display_info`
+- `friend_cell_home_brief_info.home_plant_info`：种植信息，包含土地列表、植物状态、成熟时间和可偷取信息
 - `meta`：任务元信息
 
 ### 任务状态
@@ -1837,7 +1914,7 @@ Accept: application/json
 - `GET /api/v1/games/rocom/pet/size-query`
 
 说明：
-根据精灵尺寸（直径，单位米）与重量（单位千克）查询匹配的精灵候选列表。该接口会在返回结果上追加精灵的 `petImage`（大图）与 `petIcon`（小图），并使用本项目统一的 `code/message/data` 响应格式返回。
+根据精灵尺寸（直径，单位米）与重量（单位千克）查询匹配的精灵候选列表。该接口透传上游 `data`，并使用本项目统一的 `code/message/data` 响应格式返回。
 
 参数说明：
 `diameter`（必填）精灵尺寸，单位米，例如 `0.45`。
@@ -1850,14 +1927,8 @@ Accept: application/json
 - 认证层支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`；默认收费配置下需要 Web JWT 或归属到用户的 API Key 完成扣费调用
 - 本接口为工具类查询，**不需要** 传 `X-Framework-Token`
 
-响应补充：
-当返回项包含有效 `petId` 时，会在每个 `candidates` / `exactResults` 条目上追加：
-
-- `petImage`：`https://game.gtimg.cn/images/rocom/rocodata/jingling/{id}/image.png`
-- `petIcon`：`https://game.gtimg.cn/images/rocom/rocodata/jingling/{id}/icon.png`
-
-本地尚未同步到该精灵时，不会写入 `petImage` / `petIcon`。
-同乘查询结果中会包含 `isSameRideEgg: true` 和 `ImageKey` 等字段。
+响应说明：
+`candidates` / `exactResults` 条目由上游返回。上游当前会返回 `petImage`（大图）与 `petIcon`（小图）。同乘查询结果中会包含 `isSameRideEgg: true` 等字段。
 
 示例：
 `GET /api/v1/games/rocom/pet/size-query?diameter=1.23&weight=45.6`
@@ -2128,15 +2199,12 @@ setInterval(checkLatestRoComAnnouncement, 2 * 60 * 1000);
 
 - `GET /api/v1/games/rocom/merchant/info`
 
-说明：
-
-- 查询 RoCom 小程序 `m-common-co.getInitInfo` 里的远行商人活动数据
-- 返回远行商人活动列表，并附带随机商品配置
-
 参数：
 
 - `refresh`（选填）是否强制刷新缓存，支持 `true / false / 1 / 0`，默认 `false`
 - `random_goods`（选填）随机商品配置返回范围，默认只返回 `goods_name` 与远行商人 `get_props[].name` 相同的配置；传 `all / full / true / 1 / yes` 时返回全部随机商品配置
+- `random_goods_scope`、`include_random_goods` 是 `random_goods` 的别名，支持同样取值
+- `include_all_random_goods` 是布尔别名，传 `true` 时返回全部随机商品配置
 
 鉴权说明：
 
@@ -2151,12 +2219,6 @@ setInterval(checkLatestRoComAnnouncement, 2 * 60 * 1000);
 - 默认缓存 5 分钟
 - 传 `refresh=true` 时会尝试强制刷新，但服务端有 30 秒刷新冷却；冷却期内会直接复用最近一次成功缓存
 - 同一时刻发生的缓存未命中或强制刷新会合并处理，避免重复刷新
-
-返回说明：
-
-- `merchantActivities` 返回远行商人活动数组
-- `random_goods` 返回本地随机商品配置数组；默认按 `merchantActivities[].get_props[].name` 匹配 `random_goods.goods_name`
-- `banner_list`、`index_top_list`、`otherActivities` 等非必要字段不会返回
 
 示例：
 
@@ -2207,6 +2269,49 @@ setInterval(checkLatestRoComAnnouncement, 2 * 60 * 1000);
         "price": 1000,
         "buy_limit_num": 100,
         "weight": 1
+      }
+    ]
+  }
+}
+```
+
+### 活动信息
+
+- `GET /api/v1/games/rocom/activities/info`
+
+参数：
+
+- `refresh`（选填）是否强制刷新缓存，支持 `true / false / 1 / 0`，默认 `false`
+
+鉴权说明：
+
+- 请求头按“不需要 `X-Framework-Token` 的普通查询接口”模板传递
+- 认证层支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`
+- **不需要** 传 `X-Framework-Token`
+- `refresh=true` 只允许持有 `rocom.access` 的 API Key 或后台管理员 Web JWT 使用
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "otherActivities": [
+      {
+        "_id": "activity-id",
+        "name": "活动名称",
+        "description": "活动描述",
+        "cover_url": "https://example.com/cover.png",
+        "start_date": "2026-05-30",
+        "start_time": 1776441600000,
+        "end_time": 1776527999000,
+        "get_props": [],
+        "get_extra_props": [],
+        "get_pets": [],
+        "is_deleted": false,
+        "is_unlimited": false,
+        "sort": 1
       }
     ]
   }

@@ -415,6 +415,10 @@ export default class RocomApi extends WeGameApi {
     return this.requestRocomPublicGet('/api/v1/games/rocom/merchant/info', params, options)
   }
 
+  getActivitiesInfo (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/activities/info', params, options)
+  }
+
   getLineupList (frameworkToken, params = {}, options = {}) {
     return this.requestRocomGet('/api/v1/games/rocom/lineup/list', frameworkToken, params, options)
   }
