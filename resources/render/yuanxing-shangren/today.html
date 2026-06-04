@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今日远行商人</title>
+    <style>
+@font-face {
+    font-family: "fzlant";
+    src: url("{{_res_path}}ttf/fzlant.D5FI9Et0.ttf");
+}
+
+@font-face {
+    font-family: "dundun";
+    src: url("{{_res_path}}ttf/dundun.xHd_Ee5-.woff2");
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --font-family: "fzlant", "Microsoft YaHei", "PingFang SC", sans-serif;
+    --font-family-accent: "dundun", "fzlant", "Microsoft YaHei", sans-serif;
+    --text-1: #332719;
+    --text-2: #6b5846;
+    --line: rgba(118, 97, 74, 0.22);
+    --panel-bg: rgba(243, 237, 227, 0.94);
+    --card-bg: rgba(255, 252, 247, 0.82);
+    --tag-bg: rgba(255, 214, 153, 0.4);
+    --tag-text: #9a5f19;
+    --round-current-bg: rgba(255, 214, 153, 0.25);
+    --round-current-border: rgba(200, 140, 40, 0.4);
+}
+
+html,
+body {
+    width: 100%;
+    height: auto;
+    font-family: var(--font-family);
+    color: var(--text-1);
+    background: #ece3d3;
+}
+
+.merchant-page {
+    position: relative;
+    width: min(1040px, calc(100vw - 24px));
+    margin: 0 auto;
+    padding: 14px;
+    overflow: hidden;
+    background: #ece3d3;
+    border-radius: 30px;
+}
+
+.background {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    opacity: 0.24;
+    filter: saturate(0.9);
+}
+
+.content-container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    padding: 2px 0 4px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 22px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.86), rgba(245,236,221,0.9));
+    box-shadow: 0 14px 36px rgba(58, 39, 21, 0.08);
+}
+
+.title-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.title-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.title-badge {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: #fffaf0;
+    font-size: 28px;
+    font-weight: 900;
+}
+
+.title-badge img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+}
+
+.title-text {
+    font-family: var(--font-family-accent);
+    font-size: 36px;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+
+.subtitle {
+    color: var(--text-2);
+    font-size: 16px;
+}
+
+.header-side {
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 12px;
+}
+
+.summary-chip {
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(179, 123, 45, 0.2);
+    color: var(--text-2);
+    font-size: 16px;
+}
+
+.summary-chip strong {
+    font-family: var(--font-family-accent);
+    color: #a0631d;
+    font-size: 24px;
+    margin-left: 8px;
+}
+
+.round-section {
+    margin-top: 18px;
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.68), rgba(244,236,224,0.82));
+    box-shadow: 0 8px 22px rgba(58, 39, 21, 0.05);
+}
+
+.round-section.is-current {
+    background: linear-gradient(135deg, rgba(255,248,235,0.88), rgba(255,240,210,0.9));
+    border-color: var(--round-current-border);
+    box-shadow: 0 8px 28px rgba(180, 120, 20, 0.1);
+}
+
+.round-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.round-title {
+    font-family: var(--font-family-accent);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-1);
+}
+
+.round-badge {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.round-badge.current {
+    background: rgba(200, 120, 20, 0.2);
+    color: #b06800;
+}
+
+.products-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.product-card {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 14px;
+    align-items: center;
+    min-height: 96px;
+    padding: 12px 16px;
+    border: 1px solid rgba(118, 97, 74, 0.12);
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.72), rgba(244,236,224,0.88));
+    box-shadow: 0 6px 18px rgba(58, 39, 21, 0.04);
+}
+
+.product-image-container {
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.94), rgba(239,228,210,0.92));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.product-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.product-main {
+    min-width: 0;
+}
+
+.product-name {
+    font-family: var(--font-family-accent);
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.product-time {
+    display: inline-flex;
+    margin-top: 8px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.product-side {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.product-slot {
+    padding: 7px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(179, 123, 45, 0.18);
+    color: #8b5e2b;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.round-empty {
+    text-align: center;
+    padding: 18px 14px;
+    border-radius: 14px;
+    border: 1px dashed rgba(120, 102, 81, 0.25);
+    color: #8b7a66;
+    font-size: 16px;
+    background: rgba(255,255,255,0.42);
+}
+
+.all-empty {
+    text-align: center;
+    padding: 40px 18px;
+    margin-top: 18px;
+    border-radius: 20px;
+    border: 1px dashed rgba(120, 102, 81, 0.35);
+    color: #5c4a37;
+    font-size: 20px;
+    background: rgba(255,255,255,0.52);
+}
+    </style>
+</head>
+<body>
+    <div id="container" class="merchant-page">
+        <div class="background" style="background-image: url('{{background}}');"></div>
+        <div class="content-container">
+            <div class="header">
+                <div class="title-section">
+                    <div class="title-main">
+                        <div class="title-badge">
+                            <img src="{{_res_path}}img/yuanxingshangren.png" alt="今日远行商人">
+                        </div>
+                        <span class="title-text">{{title}}</span>
+                    </div>
+                    <div class="subtitle">{{subtitle}}</div>
+                </div>
+                <div class="header-side">
+                    <div class="summary-chip">今日商品数 <strong>{{total_products}}</strong></div>
+                </div>
+            </div>
+
+            {{if total_products > 0}}
+            {{each roundGroups group}}
+            <div class="round-section {{if group.is_current}}is-current{{/if}}">
+                <div class="round-header">
+                    <span class="round-title">第{{group.round_id}}轮 {{group.label}}</span>
+                    {{if group.is_current}}
+                    <span class="round-badge current">当前轮次</span>
+                    {{/if}}
+                </div>
+                {{if group.products && group.products.length > 0}}
+                <div class="products-grid">
+                    {{each group.products product}}
+                    <div class="product-card">
+                        <div class="product-image-container">
+                            <img class="product-image" src="{{product.image}}" alt="{{product.name}}">
+                        </div>
+                        <div class="product-main">
+                            <div class="product-name">{{product.name}}</div>
+                            <div class="product-time">北京时间 {{product.time_label}}</div>
+                        </div>
+                        <div class="product-side">
+                            <div class="product-slot">第{{group.round_id}}轮</div>
+                        </div>
+                    </div>
+                    {{/each}}
+                </div>
+                {{else}}
+                <div class="round-empty">该轮次暂无商品</div>
+                {{/if}}
+            </div>
+            {{/each}}
+            {{else}}
+            <div class="all-empty">今日暂无已公布的远行商人商品，稍后再来看看。</div>
+            {{/if}}
+        </div>
+    </div>
+</body>
+</html>
