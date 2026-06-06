@@ -149,41 +149,86 @@ body {
     margin-left: 8px;
 }
 
-.round-section {
+.category-section {
     margin-top: 18px;
-    padding: 18px 20px;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 0 4px;
+}
+
+.category-title {
+    font-family: var(--font-family-accent);
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-1);
+}
+
+.category-count {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.category-count.normal {
+    background: rgba(60, 160, 80, 0.15);
+    color: #2a8040;
+}
+
+.category-count.round {
+    background: rgba(60, 120, 220, 0.15);
+    color: #2a60b0;
+}
+
+.category-count.weekend {
+    background: rgba(220, 80, 60, 0.15);
+    color: #c04030;
+}
+
+.round-section {
+    padding: 14px 18px;
     border: 1px solid var(--line);
-    border-radius: 20px;
+    border-radius: 16px;
     background: linear-gradient(135deg, rgba(255,255,255,0.68), rgba(244,236,224,0.82));
-    box-shadow: 0 8px 22px rgba(58, 39, 21, 0.05);
+    box-shadow: 0 6px 18px rgba(58, 39, 21, 0.04);
+    margin-bottom: 10px;
+}
+
+.round-section:last-child {
+    margin-bottom: 0;
 }
 
 .round-section.is-current {
     background: linear-gradient(135deg, rgba(255,248,235,0.88), rgba(255,240,210,0.9));
     border-color: var(--round-current-border);
-    box-shadow: 0 8px 28px rgba(180, 120, 20, 0.1);
+    box-shadow: 0 6px 22px rgba(180, 120, 20, 0.08);
 }
 
 .round-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
 .round-title {
     font-family: var(--font-family-accent);
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--text-1);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-2);
 }
 
 .round-badge {
-    padding: 4px 10px;
+    padding: 3px 8px;
     border-radius: 999px;
     background: var(--tag-bg);
     color: var(--tag-text);
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -335,33 +380,59 @@ body {
             </div>
 
             {{if total_products > 0}}
-            {{each roundGroups group}}
-            <div class="round-section {{if group.is_current}}is-current{{/if}}">
-                <div class="round-header">
-                    <span class="round-title">第{{group.round_id}}轮 {{group.label}}</span>
-                    {{if group.is_current}}
-                    <span class="round-badge current">当前轮次</span>
+            {{each categories cat}}
+            <div class="category-section">
+                <div class="category-header">
+                    <span class="category-title">{{cat.label}}</span>
+                    <span class="category-count {{cat.key}}">{{cat.product_count}} 件</span>
+                </div>
+                {{if cat.key === 'round'}}
+                {{each cat.roundGroups group}}
+                <div class="round-section {{if group.is_current}}is-current{{/if}}">
+                    <div class="round-header">
+                        <span class="round-title">第{{group.round_id}}轮 {{group.label}}</span>
+                        {{if group.is_current}}
+                        <span class="round-badge current">当前轮次</span>
+                        {{/if}}
+                    </div>
+                    {{if group.products && group.products.length > 0}}
+                    <div class="products-grid">
+                        {{each group.products product}}
+                        <div class="product-card">
+                            <div class="product-image-container">
+                                <img class="product-image" src="{{product.image}}" alt="{{product.name}}">
+                            </div>
+                            <div class="product-main">
+                                <div class="product-name">{{product.name}}</div>
+                                <div class="product-time">北京时间 {{product.time_label}}</div>
+                            </div>
+                            <div class="product-side">
+                                <div class="product-slot">第{{group.round_id}}轮</div>
+                            </div>
+                        </div>
+                        {{/each}}
+                    </div>
+                    {{else}}
+                    <div class="round-empty">该轮次暂无商品</div>
                     {{/if}}
                 </div>
-                {{if group.products && group.products.length > 0}}
+                {{/each}}
+                {{else}}
                 <div class="products-grid">
+                    {{each cat.roundGroups group}}
                     {{each group.products product}}
                     <div class="product-card">
                         <div class="product-image-container">
                             <img class="product-image" src="{{product.image}}" alt="{{product.name}}">
                         </div>
                         <div class="product-main">
-                            <div class="product-name">{{product.name}}<span class="category-label {{product.category}}">{{if product.category === 'weekend'}}周末限定{{else if product.category === 'normal'}}热销{{else}}常规{{/if}}</span></div>
+                            <div class="product-name">{{product.name}}</div>
                             <div class="product-time">北京时间 {{product.time_label}}</div>
-                        </div>
-                        <div class="product-side">
-                            <div class="product-slot">第{{group.round_id}}轮</div>
                         </div>
                     </div>
                     {{/each}}
+                    {{/each}}
                 </div>
-                {{else}}
-                <div class="round-empty">该轮次暂无商品</div>
                 {{/if}}
             </div>
             {{/each}}

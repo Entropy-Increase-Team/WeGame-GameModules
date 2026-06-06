@@ -360,9 +360,7 @@ class MerchantService {
           const group = roundGroups.find((g) => g.round_id === roundId)
           if (group) group.products.push(product)
         } else {
-          for (const group of roundGroups) {
-            group.products.push(product)
-          }
+          roundGroups[0].products.push(product)
         }
       }
     }
@@ -382,10 +380,39 @@ class MerchantService {
     const now = options?.now || new Date()
     const { activity, roundGroups, todayDate } = this.extractTodayProducts(payload, now)
 
+    const categoryOrder = ['normal', 'round', 'weekend']
+    const categoryLabels = { normal: '热销商品', round: '常规商品', weekend: '周末限定' }
+    const categoryMap = {}
+    for (const cat of categoryOrder) {
+      categoryMap[cat] = []
+    }
+    for (const group of roundGroups) {
+      for (const product of group.products) {
+        const cat = product.category || 'round'
+        if (!categoryMap[cat]) categoryMap[cat] = []
+        let catGroup = categoryMap[cat].find((g) => g.round_id === group.round_id)
+        if (!catGroup) {
+          catGroup = { round_id: group.round_id, label: group.label, is_current: group.is_current, products: [] }
+          categoryMap[cat].push(catGroup)
+        }
+        catGroup.products.push(product)
+      }
+    }
+
+    const categories = categoryOrder
+      .filter((key) => categoryMap[key].length > 0)
+      .map((key) => ({
+        key,
+        label: categoryLabels[key],
+        roundGroups: categoryMap[key],
+        product_count: categoryMap[key].reduce((sum, g) => sum + g.products.length, 0)
+      }))
+
     return {
       background: options?.background || '',
       title: '今日远行商人',
       subtitle: `${todayDate} · 每日 08:00 / 12:00 / 16:00 / 20:00 刷新`,
+      categories,
       roundGroups,
       total_products: roundGroups.reduce((sum, g) => sum + g.products.length, 0)
     }
@@ -395,18 +422,37 @@ class MerchantService {
     const now = options?.now || new Date()
     const { activity, roundGroups, todayDate } = this.extractTodayProducts(payload, now)
 
+    const categoryOrder = ['normal', 'round', 'weekend']
+    const categoryLabels = { normal: '热销商品', round: '常规商品', weekend: '周末限定' }
+    const categoryMap = {}
+    for (const cat of categoryOrder) {
+      categoryMap[cat] = []
+    }
+    for (const group of roundGroups) {
+      for (const product of group.products) {
+        const cat = product.category || 'round'
+        if (!categoryMap[cat]) categoryMap[cat] = []
+        let catGroup = categoryMap[cat].find((g) => g.round_id === group.round_id)
+        if (!catGroup) {
+          catGroup = { round_id: group.round_id, label: group.label, is_current: group.is_current, products: [] }
+          categoryMap[cat].push(catGroup)
+        }
+        catGroup.products.push(product)
+      }
+    }
+
     const lines = [
       `今日远行商人 (${todayDate})`,
       ''
     ]
 
     let hasAny = false
-    for (const group of roundGroups) {
-      lines.push(`【第${group.round_id}轮 ${group.label}】${group.is_current ? ' ◀ 当前' : ''}`)
-      if (group.products.length === 0) {
-        lines.push('  暂无商品')
-      } else {
-        hasAny = true
+    for (const cat of categoryOrder) {
+      const groups = categoryMap[cat]
+      if (groups.length === 0) continue
+      hasAny = true
+      lines.push(`【${categoryLabels[cat]}】`)
+      for (const group of groups) {
         group.products.forEach((product, i) => {
           lines.push(`  ${i + 1}. ${product.name}  (${product.time_label})`)
         })
@@ -418,7 +464,7 @@ class MerchantService {
       lines.push('今日暂无已公布的远行商人商品。')
     }
 
-    return lines.join('\n')
+    return lines.join('\n').trimEnd()
   }
 }
 
