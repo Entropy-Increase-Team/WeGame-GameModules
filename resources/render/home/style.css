@@ -416,7 +416,7 @@ body {
 
 .plant-name {
     font-family: "rocom-skill", "rocom-home", "Microsoft YaHei", sans-serif;
-    font-size: 31px;
+    font-size: 25px;
     line-height: 1.1;
 }
 
@@ -424,7 +424,7 @@ body {
 .plant-time {
     color: #ffffff;
     font-family: "rocom-skill", "rocom-home", "Microsoft YaHei", sans-serif;
-    font-size: 26px;
+    font-size: 22px;
     line-height: 1;
 }
 
@@ -432,14 +432,16 @@ body {
     margin-top: 16px;
 }
 
+.plant-time {
+    font-size: 18px;
+    margin-top: 8px;
+}
+
 .state-ready {
     color: #67d737;
     font-size: 35px;
 }
 
-.plant-time {
-    margin-top: 8px;
-}
 
 .plant-progress {
     width: 147px;
