@@ -261,6 +261,47 @@ body {
     font-size: 20px;
     background: rgba(255,255,255,0.52);
 }
+
+.category-section {
+    margin-top: 16px;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 0 4px;
+}
+
+.category-title {
+    font-family: var(--font-family-accent);
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-1);
+}
+
+.category-tag {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.category-tag.weekend {
+    background: rgba(220, 80, 60, 0.15);
+    color: #c04030;
+}
+
+.category-tag.normal {
+    background: rgba(60, 160, 80, 0.15);
+    color: #2a8040;
+}
+
+.category-tag.round {
+    background: rgba(60, 120, 220, 0.15);
+    color: #2a60b0;
+}
     </style>
 </head>
 <body>
@@ -291,20 +332,24 @@ body {
             </div>
 
             <div class="products-grid">
-                {{if products && products.length > 0}}
-                {{each products product}}
-                <div class="product-card">
-                    <div class="product-image-container">
-                        <img class="product-image" src="{{product.image}}" alt="{{product.name}}">
+                {{if categories && categories.length > 0}}
+                {{each categories cat}}
+                <div class="category-section">
+                    <div class="category-header">
+                        <span class="category-title">{{cat.label}}</span>
+                        <span class="category-tag {{cat.key}}">{{cat.products.length}} 件</span>
                     </div>
-                    <div class="product-main">
-                        <div class="product-name">{{product.name}}</div>
-                        <div class="product-sub">远行商人当前轮次商品</div>
-                        <div class="product-time">北京时间 {{product.time_label}}</div>
+                    {{each cat.products product}}
+                    <div class="product-card">
+                        <div class="product-image-container">
+                            <img class="product-image" src="{{product.image}}" alt="{{product.name}}">
+                        </div>
+                        <div class="product-main">
+                            <div class="product-name">{{product.name}}</div>
+                            <div class="product-time">北京时间 {{product.time_label}}</div>
+                        </div>
                     </div>
-                    <div class="product-side">
-                        <div class="product-slot">本轮商品</div>
-                    </div>
+                    {{/each}}
                 </div>
                 {{/each}}
                 {{else}}

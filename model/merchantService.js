@@ -123,6 +123,26 @@ const ROUND_WINDOWS = [
   { id: 4, label: '20:00 - 24:00', startHour: 20, endHour: 24 }
 ]
 
+function classifyMerchantItem (item) {
+  const startTime = Number(item?.start_time)
+  const endTime = Number(item?.end_time)
+  if (startTime == 0 || endTime == 0) return 'normal'
+
+  const durationHours = (endTime - startTime) / (1000 * 60 * 60)
+  const durationDays = durationHours / 24
+
+  if (durationDays >= 2) return 'weekend'
+
+  const startParts = getChinaParts(new Date(startTime))
+  const endParts = getChinaParts(new Date(endTime))
+  const startHour = startParts.hour + startParts.minute / 60
+  const endHour = endParts.hour + endParts.minute / 60
+
+  if (startHour <= 8 && endHour >= 23.5) return 'normal'
+
+  return 'round'
+}
+
 function getRoundForItem (item, todayDate) {
   const startTime = Number(item?.start_time)
   if (startTime == 0) return null
@@ -206,6 +226,7 @@ class MerchantService {
         if (!isMerchantItemActive(item)) continue
         products.push({
           kind,
+          category: classifyMerchantItem(item),
           name: trimText(item?.name) || '未知商品',
           image: trimText(item?.icon_url),
           time_label: formatMerchantWindow(item)
@@ -233,6 +254,16 @@ class MerchantService {
     const { activity, products } = this.extractProducts(payload)
     const roundInfo = this.getCurrentRound(options?.now)
 
+    const categories = [
+      { key: 'normal', label: '热销商品', products: [] },
+      { key: 'round', label: '常规商品', products: [] },
+      { key: 'weekend', label: '周末限定', products: [] }
+    ]
+    for (const product of products) {
+      const group = categories.find((c) => c.key === product.category)
+      if (group) group.products.push(product)
+    }
+
     return {
       background: options?.background || '',
       titleIcon: options?.titleIcon !== false,
@@ -240,6 +271,7 @@ class MerchantService {
       subtitle: trimText(activity?.start_date) || '每日 08:00 / 12:00 / 16:00 / 20:00 刷新',
       product_count: products.length,
       round_info: roundInfo,
+      categories: categories.filter((c) => c.products.length > 0),
       products
     }
   }
@@ -257,6 +289,17 @@ class MerchantService {
       ].join('\n')
     }
 
+    const categoryLabels = { weekend: '周末限定', normal: '热销商品', round: '常规商品' }
+    const categories = [
+      { key: 'normal', products: [] },
+      { key: 'round', products: [] },
+      { key: 'weekend', products: [] }
+    ]
+    for (const product of products) {
+      const group = categories.find((c) => c.key === product.category)
+      if (group) group.products.push(product)
+    }
+
     const lines = [
       trimText(activity?.name) || '远行商人',
       `轮次：第 ${roundInfo.current || '未开放'} / ${roundInfo.total} 轮`,
@@ -264,18 +307,16 @@ class MerchantService {
       ''
     ]
 
-    products.forEach((product, index) => {
-      lines.push(`${index + 1}. ${product.name}`)
-      lines.push(`时间：${product.time_label}`)
-      if (product.image) {
-        lines.push(`图片：${product.image}`)
-      }
-      if (index !== products.length - 1) {
-        lines.push('')
-      }
-    })
+    for (const group of categories) {
+      if (group.products.length === 0) continue
+      lines.push(`【${categoryLabels[group.key]}】`)
+      group.products.forEach((product, index) => {
+        lines.push(`  ${index + 1}. ${product.name}  (${product.time_label})`)
+      })
+      lines.push('')
+    }
 
-    return lines.join('\n')
+    return lines.join('\n').trimEnd()
   }
 
   extractTodayProducts (payload = {}, date = new Date()) {
@@ -309,6 +350,7 @@ class MerchantService {
         if (!isMerchantItemToday(item, date)) continue
         const product = {
           kind,
+          category: classifyMerchantItem(item),
           name: trimText(item?.name) || '未知商品',
           image: trimText(item?.icon_url),
           time_label: formatMerchantWindow(item)

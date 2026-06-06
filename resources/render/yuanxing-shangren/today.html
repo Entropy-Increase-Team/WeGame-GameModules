@@ -288,6 +288,31 @@ body {
     font-size: 20px;
     background: rgba(255,255,255,0.52);
 }
+
+.category-label {
+    display: inline-flex;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.category-label.weekend {
+    background: rgba(220, 80, 60, 0.15);
+    color: #c04030;
+}
+
+.category-label.normal {
+    background: rgba(60, 160, 80, 0.15);
+    color: #2a8040;
+}
+
+.category-label.round {
+    background: rgba(60, 120, 220, 0.15);
+    color: #2a60b0;
+}
     </style>
 </head>
 <body>
@@ -326,7 +351,7 @@ body {
                             <img class="product-image" src="{{product.image}}" alt="{{product.name}}">
                         </div>
                         <div class="product-main">
-                            <div class="product-name">{{product.name}}</div>
+                            <div class="product-name">{{product.name}}<span class="category-label {{product.category}}">{{if product.category === 'weekend'}}周末限定{{else if product.category === 'normal'}}热销{{else}}常规{{/if}}</span></div>
                             <div class="product-time">北京时间 {{product.time_label}}</div>
                         </div>
                         <div class="product-side">
