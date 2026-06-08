@@ -463,6 +463,22 @@ export default class RocomApi extends WeGameApi {
     return this.requestRocomPublicPost('/api/v1/games/rocom/uid/bind', { uid }, options)
   }
 
+  getEggGroups (options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/egg/groups', {}, options)
+  }
+
+  getEggGroupPets (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/egg/group-pets', params, options)
+  }
+
+  getEggPetGroups (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/egg/pet-groups', params, options)
+  }
+
+  getEggSearch (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/egg/search', params, options)
+  }
+
   getEggExchanges (params = {}, options = {}) {
     return this.requestRocomPublicGet('/api/v1/games/rocom/community/egg-exchanges', params, options)
   }

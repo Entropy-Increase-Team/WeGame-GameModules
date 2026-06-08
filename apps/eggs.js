@@ -232,24 +232,19 @@ export class RocomEggs extends plugin {
 
     if (diameter !== null && weight !== null) {
       try {
-        const apiResult = await this.api.getPetSizeQuery({
-          diameter,
+        const apiResult = await this.api.getEggSearch({
+          height: diameter,
           weight
         }, {
           userIdentifier: this.accountService.getUserIdentifier()
         })
-        renderData = eggService.buildSizeSearchDataFromApi(diameter, weight, apiResult, {
-          dimensionLabel: '直径',
-          dimensionUnit: 'm',
+        renderData = eggService.buildEggSearchData(diameter, weight, apiResult, {
           commandHint,
           copyright
         })
-        fallbackText = eggService.buildSizeSearchTextFromApi(diameter, weight, apiResult, {
-          dimensionLabel: '直径',
-          dimensionUnit: 'm'
-        })
+        fallbackText = eggService.buildEggSearchText(diameter, weight, apiResult)
       } catch (error) {
-        logger.warn(`[WeGame-plugin][rocom] 查蛋尺寸后端查询失败，回退本地数据：${error.message || error}`)
+        logger.warn(`[WeGame-plugin][rocom] 孵蛋反查 API 失败，回退本地数据：${error.message || error}`)
       }
     }
 

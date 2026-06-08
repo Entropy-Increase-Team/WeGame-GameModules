@@ -734,6 +734,78 @@ class EggService {
     return `${trimText(item?.pet) || '未知精灵'} (#${item?.petId || '-'}) - ${this.formatRange(item?.diameterMin, item?.diameterMax, 'm')} / ${this.formatRange(item?.weightMin, item?.weightMax, 'kg')}${suffix}`
   }
 
+  formatEggSearchCard (item = {}) {
+    const eggGroups = Array.isArray(item?.egg_groups)
+      ? item.egg_groups.map((g) => trimText(g?.official_name) || trimText(g?.display_name) || `蛋组${g?.group_id}`)
+      : []
+    const heightRange = Array.isArray(item?.height_range_m) ? item.height_range_m : []
+    const weightRange = Array.isArray(item?.weight_range_kg) ? item.weight_range_kg : []
+
+    return {
+      id: item?.id || '-',
+      name: trimText(item?.name) || '未知精灵',
+      icon: item?.pet_icon_url || this.getPetIconUrl(item?.id),
+      image: item?.pet_img_url || this.getPetImageUrl(item?.id),
+      type_label: Array.isArray(item?.unit_type) ? item.unit_type.join(' / ') : '未知',
+      egg_groups_label: eggGroups.length > 0 ? eggGroups.join(' / ') : '暂无蛋组数据',
+      height_label: this.formatRange(heightRange[0], heightRange[1], 'm'),
+      weight_label: this.formatRange(weightRange[0], weightRange[1], 'kg')
+    }
+  }
+
+  formatEggSearchTextLine (item = {}) {
+    const eggGroups = Array.isArray(item?.egg_groups)
+      ? item.egg_groups.map((g) => trimText(g?.official_name) || trimText(g?.display_name) || `蛋组${g?.group_id}`)
+      : []
+    const heightRange = Array.isArray(item?.height_range_m) ? item.height_range_m : []
+    const weightRange = Array.isArray(item?.weight_range_kg) ? item.weight_range_kg : []
+    const eggGroupsLabel = eggGroups.length > 0 ? ` · ${eggGroups.join(' / ')}` : ''
+
+    return `${trimText(item?.name) || '未知精灵'} (#${item?.id || '-'}) - ${this.formatRange(heightRange[0], heightRange[1], 'm')} / ${this.formatRange(weightRange[0], weightRange[1], 'kg')}${eggGroupsLabel}`
+  }
+
+  buildEggSearchData (heightM = null, weightKg = null, result = {}, options = {}) {
+    const { commandHint = '', copyright = DEFAULT_COPYRIGHT } = options
+    const conditions = []
+    if (heightM !== null && heightM !== undefined) conditions.push(`身高 ${heightM} m`)
+    if (weightKg !== null && weightKg !== undefined) conditions.push(`体重 ${weightKg} kg`)
+
+    const items = Array.isArray(result?.items) ? result.items : []
+    const cards = items.map((item) => this.formatEggSearchCard(item))
+
+    return {
+      query_label: conditions.join(' / ') || '孵蛋反查',
+      perfect_matches: cards,
+      range_matches: [],
+      total_count: result?.total ?? cards.length,
+      has_results: cards.length > 0,
+      commandHint,
+      copyright
+    }
+  }
+
+  buildEggSearchText (heightM = null, weightKg = null, result = {}) {
+    const conditions = []
+    if (heightM !== null && heightM !== undefined) conditions.push(`身高=${heightM}m`)
+    if (weightKg !== null && weightKg !== undefined) conditions.push(`体重=${weightKg}kg`)
+    const conditionText = conditions.join(' + ') || '当前条件'
+
+    const items = Array.isArray(result?.items) ? result.items : []
+
+    if (items.length === 0) {
+      return `未找到符合 ${conditionText} 的精灵。`
+    }
+
+    const lines = [`符合 ${conditionText} 的精灵（共 ${result?.total ?? items.length} 只）：`]
+    items.slice(0, 10).forEach((item, index) => {
+      lines.push(`${index + 1}. ${this.formatEggSearchTextLine(item)}`)
+    })
+
+    lines.push('')
+    lines.push('提示：发送 +查蛋 <精灵名> 查看详细蛋组信息')
+    return lines.join('\n')
+  }
+
   withRenderAssets (data = {}, basePath = '') {
     const buildResUrl = (assetPath) => {
       if (!basePath) return assetPath

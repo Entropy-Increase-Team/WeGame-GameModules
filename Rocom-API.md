@@ -131,6 +131,10 @@
 | `GET /pet/detail` | 基础认证；`id` 或 `name` 二选一 | - | 同时传入时优先使用 `id` |
 | `GET /pet/skill-users` | 基础认证；`skill_id` 或 `skill` 二选一 | - | 同时传入时优先使用 `skill_id` |
 | `GET /pet/size-query` | 基础认证；`diameter`、`weight` | `sameRideEgg` | `sameRideEgg=1` 查询同乘蛋 |
+| `GET /egg/search` | 基础认证；`height`、`weight` | `page_no`、`page_size` | 按身高和体重反查可能精灵蛋 |
+| `GET /egg/groups` | 基础认证 | - | 查询本地蛋组字典 |
+| `GET /egg/group-pets` | 基础认证；`group_ids` | `match_mode`、`page_no`、`page_size` | 按蛋组 ID 查询精灵 |
+| `GET /egg/pet-groups` | 基础认证；`q` | `limit` | 按精灵名反查蛋组 |
 | `GET /merchant/info` | 基础认证 | `refresh`、`random_goods`、`random_goods_scope`、`include_random_goods`、`include_all_random_goods` | `refresh=true` 需要 API Key 或后台管理员 Web JWT |
 | `GET /activities/info` | 基础认证 | `refresh` | `refresh=true` 需要 API Key 或后台管理员 Web JWT |
 | `GET /announcement/list` | 基础认证 | `category_id`、`page`、`limit`、`order` | `limit` 最大 `50` |
@@ -906,6 +910,192 @@ Accept: application/json
       }
     ],
     "total": 1
+  }
+}
+```
+
+### 孵蛋与蛋组查询
+
+- `GET /api/v1/games/rocom/egg/search`
+- `GET /api/v1/games/rocom/egg/groups`
+- `GET /api/v1/games/rocom/egg/group-pets`
+- `GET /api/v1/games/rocom/egg/pet-groups`
+
+说明：
+
+- 这些接口读取本地 `game_rocom.pet_list` 和 `game_rocom.pet_egg_groups` 表
+- `pet_egg_groups` 来自 RoCom 远端 `pet_egg_groups` 配置，由 worker 自动同步，也可通过 `POST /api/v1/games/rocom/config/sync` 手动同步
+- 请求头按"不需要 `X-Framework-Token` 的普通查询接口"模板传递
+- 认证层支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`；默认收费配置下需要 Web JWT 或归属到用户的 API Key 完成扣费调用
+
+#### 孵蛋反查
+
+`GET /api/v1/games/rocom/egg/search?height=0.2&weight=1&page_no=1&page_size=20`
+
+参数说明：
+
+- `height`：必填，身高，单位 `m`
+- `weight`：必填，体重，单位 `kg`
+- `page_no`：可选，页码，默认 `1`
+- `page_size`：可选，每页数量，默认 `20`，最大 `100`
+
+匹配规则：
+
+- 后端将 `height` 转为厘米：`round(height * 100)`
+- 后端将 `weight` 转为克：`round(weight * 1000)`
+- 命中条件为 `height_low <= height_cm <= height_high` 且 `weight_low <= weight_g <= weight_high`
+- 排序按 `r_value` 升序、范围面积升序、名称升序
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "query": {
+      "height_m": 0.2,
+      "weight_kg": 1,
+      "height_cm": 20,
+      "weight_g": 1000
+    },
+    "items": [
+      {
+        "id": 3001,
+        "name": "喵喵",
+        "form": "",
+        "icon": "JL_miaomiao",
+        "pet_img_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/image.png",
+        "pet_icon_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/icon.png",
+        "unit_type": ["草"],
+        "egg_groups": [
+          {
+            "group_id": 6,
+            "display_name": "蛋组 6",
+            "official_name": "动物组"
+          }
+        ],
+        "weight_range_g": [1000, 1000],
+        "height_range_cm": [20, 20],
+        "weight_range_kg": [1, 1],
+        "height_range_m": [0.2, 0.2],
+        "r_value": 0,
+        "range_area": 1
+      }
+    ],
+    "total": 5,
+    "page_no": 1,
+    "page_size": 20,
+    "total_pages": 1,
+    "has_more": false
+  }
+}
+```
+
+#### 蛋组字典
+
+`GET /api/v1/games/rocom/egg/groups`
+
+说明：
+
+- 查询已同步到本地数据库的蛋组字典
+- 无必填参数
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "items": [
+      {
+        "group_id": 4,
+        "display_name": "蛋组 4",
+        "official_name": "昆虫组",
+        "display_order": 1
+      }
+    ]
+  }
+}
+```
+
+#### 按蛋组查精灵
+
+`GET /api/v1/games/rocom/egg/group-pets?group_ids=4,9&match_mode=all&page_no=1&page_size=20`
+
+参数说明：
+
+- `group_ids`：必填，蛋组 ID，英文逗号分隔，例如 `4,9`
+- `match_mode`：可选，匹配模式，`all` 表示必须同时属于所有蛋组，`any` 表示属于任一蛋组即可；默认 `all`
+- `page_no`：可选，页码，默认 `1`
+- `page_size`：可选，每页数量，默认 `20`，最大 `100`
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "query": {
+      "group_ids": [4, 9],
+      "match_mode": "all",
+      "groups": [
+        { "group_id": 4, "display_name": "蛋组 4", "official_name": "昆虫组" },
+        { "group_id": 9, "display_name": "蛋组 9", "official_name": "人型组" }
+      ]
+    },
+    "items": [
+      {
+        "id": 3001,
+        "name": "喵喵",
+        "pet_img_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/image.png",
+        "pet_icon_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/icon.png",
+        "unit_type": ["草"],
+        "egg_groups": [
+          { "group_id": 6, "display_name": "蛋组 6", "official_name": "动物组" }
+        ]
+      }
+    ],
+    "total": 1,
+    "page_no": 1,
+    "page_size": 20,
+    "total_pages": 1,
+    "has_more": false
+  }
+}
+```
+
+#### 按精灵名反查蛋组
+
+`GET /api/v1/games/rocom/egg/pet-groups?q=喵喵&limit=20`
+
+参数说明：
+
+- `q`：必填，精灵名称关键词
+- `limit`：可选，返回数量，默认 `20`，最大 `50`
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "q": "喵喵",
+    "items": [
+      {
+        "id": 3001,
+        "name": "喵喵",
+        "pet_img_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/image.png",
+        "pet_icon_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/icon.png",
+        "unit_type": ["草"],
+        "egg_groups": [
+          { "group_id": 6, "display_name": "蛋组 6", "official_name": "动物组" }
+        ]
+      }
+    ]
   }
 }
 ```
