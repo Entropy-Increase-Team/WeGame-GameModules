@@ -85,12 +85,8 @@ function buildDefaultMenuGroups () {
           desc: '取消商人商品提醒'
         },
         {
-          cmd: formatCommand('尺寸查询 0.45 35.6'),
-          desc: '按尺寸和重量反查精灵候选'
-        },
-        {
           cmd: formatCommand('查蛋 喵喵'),
-          desc: '查询精灵蛋组与可配种精灵'
+          desc: '按名称查蛋组，或按尺寸/体重反查精灵'
         },
         {
           cmd: formatCommand('配种 火花 喵喵'),

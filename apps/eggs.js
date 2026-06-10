@@ -25,8 +25,8 @@ function buildUsageText () {
   return [
     '查蛋用法：',
     `${formatCommand('查蛋 <精灵名>')} 查询精灵蛋组和可配种精灵`,
-    `${formatCommand('查蛋 0.29 3.294')} 按直径(m)+体重(kg)反查`,
-    `${formatCommand('查蛋 直径0.29 体重3.294')} 支持带前缀写法`,
+    `${formatCommand('尺寸查询 0.29 3.294')} 按直径(m)+体重(kg)反查精灵`,
+    `${formatCommand('查蛋 直径0.29 体重3.294')} 也支持带前缀写法`,
     '',
     '配种用法：',
     `${formatCommand('配种 <精灵名>')} 查看想要该精灵时的父体候选`,
@@ -43,7 +43,7 @@ export class RocomEggs extends plugin {
       priority: 117,
       rule: [
         {
-          reg: buildCommandReg('(?:查蛋|精灵查蛋)(?:\\s+.+)?'),
+          reg: buildCommandReg('(?:查蛋|精灵查蛋|尺寸查询|精灵尺寸)(?:\\s+.+)?'),
           fnc: 'queryEggs'
         },
         {
@@ -60,7 +60,10 @@ export class RocomEggs extends plugin {
 
   async queryEggs () {
     try {
-      const raw = stripCommandPrefix(this.e.msg, '查蛋') || stripCommandPrefix(this.e.msg, '精灵查蛋')
+      const raw = stripCommandPrefix(this.e.msg, '查蛋') ||
+        stripCommandPrefix(this.e.msg, '精灵查蛋') ||
+        stripCommandPrefix(this.e.msg, '尺寸查询') ||
+        stripCommandPrefix(this.e.msg, '精灵尺寸')
       if (!raw) {
         await this.reply(buildUsageText())
         return true

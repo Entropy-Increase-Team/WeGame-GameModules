@@ -7,16 +7,14 @@ import { renderModuleTemplate } from '../../../model/moduleRender.js'
 import WeGameAccountService from '../../../model/accountService.js'
 import { replyLargeText } from '../../../utils/queryHelper.js'
 import RocomApi from '../model/api.js'
-import eggService from '../model/eggService.js'
 import merchantService from '../model/merchantService.js'
 import activitiesService from '../model/activitiesService.js'
-import { buildCommandReg, formatCommand } from '../utils/command.js'
+import { buildCommandReg } from '../utils/command.js'
 import { trimText, encodeAssetPath } from '../utils/rocom.js'
 
 const execFileAsync = promisify(execFile)
 const moduleRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
-const SIZE_QUERY_REG = buildCommandReg('(?:尺寸查询|精灵尺寸)(?:\\s+(.+))?')
 const MERCHANT_INFO_REG = buildCommandReg('(?:(?:远行|旅行)商人|商人信息)')
 const MERCHANT_TODAY_REG = buildCommandReg('今日(?:远行|旅行)商人')
 const ACTIVITIES_INFO_REG = buildCommandReg('(?:洛克)?日历')
@@ -78,37 +76,6 @@ function formatCommit (result = {}) {
   return result.afterHead || result.beforeHead || '未知提交'
 }
 
-function extractMatchArg (message = '', pattern = '') {
-  const match = String(message || '').trim().match(new RegExp(pattern))
-  return trimText(match?.[1] || '')
-}
-
-function parsePositiveNumber (value, fieldLabel = '参数') {
-  const text = trimText(value)
-  if (!/^\d+(?:\.\d+)?$/.test(text)) {
-    throw new Error(`${fieldLabel}格式不正确`)
-  }
-
-  const num = Number(text)
-  if (!Number.isFinite(num) || num <= 0) {
-    throw new Error(`${fieldLabel}必须大于 0`)
-  }
-
-  return num
-}
-
-function parseSizeQueryArgs (raw = '') {
-  const tokens = trimText(raw).split(/\s+/).filter(Boolean)
-  if (tokens.length !== 2) {
-    throw new Error(`格式：${formatCommand('尺寸查询 <直径米> <重量千克>')}`)
-  }
-
-  return {
-    diameter: parsePositiveNumber(tokens[0], '直径'),
-    weight: parsePositiveNumber(tokens[1], '重量')
-  }
-}
-
 export class RocomTools extends plugin {
   constructor (e) {
     super({
@@ -117,10 +84,6 @@ export class RocomTools extends plugin {
       event: 'message',
       priority: 114,
       rule: [
-        {
-          reg: SIZE_QUERY_REG,
-          fnc: 'queryPetSize'
-        },
         {
           reg: MERCHANT_TODAY_REG,
           fnc: 'queryTodayMerchantInfo'
@@ -149,51 +112,6 @@ export class RocomTools extends plugin {
     this.e = e
     this.api = new RocomApi()
     this.accountService = new WeGameAccountService(e)
-  }
-
-  async queryPetSize () {
-    try {
-      const args = parseSizeQueryArgs(extractMatchArg(this.e.msg, SIZE_QUERY_REG))
-      await this.reply(`正在查询精灵尺寸：直径 ${args.diameter} 米，重量 ${args.weight} 千克...`)
-      const data = await this.api.getPetSizeQuery(args, {
-        userIdentifier: this.accountService.getUserIdentifier()
-      })
-      const renderData = eggService.buildSizeSearchDataFromApi(args.diameter, args.weight, data, {
-        dimensionLabel: '直径',
-        dimensionUnit: 'm',
-        commandHint: `发送 ${formatCommand('尺寸查询 <直径米> <重量千克>')} 或 ${formatCommand('查蛋 <精灵名>')} 继续查询`,
-        copyright: 'WeGame-plugin · RoCom'
-      })
-
-      const image = await renderModuleTemplate(
-        this.e,
-        'rocom',
-        'render/searcheggs/size',
-        {
-          saveId: `tool-size-${this.e.user_id}-${Date.now()}`,
-          ...renderData
-        },
-        {
-          retType: 'base64',
-          beforeRender: ({ data }) => eggService.withRenderAssets(data, data.pluResPath)
-        }
-      )
-
-      if (image) {
-        await this.reply(image)
-        return true
-      }
-
-      await replyLargeText(this, '精灵尺寸查询', eggService.buildSizeSearchTextFromApi(args.diameter, args.weight, data, {
-        dimensionLabel: '直径',
-        dimensionUnit: 'm'
-      }))
-      return true
-    } catch (error) {
-      logger.error('[WeGame-plugin][rocom] 精灵尺寸查询失败', error)
-      await this.reply(`精灵尺寸查询失败：${error.message || error}`)
-      return true
-    }
   }
 
   async queryMerchantInfo () {
