@@ -282,6 +282,14 @@ export class RocomAccounts extends plugin {
       const isPrimary = binding.is_primary === true
       const source = trimText(binding.source)
 
+      // 保存凭证到本地，供后续功能（如 +家园）解析 UID
+      if (frameworkToken) {
+        await this.accountService.saveLocalCredential({
+          frameworkToken,
+          role: { id: uid }
+        }).catch(() => {})
+      }
+
       const lines = [
         `✅ UID 绑定成功！`,
         `UID：${uid}`,
