@@ -253,6 +253,8 @@ body {
     height: 100%;
 }
 
+
+
 .pet-avatar-box {
     position: absolute;
     left: 24px;
@@ -328,7 +330,7 @@ body {
 
 .pet-name {
     font-family: "rocom-skill", "rocom-home", "Microsoft YaHei", sans-serif;
-    font-size: 35px;
+    font-size: 28px;
     line-height: 1.1;
 }
 
