@@ -59,18 +59,32 @@ function formatRemaining (targetTime, now = Math.floor(Date.now() / 1000)) {
   if (now >= target) return '已完成'
 
   const remain = Math.max(0, target - now)
-  let hours = Math.floor(remain / 3600)
+  const days = Math.floor(remain / 86400)
+  const hours = Math.floor((remain % 86400) / 3600)
   const minutes = Math.floor((remain % 3600) / 60)
+  const seconds = remain % 60
 
-  if (hours >= 24) {
-    const days = Math.floor(hours / 24)
-    hours = hours % 24
-    return `${days}天${hours}小时`
+  if (days > 0) {
+    return hours > 0 ? `${days}天${hours}小时` : `${days}天`
   }
   if (hours > 0) {
     return `${hours}小时${minutes}分钟`
   }
-  return `${minutes}分钟`
+  if (minutes > 0) {
+    return `${minutes}分${seconds}秒`
+  }
+  return `${seconds}秒`
+}
+
+function formatEggRemaining (targetTime, now = Math.floor(Date.now() / 1000)) {
+  const target = normalizeTimestampSeconds(targetTime)
+  if (!target || now >= target) return '0分钟'
+
+  const remain = Math.max(0, target - now)
+  const totalHours = Math.floor(remain / 3600)
+  const minutes = Math.floor((remain % 3600) / 60)
+
+  return `${totalHours}小时${minutes}分钟`
 }
 
 function buildProgress (targetTime, duration, now = Math.floor(Date.now() / 1000)) {
@@ -112,26 +126,51 @@ function pickHomePayload (payload = {}) {
 function extractPet (item = {}, now = Math.floor(Date.now() / 1000), guard = false) {
   const homePetInfo = item?.home_pet_info && typeof item.home_pet_info === 'object' ? item.home_pet_info : item
   const displayInfo = item?.display_info && typeof item.display_info === 'object' ? item.display_info : {}
-  const feedInfo = homePetInfo?.feed_info && typeof homePetInfo.feed_info === 'object' ? homePetInfo.feed_info : null
   const petId = homePetInfo?.pet_cfg_id || homePetInfo?.pet_id || homePetInfo?.pet_base_id || item?.pet_cfg_id || item?.pet_id || item?.id
 
   const name = trimText(homePetInfo?.name || homePetInfo?.pet_name || item?.name || item?.pet_name) || `精灵 ${petId || ''}`.trim()
   if (!toNumber(petId, 0) && !guard) return null
   const mutationType = toNumber(displayInfo?.mutation_type || displayInfo?.mutationType || item?.mutation_type || item?.mutationType, 0)
-  const beginTime = feedInfo ? normalizeTimestampSeconds(feedInfo.begin_time) : 0
-  const timeCost = feedInfo ? normalizeDurationSeconds(feedInfo.time_cost) : 0
-  let ripTime = normalizeTimestampSeconds(homePetInfo?.pet_rip_time || item?.pet_rip_time || item?.rip_time)
-  if (!ripTime && beginTime && timeCost) {
-    ripTime = beginTime + timeCost
-  }
 
-  const hasInspiration = Boolean(ripTime)
-  const inspireReady = hasInspiration && now >= ripTime
-  const status = item?.status
+  const hasEgg = Boolean(item?.have_egg)
+  const predictedEggTime = normalizeTimestampSeconds(item?.predicted_egg_time)
+  const eggReady = hasEgg || (predictedEggTime > 0 && now >= predictedEggTime)
+  const feedRound = toNumber(homePetInfo?.feed_round || item?.feed_round, 0)
+  const gender = toNumber(displayInfo?.gender || item?.gender, 0)
+  const isMale = gender === 1
+
+  const status = homePetInfo?.status ?? item?.status
   const isGuard = guard || Boolean(item?.is_guard || item?.guard) || String(status).toLowerCase() === '2' || String(status).toLowerCase() === 'guard'
 
-  const statusText = isGuard && !hasInspiration ? '守卫中' : (inspireReady ? '灵感已完成' : (hasInspiration ? '灵感收集中' : '未喂食'))
-  const statusClass = isGuard && !hasInspiration ? 'guard' : (inspireReady ? 'ready' : (hasInspiration ? 'progress' : 'idle'))
+  const hasInspiration = feedRound > 0
+  const inspireReady = hasInspiration
+
+  const statusText = isGuard && !hasInspiration ? '守卫中'
+    : (inspireReady ? '可收取灵感'
+    : (hasInspiration ? '灵感收集中'
+    : '未喂食'))
+
+  const statusClass = isGuard && !hasInspiration ? 'guard'
+    : (eggReady ? 'ready'
+    : (inspireReady ? 'progress'
+    : (hasInspiration ? 'progress'
+    : 'idle')))
+
+  let note
+
+  if (isGuard && String(petId) === '0') {
+    note = '家园守卫位'
+  } else if (eggReady) {
+    note = '可收取'
+  } else if (predictedEggTime > 0) {
+    note = `${formatEggRemaining(predictedEggTime, now)}后生蛋`
+  } else if (feedRound > 0) {
+    note = isMale ? '' : '等待生蛋'
+  } else if (isGuard) {
+    note = '家园守卫位'
+  } else {
+    note = '未喂食'
+  }
 
   return {
     id: String(petId || ''),
@@ -140,15 +179,16 @@ function extractPet (item = {}, now = Math.floor(Date.now() / 1000), guard = fal
     iconUrl: buildHeadIconUrl(petId, mutationType) || buildPetIconUrl(petId),
     fallbackIconUrl: buildPetIconUrl(petId),
     starIconUrl: [1, 8, 9].includes(mutationType) ? `render/home/img/rocomuid/star_${mutationType}.png` : '',
-    badge: isGuard ? '守' : '',
+    badge: isGuard ? '守' : (hasEgg ? '蛋' : ''),
     mutationType,
     isGuard,
     statusText,
     statusClass,
-    note: hasInspiration ? formatRemaining(ripTime, now) : (isGuard ? '家园守卫位' : '暂无灵感倒计时'),
-    inspireReady,
-    readyAt: ripTime,
-    progress: hasInspiration ? buildProgress(ripTime, timeCost, now) : 0
+    note,
+    inspireReady: eggReady,
+    readyAt: predictedEggTime || 0,
+    progress: 0,
+    gender
   }
 }
 
@@ -282,6 +322,17 @@ function normalizeHomeInfo (payload = {}, uid = '') {
     const pet = extractPet(guardSources[i], now, true)
     if (pet) guardPets.push(pet)
   }
+
+  indoorPets.sort((a, b) => {
+    if (a.gender === 2 && b.gender !== 2) return -1
+    if (a.gender !== 2 && b.gender === 2) return 1
+    if (a.gender === 2) {
+      const ta = a.readyAt || Number.MAX_SAFE_INTEGER
+      const tb = b.readyAt || Number.MAX_SAFE_INTEGER
+      return ta - tb
+    }
+    return 0
+  })
 
   const gardenPlots = extractPlants(homeInfo)
   const homeName = trimText(brief?.home_name || brief?.name) || '洛克玩家'

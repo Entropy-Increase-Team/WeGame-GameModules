@@ -70,12 +70,6 @@
             <div class="pet-info">
               <div class="pet-name">{{item.name}}</div>
               <div class="pet-status">{{item.statusText}}</div>
-              {{if item.statusClass !== 'idle'}}
-              <div class="progress-line">
-                <img class="progress-track" src="{{_res_path}}render/home/img/rocomuid/jindu_tc.png" alt="">
-                <img class="progress-bar" src="{{_res_path}}render/home/img/rocomuid/jindu_bar.png" style="width: {{item.progress}}%;" alt="">
-              </div>
-              {{/if}}
               <div class="pet-note">{{item.note}}</div>
             </div>
           </article>
