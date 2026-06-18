@@ -460,7 +460,24 @@ class MerchantService {
     for (const p of allItems) {
       const startTime = Number(p.start_time || 0)
       const endTime = Number(p.end_time || 0)
-      if (startTime === 0 || endTime === 0) continue
+
+      // 热销商品：无时间限制，始终显示
+      if (startTime === 0 || endTime === 0) {
+        goodsAll.push({
+          goods_name: p.name,
+          iconUrl: p.icon_url || iconMap[p.name] || '',
+          price: priceMap[p.name] || 0,
+          num: '',
+          roundId: 0,
+          roundLabel: '',
+          statusText: '进行中',
+          endTimeStr: '',
+          isEnded: false,
+          remainingStr: `热销商品·限购${limitMap[p.name] || 0}个`,
+          top: 0
+        })
+        continue
+      }
 
       const roundId = getRoundForItem(p, now)
       if (!roundId) continue
@@ -566,7 +583,19 @@ class MerchantService {
     for (const p of allItems) {
       const startTime = Number(p.start_time || 0)
       const endTime = Number(p.end_time || 0)
-      if (startTime === 0 || endTime === 0) continue
+
+      // 热销商品：无时间限制，始终显示
+      if (startTime === 0 || endTime === 0) {
+        goodsAll.push({
+          goods_name: p.name,
+          iconUrl: p.icon_url || iconMap[p.name] || '',
+          price: priceMap[p.name] || 0,
+          num: '',
+          remainingStr: `热销商品·限购${limitMap[p.name] || 0}个`,
+          top: 0
+        })
+        continue
+      }
 
       const roundId = getRoundForItem(p, now)
       if (roundId !== currentRoundId) continue
