@@ -470,10 +470,11 @@ class MerchantService {
           num: '',
           roundId: 0,
           roundLabel: '',
-          statusText: '进行中',
+          statusText: '',
           endTimeStr: '',
           isEnded: false,
-          remainingStr: `热销商品·限购${limitMap[p.name] || 0}个`,
+          isHot: true,
+          remainingStr: `限购${limitMap[p.name] || 0}个`,
           top: 0
         })
         continue
@@ -484,7 +485,6 @@ class MerchantService {
 
       const isEnded = now.getTime() >= endTime
       const isActive = now.getTime() >= startTime && now.getTime() < endTime
-      const statusText = isEnded ? '已结束' : (isActive ? '进行中' : '未开始')
 
       // Format end time for display
       const endDate = new Date(endTime)
@@ -497,10 +497,11 @@ class MerchantService {
         num: '',
         roundId,
         roundLabel: `第${roundId}轮`,
-        statusText,
+        statusText: '',
         endTimeStr,
         isEnded,
-        remainingStr: `第${roundId}轮·${statusText}·结束${endTimeStr}·限购${limitMap[p.name] || 0}个`,
+        isHot: true, // TODO: 调试完毕后改回 false
+        remainingStr: `第${roundId}轮·结束${endTimeStr}·限购${limitMap[p.name] || 0}个`,
         top: 0
       })
     }
@@ -591,7 +592,8 @@ class MerchantService {
           iconUrl: p.icon_url || iconMap[p.name] || '',
           price: priceMap[p.name] || 0,
           num: '',
-          remainingStr: `热销商品·限购${limitMap[p.name] || 0}个`,
+          isHot: true,
+          remainingStr: `限购${limitMap[p.name] || 0}个`,
           top: 0
         })
         continue
@@ -609,6 +611,7 @@ class MerchantService {
         iconUrl: p.icon_url || iconMap[p.name] || '',
         price: priceMap[p.name] || 0,
         num: '',
+        isHot: false,
         remainingStr: `结束${endTimeStr}·限购${limitMap[p.name] || 0}个`,
         top: 0
       })

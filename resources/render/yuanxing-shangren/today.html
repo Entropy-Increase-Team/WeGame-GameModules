@@ -165,6 +165,15 @@
     filter: url(#imgStroke11);
     overflow: visible;
   }
+  .hot-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 37.5%;
+    height: 37.5%;
+    z-index: 2;
+    object-fit: contain;
+  }
 
   .num-badge {
     position: absolute;
@@ -403,6 +412,7 @@
       </div>
       <div class="goods-img-wrap">
         <img class="goods-img" src="{{item.iconUrl}}" alt="{{item.goods_name}}">
+        {{if item.isHot}}<img class="hot-badge" src="{{_res_path}}render/yuanxing-shangren/img/热销.png" alt="热销">{{/if}}
       </div>
       <div class="price-group">
         <img class="coin-icon" src="{{_res_path}}render/yuanxing-shangren/img/coin.png" alt="coin">
