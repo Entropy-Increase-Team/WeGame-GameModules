@@ -500,7 +500,7 @@ class MerchantService {
         statusText: '',
         endTimeStr,
         isEnded,
-        isHot: true, // TODO: 调试完毕后改回 false
+        isHot: false,
         remainingStr: `第${roundId}轮·结束${endTimeStr}·限购${limitMap[p.name] || 0}个`,
         top: 0
       })
