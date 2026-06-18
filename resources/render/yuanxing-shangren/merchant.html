@@ -86,6 +86,24 @@
     height: 308px;
     overflow: visible;
   }
+  .goods-card.ended {
+    opacity: 0.5;
+  }
+  .goods-card.ended .goods-name {
+    color: #878070;
+  }
+  .goods-card.ended .goods-name-shadow {
+    color: #c8c2b8;
+  }
+  .goods-card.ended .price-value {
+    background: linear-gradient(to bottom, #878070, #878070);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+  .goods-card.ended .price-sep,
+  .goods-card.ended .price-unit {
+    color: #878070;
+  }
 
   .goods-card-bg {
     position: absolute;
@@ -373,7 +391,7 @@
 
     {{if goods && goods.length > 0}}
     {{each goods item}}
-    <div class="goods-card" style="top: {{item.top}}px">
+    <div class="goods-card{{if item.isEnded}} ended{{/if}}" style="top: {{item.top}}px">
       <div class="goods-card-bg"></div>
       <div class="goods-name-wrap">
         <span class="goods-name-shadow">{{item.goods_name}}</span>
