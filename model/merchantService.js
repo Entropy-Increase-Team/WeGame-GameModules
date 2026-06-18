@@ -428,12 +428,17 @@ class MerchantService {
     const activity = merchantActivities[0] || {}
     const randomGoods = Array.isArray(payload?.random_goods) ? payload.random_goods : []
     const props = Array.isArray(activity?.get_props) ? activity.get_props : []
+    const extraProps = Array.isArray(activity?.get_extra_props) ? activity.get_extra_props : []
+    const pets = Array.isArray(activity?.get_pets) ? activity.get_pets : []
 
-    // Build icon map and price map from get_props
+    // Merge all items
+    const allItems = [...props, ...extraProps, ...pets]
+
+    // Build icon map and price map
     const iconMap = {}
     const priceMap = {}
     const limitMap = {}
-    for (const p of props) {
+    for (const p of allItems) {
       if (p.name && p.icon_url) iconMap[p.name] = p.icon_url
     }
     for (const item of randomGoods) {
@@ -445,14 +450,14 @@ class MerchantService {
     const startDate = new Date(activity.start_time || now)
     const dateStr = `${startDate.getMonth() + 1}.${startDate.getDate()}`
 
-    // Build goods array from get_props (each prop is a time-slot entry)
+    // Build goods array from allItems (each item is a time-slot entry)
     const startY = 592
     const cardHeight = 308
     const gap = 43
     const pad = (n) => String(n).padStart(2, '0')
 
     const goodsAll = []
-    for (const p of props) {
+    for (const p of allItems) {
       const startTime = Number(p.start_time || 0)
       const endTime = Number(p.end_time || 0)
       if (startTime === 0 || endTime === 0) continue
@@ -519,12 +524,17 @@ class MerchantService {
     const activity = merchantActivities[0] || {}
     const randomGoods = Array.isArray(payload?.random_goods) ? payload.random_goods : []
     const props = Array.isArray(activity?.get_props) ? activity.get_props : []
+    const extraProps = Array.isArray(activity?.get_extra_props) ? activity.get_extra_props : []
+    const pets = Array.isArray(activity?.get_pets) ? activity.get_pets : []
+
+    // Merge all items
+    const allItems = [...props, ...extraProps, ...pets]
 
     // Build icon map and price map
     const iconMap = {}
     const priceMap = {}
     const limitMap = {}
-    for (const p of props) {
+    for (const p of allItems) {
       if (p.name && p.icon_url) iconMap[p.name] = p.icon_url
     }
     for (const item of randomGoods) {
@@ -553,7 +563,7 @@ class MerchantService {
     const gap = 43
 
     const goodsAll = []
-    for (const p of props) {
+    for (const p of allItems) {
       const startTime = Number(p.start_time || 0)
       const endTime = Number(p.end_time || 0)
       if (startTime === 0 || endTime === 0) continue
