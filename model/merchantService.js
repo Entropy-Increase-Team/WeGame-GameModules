@@ -418,6 +418,186 @@ class MerchantService {
     }
   }
 
+  buildTodayCardRenderData (payload = {}, options = {}) {
+    const now = options?.now || new Date()
+    const merchantActivities = Array.isArray(payload?.merchantActivities)
+      ? payload.merchantActivities
+      : Array.isArray(payload?.merchant_activities)
+          ? payload.merchant_activities
+          : []
+    const activity = merchantActivities[0] || {}
+    const randomGoods = Array.isArray(payload?.random_goods) ? payload.random_goods : []
+    const props = Array.isArray(activity?.get_props) ? activity.get_props : []
+
+    // Build icon map and price map from get_props
+    const iconMap = {}
+    const priceMap = {}
+    const limitMap = {}
+    for (const p of props) {
+      if (p.name && p.icon_url) iconMap[p.name] = p.icon_url
+    }
+    for (const item of randomGoods) {
+      priceMap[item.goods_name] = item.price
+      limitMap[item.goods_name] = item.buy_limit_num
+    }
+
+    // Format date (MM.DD)
+    const startDate = new Date(activity.start_time || now)
+    const dateStr = `${startDate.getMonth() + 1}.${startDate.getDate()}`
+
+    // Build goods array from get_props (each prop is a time-slot entry)
+    const startY = 592
+    const cardHeight = 308
+    const gap = 43
+    const pad = (n) => String(n).padStart(2, '0')
+
+    const goodsAll = []
+    for (const p of props) {
+      const startTime = Number(p.start_time || 0)
+      const endTime = Number(p.end_time || 0)
+      if (startTime === 0 || endTime === 0) continue
+
+      const roundId = getRoundForItem(p, now)
+      if (!roundId) continue
+
+      const isEnded = now.getTime() >= endTime
+      const isActive = now.getTime() >= startTime && now.getTime() < endTime
+      const statusText = isEnded ? '已结束' : (isActive ? '进行中' : '未开始')
+
+      // Format end time for display
+      const endDate = new Date(endTime)
+      const endTimeStr = `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`
+
+      goodsAll.push({
+        goods_name: p.name,
+        iconUrl: p.icon_url || iconMap[p.name] || '',
+        price: priceMap[p.name] || 0,
+        num: '',
+        roundId,
+        roundLabel: `第${roundId}轮`,
+        statusText,
+        endTimeStr,
+        isEnded,
+        remainingStr: `第${roundId}轮·${statusText}·结束${endTimeStr}·限购${limitMap[p.name] || 0}个`,
+        top: 0
+      })
+    }
+
+    // Sort by roundId descending, then by goods_name
+    goodsAll.sort((a, b) => {
+      if (b.roundId !== a.roundId) return b.roundId - a.roundId
+      return a.goods_name.localeCompare(b.goods_name)
+    })
+
+    // Assign position and num
+    const goods = goodsAll.map((item, i) => ({
+      ...item,
+      num: String(i + 1).padStart(2, '0'),
+      top: startY + i * (cardHeight + gap)
+    }))
+
+    // Calculate bottom frame position
+    const lastCardTop = goods.length > 0 ? goods[goods.length - 1].top : startY
+    const bottomFrameTop = lastCardTop + 287
+    const pageHeight = bottomFrameTop + 160
+
+    return {
+      dateStr,
+      goods,
+      bottomFrameTop,
+      pageHeight
+    }
+  }
+
+  buildCurrentRoundCardRenderData (payload = {}, options = {}) {
+    const now = options?.now || new Date()
+    const merchantActivities = Array.isArray(payload?.merchantActivities)
+      ? payload.merchantActivities
+      : Array.isArray(payload?.merchant_activities)
+          ? payload.merchant_activities
+          : []
+    const activity = merchantActivities[0] || {}
+    const randomGoods = Array.isArray(payload?.random_goods) ? payload.random_goods : []
+    const props = Array.isArray(activity?.get_props) ? activity.get_props : []
+
+    // Build icon map and price map
+    const iconMap = {}
+    const priceMap = {}
+    const limitMap = {}
+    for (const p of props) {
+      if (p.name && p.icon_url) iconMap[p.name] = p.icon_url
+    }
+    for (const item of randomGoods) {
+      priceMap[item.goods_name] = item.price
+      limitMap[item.goods_name] = item.buy_limit_num
+    }
+
+    // Get current round
+    const currentRound = this.getCurrentRound(now)
+    const currentRoundId = currentRound.current
+
+    // Format current round time range
+    const pad = (n) => String(n).padStart(2, '0')
+    const dateStr = `${now.getMonth() + 1}.${now.getDate()}`
+    let timeRange = '--:--~--:--'
+    if (currentRoundId) {
+      const win = ROUND_WINDOWS.find(w => w.id === currentRoundId)
+      if (win) {
+        timeRange = `${pad(win.startHour)}:00-${pad(win.endHour)}:00`
+      }
+    }
+
+    // Build goods array for current round only
+    const startY = 592
+    const cardHeight = 308
+    const gap = 43
+
+    const goodsAll = []
+    for (const p of props) {
+      const startTime = Number(p.start_time || 0)
+      const endTime = Number(p.end_time || 0)
+      if (startTime === 0 || endTime === 0) continue
+
+      const roundId = getRoundForItem(p, now)
+      if (roundId !== currentRoundId) continue
+
+      // Format end time
+      const endDate = new Date(endTime)
+      const endTimeStr = `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`
+
+      goodsAll.push({
+        goods_name: p.name,
+        iconUrl: p.icon_url || iconMap[p.name] || '',
+        price: priceMap[p.name] || 0,
+        num: '',
+        remainingStr: `结束${endTimeStr}·限购${limitMap[p.name] || 0}个`,
+        top: 0
+      })
+    }
+
+    // Sort by goods_name for stability
+    goodsAll.sort((a, b) => a.goods_name.localeCompare(b.goods_name))
+
+    // Assign position and num
+    const goods = goodsAll.map((item, i) => ({
+      ...item,
+      num: String(i + 1).padStart(2, '0'),
+      top: startY + i * (cardHeight + gap)
+    }))
+
+    const lastCardTop = goods.length > 0 ? goods[goods.length - 1].top : startY
+    const bottomFrameTop = lastCardTop + 287
+    const pageHeight = bottomFrameTop + 160
+
+    return {
+      dateStr,
+      timeRange,
+      goods,
+      bottomFrameTop,
+      pageHeight
+    }
+  }
+
   buildTodayFallbackText (payload = {}, options = {}) {
     const now = options?.now || new Date()
     const { activity, roundGroups, todayDate } = this.extractTodayProducts(payload, now)

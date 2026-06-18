@@ -120,19 +120,18 @@ export class RocomTools extends plugin {
       const data = await merchantService.getInfo(false, {
         userIdentifier: this.accountService.getUserIdentifier()
       })
-      const renderData = merchantService.buildRenderData(data)
+      const renderData = merchantService.buildCurrentRoundCardRenderData(data)
 
       const image = await renderModuleTemplate(
         this.e,
         'rocom',
-        'render/yuanxing-shangren/index',
+        'render/yuanxing-shangren/merchant',
         {
           saveId: `merchant-${this.e.user_id}-${Date.now()}`,
           ...renderData
         },
         {
-          retType: 'base64',
-          beforeRender: ({ data }) => this.withMerchantAssets(data)
+          retType: 'base64'
         }
       )
 
@@ -156,7 +155,7 @@ export class RocomTools extends plugin {
       const data = await merchantService.getInfo(false, {
         userIdentifier: this.accountService.getUserIdentifier()
       })
-      const renderData = merchantService.buildTodayRenderData(data)
+      const renderData = merchantService.buildTodayCardRenderData(data)
 
       const image = await renderModuleTemplate(
         this.e,
@@ -167,8 +166,7 @@ export class RocomTools extends plugin {
           ...renderData
         },
         {
-          retType: 'base64',
-          beforeRender: ({ data }) => this.withMerchantAssets(data)
+          retType: 'base64'
         }
       )
 
