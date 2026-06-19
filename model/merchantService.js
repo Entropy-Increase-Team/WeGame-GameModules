@@ -450,31 +450,31 @@ class MerchantService {
     const startDate = new Date(activity.start_time || now)
     const dateStr = `${startDate.getMonth() + 1}.${startDate.getDate()}`
 
-    // Build goods array from allItems (each item is a time-slot entry)
     const startY = 592
     const cardHeight = 308
     const gap = 43
-    const pad = (n) => String(n).padStart(2, '0')
 
     const goodsAll = []
     for (const p of allItems) {
       const startTime = Number(p.start_time || 0)
       const endTime = Number(p.end_time || 0)
+      const category = classifyMerchantItem(p)
+      const limit = limitMap[p.name] || 0
 
-      // 热销商品：无时间限制，始终显示
-      if (startTime === 0 || endTime === 0) {
+      const isEnded = now.getTime() >= endTime || now.getTime() < startTime
+
+      // 热销 (normal)：全天在架
+      if (category === 'normal') {
         goodsAll.push({
           goods_name: p.name,
           iconUrl: p.icon_url || iconMap[p.name] || '',
           price: priceMap[p.name] || 0,
           num: '',
+          category: 'normal',
           roundId: 0,
-          roundLabel: '',
-          statusText: '',
-          endTimeStr: '',
-          isEnded: false,
           isHot: true,
-          remainingStr: `限购${limitMap[p.name] || 0}个`,
+          isEnded: false,
+          remainingStr: `本日限购${limit}个`,
           top: 0
         })
         continue
@@ -483,33 +483,44 @@ class MerchantService {
       const roundId = getRoundForItem(p, now)
       if (!roundId) continue
 
-      const isEnded = now.getTime() >= endTime
-      const isActive = now.getTime() >= startTime && now.getTime() < endTime
+      // 周末限定 (weekend)：跨天商品，热销
+      if (category === 'weekend') {
+        goodsAll.push({
+          goods_name: p.name,
+          iconUrl: p.icon_url || iconMap[p.name] || '',
+          price: priceMap[p.name] || 0,
+          num: '',
+          category: 'weekend',
+          roundId: 0,
+          isHot: true,
+          isEnded,
+          remainingStr: isEnded ? `第${roundId}轮·本轮限购${limit}个` : `活动期间限购${limit}个`,
+          top: 0
+        })
+        continue
+      }
 
-      // Format end time for display
-      const endDate = new Date(endTime)
-      const endTimeStr = `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`
-
+      // 常规商品 (round)
       goodsAll.push({
         goods_name: p.name,
         iconUrl: p.icon_url || iconMap[p.name] || '',
         price: priceMap[p.name] || 0,
         num: '',
+        category: 'round',
         roundId,
-        roundLabel: `第${roundId}轮`,
-        statusText: '',
-        endTimeStr,
-        isEnded,
         isHot: false,
-        remainingStr: `第${roundId}轮·结束${endTimeStr}·限购${limitMap[p.name] || 0}个`,
+        isEnded,
+        remainingStr: isEnded ? `第${roundId}轮·本轮限购${limit}个` : `本轮限购${limit}个`,
         top: 0
       })
     }
 
-    // Sort by roundId descending, then by goods_name
+    // Sort: 在架优先 → round→normal→weekend → price desc → 不在架在后
+    const catOrder = { round: 0, normal: 1, weekend: 2 }
     goodsAll.sort((a, b) => {
-      if (b.roundId !== a.roundId) return b.roundId - a.roundId
-      return a.goods_name.localeCompare(b.goods_name)
+      if (a.isEnded !== b.isEnded) return a.isEnded ? 1 : -1
+      if (a.category !== b.category) return catOrder[a.category] - catOrder[b.category]
+      return (b.price || 0) - (a.price || 0)
     })
 
     // Assign position and num
@@ -519,7 +530,6 @@ class MerchantService {
       top: startY + i * (cardHeight + gap)
     }))
 
-    // Calculate bottom frame position
     const lastCardTop = goods.length > 0 ? goods[goods.length - 1].top : startY
     const bottomFrameTop = lastCardTop + 287
     const pageHeight = bottomFrameTop + 160
@@ -582,43 +592,67 @@ class MerchantService {
 
     const goodsAll = []
     for (const p of allItems) {
-      const startTime = Number(p.start_time || 0)
-      const endTime = Number(p.end_time || 0)
+      const category = classifyMerchantItem(p)
+      const limit = limitMap[p.name] || 0
 
-      // 热销商品：无时间限制，始终显示
-      if (startTime === 0 || endTime === 0) {
+      // 热销 (normal)：全天在架，始终显示
+      if (category === 'normal') {
         goodsAll.push({
           goods_name: p.name,
           iconUrl: p.icon_url || iconMap[p.name] || '',
           price: priceMap[p.name] || 0,
           num: '',
+          category: 'normal',
           isHot: true,
-          remainingStr: `限购${limitMap[p.name] || 0}个`,
+          isEnded: false,
+          remainingStr: `本日限购${limit}个`,
           top: 0
         })
         continue
       }
 
+      // 周末限定 (weekend)：跨天商品，也标记热销
+      if (category === 'weekend') {
+        goodsAll.push({
+          goods_name: p.name,
+          iconUrl: p.icon_url || iconMap[p.name] || '',
+          price: priceMap[p.name] || 0,
+          num: '',
+          category: 'weekend',
+          isHot: true,
+          isEnded: false,
+          remainingStr: `活动期间限购${limit}个`,
+          top: 0
+        })
+        continue
+      }
+
+      // 常规商品 (round)：仅显示当前轮次
       const roundId = getRoundForItem(p, now)
       if (roundId !== currentRoundId) continue
 
-      // Format end time
-      const endDate = new Date(endTime)
-      const endTimeStr = `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`
+      const endTime = Number(p.end_time || 0)
+      const isEnded = now.getTime() >= endTime || now.getTime() < Number(p.start_time || 0)
 
       goodsAll.push({
         goods_name: p.name,
         iconUrl: p.icon_url || iconMap[p.name] || '',
         price: priceMap[p.name] || 0,
         num: '',
+        category: 'round',
         isHot: false,
-        remainingStr: `结束${endTimeStr}·限购${limitMap[p.name] || 0}个`,
+        isEnded,
+        remainingStr: `本轮限购${limit}个`,
         top: 0
       })
     }
 
-    // Sort by goods_name for stability
-    goodsAll.sort((a, b) => a.goods_name.localeCompare(b.goods_name))
+    // Sort: round → normal → weekend → price desc
+    const catOrder = { round: 0, normal: 1, weekend: 2 }
+    goodsAll.sort((a, b) => {
+      if (a.category !== b.category) return catOrder[a.category] - catOrder[b.category]
+      return (b.price || 0) - (a.price || 0)
+    })
 
     // Assign position and num
     const goods = goodsAll.map((item, i) => ({
