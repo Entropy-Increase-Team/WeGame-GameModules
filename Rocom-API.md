@@ -123,6 +123,8 @@
 |---|---|---|---|
 | `GET /api/v1/games/rocom/accounts` | 基础认证；API Key 用户作用域 | `account_type` | `user_identifier` query 优先级高于请求头 |
 | `POST /api/v1/games/rocom/uid/bind` | 基础认证；`uid`；API Key 用户作用域 | `X-Client-Type` / `client_type`、`X-Client-ID` / `client_id` | `client_type` 支持 `web` / `bot` / `app`，query 优先级高于请求头 |
+| `GET /api/v1/games/rocom/uid/list` | 基础认证；API Key 用户作用域 | - | 列出当前用户作用域下的 UID 绑定 |
+| `DELETE /api/v1/games/rocom/uid/{id}` | 基础认证；`id` path；API Key 用户作用域 | - | 删除当前用户作用域下的指定 UID 绑定 |
 | `GET /profile/role`、`/profile/evaluation`、`/profile/pet-summary`、`/profile/collection` | 账号数据认证 | `account_type` | `account_type=1` QQ，`2` 微信 |
 | `GET /profile/battle-overview` | 账号数据认证 | `zone` | `zone=0` QQ，`1` 微信 |
 | `GET /battle/list` | 账号数据认证 | `zone`、`after_time`、`page_size` | `after_time` 推荐 RFC3339 |
@@ -152,6 +154,7 @@
 | `POST /ingame/merchant/info` | 基础认证；`Content-Type: application/json` | body/query `shop_id`、body/query `wait_ms` | body `shop_id` 优先 |
 | `GET /ingame/tasks/{task_id}` | 基础认证；`task_id` path | - | 查询 Ingame 异步任务 |
 | `GET /ingame/health` | 基础认证 | - | 查询 Ingame 健康状态 |
+| `GET /ingame/nodes` | 后台管理员 Web JWT 或具备 `admin.access` 的 API Key | - | 查询 Ingame 多节点状态 |
 | `GET /community/egg-exchanges` | 基础认证 | `page_no`、`page`、`page_size`、`q`、`keyword`、`id`、`have_text`、`want_text`、`want_note`、`sort` | 公开列表只返回审核通过、未过期活跃帖 |
 | `POST /community/egg-exchanges` | 换蛋客户端归属；body `id`、`have_text`、`want_text` | body `want_note`、`remark`、`expires_at` | API Key 需要 `rocom.egg_exchange.post` |
 | `GET /community/egg-exchanges/my` | 换蛋客户端归属 | 公开列表全部筛选项、`status`、`review_status` | API Key 使用客户端归属隔离 |
@@ -303,6 +306,66 @@ Accept: application/json
       "verified": false,
       "is_primary": true
     }
+  }
+}
+```
+
+### UID 绑定列表
+
+- `GET /api/v1/games/rocom/uid/list`
+
+说明：
+
+- 列出当前用户作用域下处于有效状态（`status=active`）的 UID 绑定
+- 请求头按“账号列表”模板传递，本接口基于用户作用域工作，**不需要** `X-Framework-Token`
+- Web 用户直接带 `Authorization: Bearer <web-jwt>` 即可
+- API Key 调用时需要额外带 `user_identifier`，可放在 query 参数或 `X-User-Identifier` 请求头
+- 结果按 `is_primary` 优先、`created_at` 升序返回
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "bindings": [
+      {
+        "id": "67f12d2f4436d8d0d82f8b61",
+        "uid": "704693375",
+        "frameworkToken": "4f1f2fc2-16bc-4f6d-9f0b-53afde3d38f5",
+        "source": "manual",
+        "verified": false,
+        "is_primary": true,
+        "status": "active",
+        "created_at": "2026-04-05T22:10:00+08:00",
+        "updated_at": "2026-04-05T22:10:00+08:00"
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
+### 删除 UID 绑定
+
+- `DELETE /api/v1/games/rocom/uid/{id}`
+
+说明：
+
+- 删除当前用户作用域下的指定 UID 绑定，`id` 为 UID 绑定列表返回的 `id`
+- 请求头按“账号列表”模板传递，**不需要** `X-Framework-Token`
+- 只能删除当前用户作用域拥有的绑定；绑定不存在或不属于当前作用域时返回错误
+- 删除为软删除：被删除的绑定置为 `status=deleted` 并清除主绑定标记
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "deleted": true
   }
 }
 ```
@@ -925,8 +988,9 @@ Accept: application/json
 
 - 这些接口读取本地 `game_rocom.pet_list` 和 `game_rocom.pet_egg_groups` 表
 - `pet_egg_groups` 来自 RoCom 远端 `pet_egg_groups` 配置，由 worker 自动同步，也可通过 `POST /api/v1/games/rocom/config/sync` 手动同步
-- 请求头按"不需要 `X-Framework-Token` 的普通查询接口"模板传递
+- 请求头按“不需要 `X-Framework-Token` 的普通查询接口”模板传递
 - 认证层支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`；默认收费配置下需要 Web JWT 或归属到用户的 API Key 完成扣费调用
+- 下方精灵 ID、图标和名称用于展示字段结构，实际值以本地同步数据为准
 
 #### 孵蛋反查
 
@@ -946,7 +1010,7 @@ Accept: application/json
 - 命中条件为 `height_low <= height_cm <= height_high` 且 `weight_low <= weight_g <= weight_high`
 - 排序按 `r_value` 升序、范围面积升序、名称升序
 
-响应示例：
+响应示例（字段结构）：
 
 ```json
 {
@@ -992,16 +1056,16 @@ Accept: application/json
 }
 ```
 
+已抓包输入参考：
+
+- `height=0.2&weight=1` 前端埋点结果数为 `5`
+- `height=0.3&weight=1` 前端埋点结果数为 `3`
+
 #### 蛋组字典
 
 `GET /api/v1/games/rocom/egg/groups`
 
-说明：
-
-- 查询已同步到本地数据库的蛋组字典
-- 无必填参数
-
-响应示例：
+响应示例（节选）：
 
 ```json
 {
@@ -1010,10 +1074,19 @@ Accept: application/json
   "data": {
     "items": [
       {
+        "group_id": 1,
+        "display_name": "蛋组 1",
+        "official_name": "无法孵蛋"
+      },
+      {
         "group_id": 4,
         "display_name": "蛋组 4",
-        "official_name": "昆虫组",
-        "display_order": 1
+        "official_name": "昆虫组"
+      },
+      {
+        "group_id": 9,
+        "display_name": "蛋组 9",
+        "official_name": "拟人组"
       }
     ]
   }
@@ -1026,8 +1099,8 @@ Accept: application/json
 
 参数说明：
 
-- `group_ids`：必填，蛋组 ID，英文逗号分隔，例如 `4,9`
-- `match_mode`：可选，匹配模式，`all` 表示必须同时属于所有蛋组，`any` 表示属于任一蛋组即可；默认 `all`
+- `group_ids`：必填，蛋组 ID，英文逗号分隔
+- `match_mode`：可选，`all` 表示同时属于所有蛋组，`any` 表示属于任一蛋组，默认 `all`
 - `page_no`：可选，页码，默认 `1`
 - `page_size`：可选，每页数量，默认 `20`，最大 `100`
 
@@ -1042,20 +1115,38 @@ Accept: application/json
       "group_ids": [4, 9],
       "match_mode": "all",
       "groups": [
-        { "group_id": 4, "display_name": "蛋组 4", "official_name": "昆虫组" },
-        { "group_id": 9, "display_name": "蛋组 9", "official_name": "人型组" }
+        {
+          "group_id": 4,
+          "display_name": "蛋组 4",
+          "official_name": "昆虫组"
+        },
+        {
+          "group_id": 9,
+          "display_name": "蛋组 9",
+          "official_name": "拟人组"
+        }
       ]
     },
     "items": [
       {
         "id": 3001,
         "name": "喵喵",
-        "pet_img_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/image.png",
-        "pet_icon_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/icon.png",
-        "unit_type": ["草"],
         "egg_groups": [
-          { "group_id": 6, "display_name": "蛋组 6", "official_name": "动物组" }
-        ]
+          {
+            "group_id": 4,
+            "display_name": "蛋组 4",
+            "official_name": "昆虫组"
+          },
+          {
+            "group_id": 9,
+            "display_name": "蛋组 9",
+            "official_name": "拟人组"
+          }
+        ],
+        "weight_range_g": [3620, 4600],
+        "height_range_cm": [53, 75],
+        "weight_range_kg": [3.62, 4.6],
+        "height_range_m": [0.53, 0.75]
       }
     ],
     "total": 1,
@@ -1069,12 +1160,12 @@ Accept: application/json
 
 #### 按精灵名反查蛋组
 
-`GET /api/v1/games/rocom/egg/pet-groups?q=喵喵&limit=20`
+`GET /api/v1/games/rocom/egg/pet-groups?q=鸭吉吉&limit=20`
 
 参数说明：
 
-- `q`：必填，精灵名称关键词
-- `limit`：可选，返回数量，默认 `20`，最大 `50`
+- `q`：必填，精灵名称或形态关键词
+- `limit`：可选，默认 `20`，最大 `50`
 
 响应示例：
 
@@ -1083,16 +1174,22 @@ Accept: application/json
   "code": 0,
   "message": "成功",
   "data": {
-    "q": "喵喵",
+    "q": "鸭吉吉",
     "items": [
       {
         "id": 3001,
-        "name": "喵喵",
-        "pet_img_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/image.png",
-        "pet_icon_url": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3001/icon.png",
-        "unit_type": ["草"],
+        "name": "鸭吉吉",
         "egg_groups": [
-          { "group_id": 6, "display_name": "蛋组 6", "official_name": "动物组" }
+          {
+            "group_id": 4,
+            "display_name": "蛋组 4",
+            "official_name": "昆虫组"
+          },
+          {
+            "group_id": 9,
+            "display_name": "蛋组 9",
+            "official_name": "拟人组"
+          }
         ]
       }
     ]
@@ -1576,9 +1673,13 @@ API Key 请求头：
   - `config_info`
   - `linkInfo`
   - `pet_base`
+  - `pet_egg_groups`
   - `lineupSettings`
   - `spiritList`
   - `skill.json`
+  - `RANDOM_GOODS_CONF`
+  - `BAG_ITEM_CONF`
+  - `PLANT_GROW_CONF`
 
 响应示例：
 
@@ -1595,9 +1696,13 @@ API Key 请求头：
       "config_info",
       "linkInfo",
       "pet_base",
+      "pet_egg_groups",
       "lineupSettings",
       "spiritList",
-      "skill.json"
+      "skill.json",
+      "RANDOM_GOODS_CONF",
+      "BAG_ITEM_CONF",
+      "PLANT_GROW_CONF"
     ],
     "skipped_resources": [
       "headicon_config"
@@ -1767,6 +1872,9 @@ Accept: application/json
 - `GET` 可使用 query 参数 `shop_id`
 - `POST` 可使用 JSON 请求体 `{"shop_id":3019}`，也可用 query 参数 `shop_id` 作为 body 省略时的兜底
 - `GET` 和 `POST` 都可选传 `wait_ms`，用于指定同步等待查询结果的毫秒数；`POST` 可放在 JSON body 或 query 参数
+- 响应整理为 `data.ret_code`、`data.shop`、`data.goods`
+- 服务端按 `data.goods[].goods_id` 匹配本地 `random_goods.id`，为命中的商品补充 `goods_name`、`item_id`、`item_num`
+- 商品价格统一放在 `data.goods[].price`，其中 `origin` 为原价，`real` 为现价
 
 `GET /api/v1/games/rocom/ingame/merchant/info` 请求示例：
 
@@ -1813,48 +1921,153 @@ Accept: application/json
   "code": 0,
   "message": "ok",
   "data": {
-    "source": "live",
-    "title": "商店查询结果 - shop_id=3019",
-    "rows": [
+    "ret_code": 0,
+    "shop": {
+      "shop_id": 3013,
+      "goods_count": 8,
+      "refresh_count": 1,
+      "max_refresh_count": 4,
+      "version": 1781398405351374,
+      "disable_time": 0
+    },
+    "goods": [
       {
-        "level": 0,
-        "field": "shop_id",
-        "label": "商店ID",
-        "value": "3019"
+        "index": 1,
+        "goods_id": 90001,
+        "goods_name": "棱镜球",
+        "item_id": 100286,
+        "item_num": 1,
+        "buy_num": 0,
+        "limit_buy_num": 1,
+        "next_refresh_time": 0,
+        "disable_time": 1781452800,
+        "price": {
+          "currency_type": "GT_VITEM",
+          "currency_id": 1,
+          "origin": 3200000,
+          "real": 3200000
+        }
       },
       {
-        "level": 0,
-        "field": "ret_code",
-        "label": "返回码",
-        "value": "0"
+        "index": 2,
+        "goods_id": 100050,
+        "goods_name": "暗星球",
+        "item_id": 100273,
+        "item_num": 1,
+        "buy_num": 0,
+        "limit_buy_num": 200,
+        "next_refresh_time": 0,
+        "disable_time": 1781452800,
+        "price": {
+          "currency_type": "GT_VITEM",
+          "currency_id": 1,
+          "origin": 3000,
+          "real": 3000
+        }
       },
       {
-        "level": 0,
-        "field": "goods_count",
-        "label": "商品数量",
-        "value": "1"
+        "index": 3,
+        "goods_id": 101007,
+        "goods_name": "残缺魔镜",
+        "item_id": 100421,
+        "item_num": 1,
+        "buy_num": 0,
+        "limit_buy_num": 1,
+        "next_refresh_time": 0,
+        "disable_time": 1781452800,
+        "price": {
+          "currency_type": "GT_VITEM",
+          "currency_id": 1,
+          "origin": 480000,
+          "real": 480000
+        }
       },
       {
-        "level": 1,
-        "field": "goods_id",
-        "label": "商品ID",
-        "value": "67005"
+        "index": 4,
+        "goods_id": 101008,
+        "goods_name": "适格钥匙",
+        "item_id": 100422,
+        "item_num": 1,
+        "buy_num": 0,
+        "limit_buy_num": 1,
+        "next_refresh_time": 0,
+        "disable_time": 1781452800,
+        "price": {
+          "currency_type": "GT_VITEM",
+          "currency_id": 1,
+          "origin": 320000,
+          "real": 320000
+        }
       },
       {
-        "level": 1,
-        "field": "next_refresh_time",
-        "label": "下次刷新时间",
-        "value": "1776830400 (2026-04-22 12:00:00 CST)"
+        "index": 5,
+        "goods_id": 101009,
+        "goods_name": "能力钥匙",
+        "item_id": 100424,
+        "item_num": 1,
+        "buy_num": 0,
+        "limit_buy_num": 6,
+        "next_refresh_time": 0,
+        "disable_time": 1781452800,
+        "price": {
+          "currency_type": "GT_VITEM",
+          "currency_id": 1,
+          "origin": 160000,
+          "real": 160000
+        }
       },
       {
-        "level": 1,
-        "field": "real_price",
-        "label": "现价",
-        "value": "6000"
+        "index": 6,
+        "goods_id": 67001,
+        "goods_name": "黑晶琉璃",
+        "item_id": 100628,
+        "item_num": 1,
+        "buy_num": 0,
+        "limit_buy_num": 100,
+        "next_refresh_time": 1781409600,
+        "disable_time": 0,
+        "price": {
+          "currency_type": "GT_VITEM",
+          "currency_id": 1,
+          "origin": 1000,
+          "real": 1000
+        }
+      },
+      {
+        "index": 7,
+        "goods_id": 68003,
+        "goods_name": "神奇的蛋",
+        "item_id": 310049,
+        "item_num": 1,
+        "buy_num": 0,
+        "limit_buy_num": 5,
+        "next_refresh_time": 1781265600,
+        "disable_time": 0,
+        "price": {
+          "currency_type": "GT_VITEM",
+          "currency_id": 1,
+          "origin": 36000,
+          "real": 36000
+        }
+      },
+      {
+        "index": 8,
+        "goods_id": 68006,
+        "goods_name": "草系血脉秘药",
+        "item_id": 102002,
+        "item_num": 1,
+        "buy_num": 0,
+        "limit_buy_num": 3,
+        "next_refresh_time": 1781409600,
+        "disable_time": 0,
+        "price": {
+          "currency_type": "GT_VITEM",
+          "currency_id": 1,
+          "origin": 160000,
+          "real": 160000
+        }
       }
-    ],
-    "notes": [],
-    "meta": {}
+    ]
   }
 }
 ```
@@ -1938,17 +2151,21 @@ Accept: application/json
             "have_egg": false,
             "home_pet_info": {
               "pet_gid": 61,
-              "pet_cfg_id": 0,
+              "pet_cfg_id": 3029,
               "status": 1704,
               "speciality_id": 101,
-              "name": "鸭吉吉",
+              "name": "花花",
+              "pet_default_name": "奇丽草",
               "feed_round": 0
             },
             "display_info": {
-              "base_conf_id": 0,
+              "base_conf_id": 3029,
               "gender": 0,
               "level": 0,
-              "mutation_type": 0,
+              "mutation_type": 1,
+              "mutation_name": "异色",
+              "name": "花花",
+              "pet_default_name": "奇丽草",
               "energy": 0,
               "blood_id": 0,
               "nature": 0
@@ -1967,6 +2184,7 @@ Accept: application/json
                   "plant_id": 2,
                   "plant_state": 2,
                   "plant_seed_id": 330010,
+                  "plant_seed_name": "星霜花",
                   "plant_rip_time": 1775027032,
                   "plant_harvest_num": 6,
                   "plant_tab_id": 1,
@@ -1995,7 +2213,11 @@ Accept: application/json
 - `home_info`：家园原始结构化信息，包含 `ret_info`、`friend_home_brief_info`、`friend_cell_home_brief_info` 等
 - `friend_home_brief_info`：家园名称、等级、经验、舒适度等简要信息
 - `friend_cell_home_brief_info.home_pets`：居住精灵列表，每项包含 `home_pet_info` 和 `display_info`
+- `home_pets[].home_pet_info.name`、`home_pets[].display_info.name`：玩家自定义昵称
+- `home_pets[].home_pet_info.pet_default_name`、`home_pets[].display_info.pet_default_name`：由 `pet_cfg_id` / `base_conf_id` 映射出的默认精灵名称，优先读取本地 `pet_list`，缺失时读取 `pet_base`
+- `home_pets[].display_info.mutation_name`：由 `mutation_type` 映射出的突变名称，例如 `1` 对应 `异色`，`8` 对应 `炫彩`，`9` 对应 `异色炫彩`
 - `friend_cell_home_brief_info.home_plant_info`：种植信息，包含土地列表、植物状态、成熟时间和可偷取信息
+- `home_plant_list[].plant_seed_name`：由本地 `home_items` 表按 `plant_seed_id` 命中时补充的植物名称；同步时会用 `PLANT_GROW_CONF.plant_harvest` 反查 `BAG_ITEM_CONF.name`，同时写入 seed ID 和 harvest ID 两套索引
 - `meta`：任务元信息
 
 ### 任务状态
@@ -2006,6 +2228,8 @@ Accept: application/json
 
 - 玩家搜索、商店查询或家园信息返回 HTTP `202` 时，使用返回的 `task_id` 查询异步任务状态
 - 任务完成后会返回对应查询结果
+- 多节点部署下，服务端会将排队任务状态查询路由回创建该任务的 ingame 节点
+- 多节点部署下，如果任务状态查询缺少节点亲和记录，服务端会返回上游不可用错误，避免将 A 节点队列误查到 B 节点
 
 请求示例：
 
@@ -2040,6 +2264,50 @@ Accept: application/json
 }
 ```
 
+### Ingame 节点状态
+
+- `GET /api/v1/games/rocom/ingame/nodes`
+
+说明：
+
+- 用于查看 ingame 多节点负载、健康状态和最近错误
+- 该接口需要管理员 Web JWT，或已获批 `admin.access` 的平台 API Key
+
+请求示例：
+
+```http
+GET /api/v1/games/rocom/ingame/nodes
+X-API-Key: <admin-wegame-api-key>
+Accept: application/json
+```
+
+响应示例，HTTP `200`：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "nodes": [
+      {
+        "id": "ingame-a",
+        "base_url": "http://0.0.0.11:12345",
+        "enabled": true,
+        "healthy": true,
+        "weight": 1,
+        "inflight": 0,
+        "fail_count": 0,
+        "success_count": 128,
+        "consecutive_failures": 0,
+        "consecutive_successes": 4,
+        "last_error": "",
+        "last_checked_at": "2026-06-18T16:00:00+08:00"
+      }
+    ]
+  }
+}
+```
+
 ### Ingame 返回规则
 
 以下为 ingame 接口的常见响应结构。
@@ -2060,7 +2328,7 @@ Accept: application/json
 }
 ```
 
-说明：玩家搜索和商店信息通常返回 `source/title/rows/notes/meta`；家园信息通常返回 `rows/home_info/meta`。
+说明：玩家搜索通常返回 `source/title/rows/notes/meta`；商店信息返回 `ret_code/shop/goods`；家园信息通常返回 `rows/home_info/meta`。
 
 排队中，HTTP `202`：
 
@@ -2118,7 +2386,7 @@ Accept: application/json
 - 本接口为工具类查询，**不需要** 传 `X-Framework-Token`
 
 响应说明：
-`candidates` / `exactResults` 条目由上游返回。上游当前会返回 `petImage`（大图）与 `petIcon`（小图）。同乘查询结果中会包含 `isSameRideEgg: true` 等字段。
+`candidates` / `exactResults` 条目主体由上游返回。后端会按条目中的 `pet` 名称查询本地精灵资料，并补充 `egg_groups` 蛋组列表；查不到时返回空数组。上游当前会返回 `petImage`（大图）与 `petIcon`（小图）。同乘查询结果中会包含 `isSameRideEgg: true` 等字段。
 
 示例：
 `GET /api/v1/games/rocom/pet/size-query?diameter=1.23&weight=45.6`
@@ -2139,6 +2407,13 @@ Accept: application/json
         "attributes": ["水"],
         "diameterMax": 0.32,
         "diameterMin": 0.23,
+        "egg_groups": [
+          {
+            "group_id": 1,
+            "display_name": "动物组",
+            "official_name": "动物组"
+          }
+        ],
         "isSameRideEgg": true,
         "pet": "板板壳",
         "petId": 12,
@@ -2507,3 +2782,99 @@ setInterval(checkLatestRoComAnnouncement, 2 * 60 * 1000);
   }
 }
 ```
+
+## Wiki 图片资源（pak 贴图）
+
+部分 wiki 图片来源于游戏 pak 内 UE 贴图，由解包服务器（RocomParser）实时解码后上传到七牛**私有桶**，后端只记录映射并对外暴露不透明地址。
+
+- 对外地址：`GET {资源代理 route_prefix}/wiki/{uniqueValue}.{ext}`，默认即 `/api/v1/resources/wiki/{uniqueValue}.png`。
+- `uniqueValue` 是图片字节的 SHA-256（64 位小写 hex），用于后端映射和稳定 CDN 缓存，不暴露七牛真实路径；URL 后缀来自解包上传的实际图片格式，例如 `.png`。
+- 该地址为公开可读（匿名），由资源代理统一处理；后端在回源未命中时用七牛 AK/SK 实时签发**短时效私有下载链接**并反向代理回流，七牛真实 URL 与签名 token 不出现在响应中。建议在 CDN 侧对 `/wiki/` 路由做缓存。
+- 真实的七牛对象 key 按游戏资源路径保存，例如 `rocom/wiki/Game/NewRoco/Modules/System/PetUI/Raw/Cards/img_Bg_Lawn.png`，便于在存储桶中按游戏目录浏览和排查；触发刷新时会覆盖同一路径对象。
+- 后端映射表存储：`game_path`、`unique_value`（SHA-256）、`qiniu_key`、`content_hash`（七牛 QETag）、`ext`、`archive`、`file_size`、`mime_type`、`created_at`、`updated_at`。
+
+### `GET /api/v1/games/rocom/config/wiki-images`
+
+管理员接口，用于分页查看后端已保存的 wiki 图片映射表，方便管理后台检索游戏资源路径、SHA-256、七牛 key 和图片元数据。
+
+认证：后台管理员 Web JWT，或具备 `admin.access` 的 API Key。
+
+Query 参数：
+
+| 参数 | 类型 | 默认 | 说明 |
+| --- | --- | --- | --- |
+| `page` | int | `1` | 页码，从 1 开始 |
+| `page_size` | int | `50` | 每页数量，最大 `200` |
+| `q` | string | 空 | 按 `game_path`、`unique_value`、`qiniu_key`、`content_hash`、`archive` 模糊搜索 |
+
+成功响应：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "items": [
+      {
+        "game_path": "Game/NewRoco/Modules/System/PetUI/Raw/Cards/img_Bg_Lawn",
+        "unique_value": "b96f9514dc11fee4f97d68a35d102028d30b5ed42132d2b0d863635ef9c94941",
+        "qiniu_key": "rocom/wiki/Game/NewRoco/Modules/System/PetUI/Raw/Cards/img_Bg_Lawn.png",
+        "content_hash": "FkhpfKOJFpJ5acpK97T5desO7hqS",
+        "ext": "png",
+        "archive": "",
+        "file_size": 102400,
+        "mime_type": "image/png",
+        "wiki_url": "/api/v1/resources/wiki/b96f9514dc11fee4f97d68a35d102028d30b5ed42132d2b0d863635ef9c94941.png",
+        "created_at": "2026-06-15T10:00:00Z",
+        "updated_at": "2026-06-15T10:30:00Z"
+      }
+    ],
+    "page": 1,
+    "page_size": 50,
+    "total": 1,
+    "total_pages": 1,
+    "has_more": false
+  }
+}
+```
+
+### `POST /api/v1/games/rocom/config/wiki-image`
+
+管理员接口，用于按游戏资源路径触发「解包服务器解码并覆盖上传七牛 → 后端刷新落库映射 → 返回 wiki 图片 URL」。同一路径资源内容变化时，SHA-256 会随内容变化；云端对象被删除时，也会重新上传修复。
+
+认证：后台管理员 Web JWT，或具备 `admin.access` 的 API Key。
+
+请求体：
+
+```json
+{
+  "path": "Game/NewRoco/Modules/System/PetUI/Raw/Cards/img_Bg_Lawn",
+  "archive": ""
+}
+```
+
+成功响应：
+
+```json
+{
+  "code": 0,
+  "message": "成功",
+  "data": {
+    "game_path": "Game/NewRoco/Modules/System/PetUI/Raw/Cards/img_Bg_Lawn",
+    "archive": "",
+    "unique_value": "b96f9514dc11fee4f97d68a35d102028d30b5ed42132d2b0d863635ef9c94941",
+    "ext": "png",
+    "overwritten": true,
+    "wiki_url": "/api/v1/resources/wiki/b96f9514dc11fee4f97d68a35d102028d30b5ed42132d2b0d863635ef9c94941.png"
+  }
+}
+```
+
+后端相关环境变量（私有下载签名与解包服务器调用）：
+
+- `WEGAME_ROCOM_QINIU_DOWNLOAD_DOMAIN`：私有桶绑定的下载域名（可含 `https://`）。
+- `WEGAME_ROCOM_QINIU_ACCESS_KEY` / `WEGAME_ROCOM_QINIU_SECRET_KEY`：用于私有 URL 签名，禁止写入日志。
+- `WEGAME_ROCOM_QINIU_SIGN_TTL_SECONDS`：签名有效期秒数，默认 `3600`。
+- `WEGAME_ROCOM_SCRIPTC_BASE_URL` / `WEGAME_ROCOM_SCRIPTC_API_KEY`：解包服务器贴图上传端点地址与鉴权，复用 RoCom ScriptC 配置解码服务配置。
+
+未配置七牛下载签名环境变量时，`/wiki/{uniqueValue}` 不可用；未配置解包服务器环境变量时，`/config/wiki-image` 无法触发首次上传。其余 RoCom 接口不受影响。
