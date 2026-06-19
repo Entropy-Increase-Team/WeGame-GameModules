@@ -33,6 +33,7 @@
     height: {{pageHeight}}px;
     background: #f4eee0;
     overflow: visible;
+    zoom: 0.5;
   }
 
   .title-bg {
@@ -152,9 +153,9 @@
   .goods-img-wrap {
     position: absolute;
     left: 725px;
-    top: -8px;
+    top: 31px;
     width: 296px;
-    height: 309px;
+    height: 246px;
     z-index: 1;
     overflow: visible;
   }
@@ -350,6 +351,21 @@
     object-fit: contain;
     z-index: 2;
   }
+
+  .goods-card-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .goods-empty-text {
+    position: relative;
+    z-index: 1;
+    font-family: 'RocoProduct', sans-serif;
+    font-size: 64px;
+    color: #878070;
+    text-align: center;
+    letter-spacing: 4px;
+  }
 </style>
 </head>
 <body>
@@ -432,11 +448,9 @@
     </div>
     {{/each}}
     {{else}}
-    <div class="goods-card" style="top: 592px">
+    <div class="goods-card goods-card-empty" style="top: 592px">
       <div class="goods-card-bg"></div>
-      <div class="goods-name-wrap">
-        <span class="goods-name">暂无商品</span>
-      </div>
+      <div class="goods-empty-text">暂无商品</div>
     </div>
     {{/if}}
 

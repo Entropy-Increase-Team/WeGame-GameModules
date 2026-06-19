@@ -169,8 +169,8 @@ export class RocomMerchantSubscription extends plugin {
       const image = await renderModuleTemplate(
         null,
         'rocom',
-        'render/yuanxing-shangren/index',
-        merchantService.buildRenderData(payload),
+        'render/yuanxing-shangren/merchant',
+        merchantService.buildCurrentRoundCardRenderData(payload),
         {
           retType: 'base64',
           beforeRender: ({ data }) => this.withRenderAssets(data)
@@ -190,10 +190,9 @@ export class RocomMerchantSubscription extends plugin {
 
     return {
       ...data,
-      background: normalizeUrl(data?.background) || buildResUrl('img/bg.C8CUoi7I.jpg'),
-      products: (data?.products || []).map((product) => ({
-        ...product,
-        image: normalizeUrl(product?.image) || fallbackImage
+      goods: (data?.goods || []).map((item) => ({
+        ...item,
+        iconUrl: normalizeUrl(item?.iconUrl) || fallbackImage
       }))
     }
   }
