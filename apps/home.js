@@ -171,6 +171,15 @@ const SKILL_FAMILY_ALIAS = {
   无属性: '无'
 }
 
+const ATTRIBUTE_ADD_TYPE_MAP = {
+  1: 'hp',
+  2: 'attack',
+  3: 'special_attack',
+  4: 'defense',
+  5: 'special_defense',
+  6: 'speed'
+}
+
 function normalizeTimestampSeconds (value) {
   const num = Number(value)
   if (!Number.isFinite(num) || num <= 0) return 0
@@ -953,6 +962,26 @@ function findMappedPetSkill (mapped = {}, skillId = 0) {
   return {}
 }
 
+function buildAttributeAddMap (...sources) {
+  const result = {}
+
+  for (const source of sources) {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) continue
+    const attrNew = pickObject(source?.attribute_new_info, source?.attributeNewInfo)
+    const list = Array.isArray(attrNew?.addi_attr_data)
+      ? attrNew.addi_attr_data
+      : (Array.isArray(attrNew?.addiAttrData) ? attrNew.addiAttrData : [])
+
+    for (const item of list) {
+      const key = ATTRIBUTE_ADD_TYPE_MAP[toNumber(item?.type, 0)]
+      if (!key || result[key] !== undefined) continue
+      result[key] = toNumber(item?.addi_attr ?? item?.addiAttr ?? item?.value, 0)
+    }
+  }
+
+  return result
+}
+
 function pickFeatureObject (...sources) {
   for (const source of sources) {
     if (!source || typeof source !== 'object' || Array.isArray(source)) continue
@@ -1125,6 +1154,12 @@ function buildPetDetailRenderData (payload = {}, uid = '') {
     const nature = toNumber(pet?.nature ?? di?.nature, 0)
     const natureEntry = natureMap[String(nature)] || {}
     const natureText = natureEntry.name || (nature ? `性格 ${nature}` : '')
+    const rawVoice = pet?.voice ?? di?.voice
+    const voiceText = rawVoice === undefined || rawVoice === null || rawVoice === '' ? '' : trimText(rawVoice)
+    const voiceValue = toNumber(rawVoice, 0)
+    const voiceLabel = voiceText
+      ? (voiceValue >= 96 && voiceValue <= 100 ? '婉转声' : (voiceValue <= -96 && voiceValue >= -100 ? '粗嗓门' : ''))
+      : ''
 
     const bloodId = toNumber(pet?.blood_id ?? di?.blood_id, 0)
     const bloodText = BLOOD_NAMES[bloodId] || ''
@@ -1134,6 +1169,7 @@ function buildPetDetailRenderData (payload = {}, uid = '') {
     const typeColor = typeTags.length > 0 ? typeTags[0].color : bloodColor
 
     const attrSource = pickObject(pet?.attribute_info, di?.attribute_info)
+    const attrAddMap = buildAttributeAddMap(pet, di)
     const attrKeys = ['hp', 'attack', 'special_attack', 'defense', 'special_defense', 'speed']
     const attrLabels = ['HP', '物攻', '魔攻', '物防', '魔防', '速度']
     const attributes = attrKeys.map((key, index) => {
@@ -1141,7 +1177,7 @@ function buildPetDetailRenderData (payload = {}, uid = '') {
       return {
         label: attrLabels[index],
         y: 483 + index * 54,
-        value: toNumber(attr?.base_value, 0),
+        value: attrAddMap[key] ?? toNumber(attr?.value ?? attr?.addi_attr ?? attr?.base_value, 0),
         talent: toNumber(attr?.talent, 0),
         effort: toNumber(attr?.effort_add, 0)
       }
@@ -1233,6 +1269,8 @@ function buildPetDetailRenderData (payload = {}, uid = '') {
       level: trimText(pet?.level ?? di?.level) || '--',
       genderText,
       natureText,
+      voiceText,
+      voiceLabel,
       bloodText,
       bloodColor,
       typeTags: positionedTypeTags,

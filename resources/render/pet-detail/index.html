@@ -33,6 +33,7 @@
               <span>Lv.{{pet.level}}</span>
               <span>{{pet.genderText}}</span>
               {{if pet.natureText}}<span>{{pet.natureText}}</span>{{/if}}
+              {{if pet.voiceText}}<span>分贝 {{pet.voiceText}}{{if pet.voiceLabel}} {{pet.voiceLabel}}{{/if}}</span>{{/if}}
             </div>
             <div class="type-tags">
               {{each pet.typeTags tag}}
