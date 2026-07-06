@@ -1,0 +1,503 @@
+@font-face {
+  font-family: "rocom-pet";
+  src: url("../../ttf/rocom_origin.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "rocom-skill";
+  src: url("../../ttf/skill_origin.ttf") format("truetype");
+  font-display: swap;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  display: inline-block;
+  width: 1200px;
+  background: transparent;
+  color: rgb(100, 92, 79);
+  font-family: "rocom-pet", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.pet-page {
+  width: 1200px;
+  min-height: 800px;
+  padding: 0 24px 26px;
+  background: url("texture2D/bg.jpg") 0 0 / 1200px auto repeat-y;
+}
+
+.page-header {
+  position: relative;
+  height: 222px;
+  margin: 0 -24px 10px;
+  overflow: hidden;
+}
+
+.title-img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1200px;
+  height: 511px;
+  display: block;
+}
+
+.page-title {
+  position: absolute;
+  left: 0;
+  top: 54px;
+  width: 1200px;
+  height: 82px;
+  line-height: 82px;
+  text-align: center;
+  color: #fff;
+  font-size: 70px;
+  font-weight: 700;
+}
+
+.page-subtitle {
+  position: absolute;
+  left: 0;
+  top: 150px;
+  width: 1200px;
+  text-align: center;
+  color: rgb(100, 92, 79);
+  font-size: 30px;
+}
+
+.pet-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pet-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 365px 250px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 14px 16px 14px;
+  border: 2px solid rgba(137, 126, 101, 0.32);
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(247, 241, 225, 0.92), rgba(239, 231, 210, 0.92)),
+    url("texture2D/bg.jpg") center / 760px auto repeat;
+  box-shadow: 0 6px 0 rgba(111, 99, 75, 0.13);
+}
+
+.pet-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 7px;
+  background: var(--type-color, rgb(63, 137, 180));
+}
+
+.pet-card-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pet-portrait {
+  position: relative;
+  width: 352px;
+  height: 260px;
+  overflow: hidden;
+}
+
+.pet-blob {
+  position: absolute;
+  left: 52px;
+  top: 40px;
+  width: 248px;
+  height: 184px;
+  background: var(--type-color, rgb(63, 137, 180));
+  -webkit-mask: url("texture2D/pet_bg.png") center / 100% 100% no-repeat;
+  mask: url("texture2D/pet_bg.png") center / 100% 100% no-repeat;
+}
+
+.pet-image {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 408px;
+  height: 260px;
+  transform: translate(-50%, -50%);
+  display: block;
+  object-fit: contain;
+}
+
+.rare-star {
+  position: absolute;
+  right: 24px;
+  bottom: 8px;
+  width: 42px;
+  height: 42px;
+  display: block;
+  object-fit: contain;
+}
+
+.pet-summary {
+  width: 100%;
+  min-width: 0;
+  padding-top: 0;
+  text-align: center;
+}
+
+.pet-summary h2 {
+  margin: 0 0 6px;
+  width: 100%;
+  min-height: 32px;
+  line-height: 32px;
+  color: rgb(86, 78, 66);
+  font-size: 28px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.pet-meta,
+.type-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.pet-meta {
+  margin-bottom: 8px;
+}
+
+.pet-meta span {
+  max-width: 100%;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 8px;
+  background: rgba(117, 106, 84, 0.15);
+  line-height: 24px;
+  color: rgb(100, 92, 79);
+  font-family: "rocom-skill", "rocom-pet", sans-serif;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.type-tag {
+  display: inline-flex;
+  align-items: center;
+  min-width: 74px;
+  max-width: 112px;
+  height: 25px;
+  padding: 0 8px 0 2px;
+  background: var(--tag-color, rgb(63, 137, 180));
+  color: #fff;
+  font-size: 18px;
+  line-height: 25px;
+  -webkit-mask: url("texture2D/mask_bar.png") center / 100% 100% no-repeat;
+  mask: url("texture2D/mask_bar.png") center / 100% 100% no-repeat;
+}
+
+.type-tag img {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  margin-right: 2px;
+  object-fit: contain;
+}
+
+.compact-section {
+  margin-top: 10px;
+  min-width: 0;
+}
+
+.pet-info-column,
+.pet-skill-column {
+  min-width: 0;
+}
+
+.pet-info-column .compact-section:first-child,
+.pet-skill-column .compact-section:first-child {
+  margin-top: 0;
+}
+
+.section-title {
+  position: relative;
+  height: 31px;
+  margin-bottom: 6px;
+}
+
+.section-title img {
+  position: absolute;
+  left: -6px;
+  top: 0;
+  width: 164px;
+  height: 31px;
+  display: block;
+}
+
+.section-title span {
+  position: absolute;
+  left: 30px;
+  top: 5px;
+  height: 22px;
+  line-height: 22px;
+  color: #fff;
+  font-size: 17px;
+}
+
+.section-title em {
+  position: absolute;
+  left: 126px;
+  top: 6px;
+  width: 26px;
+  height: 20px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.24);
+  color: #fff;
+  font-style: normal;
+  font-family: "rocom-skill", "rocom-pet", sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.attr-table {
+  display: grid;
+  grid-template-columns: 54px repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  min-width: 0;
+  padding: 7px;
+  border-radius: 8px;
+  background: rgba(255, 252, 242, 0.5);
+}
+
+.attr-head,
+.attr-name,
+.attr-value {
+  min-width: 0;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+}
+
+.attr-head {
+  color: rgb(100, 92, 79);
+  font-size: 15px;
+}
+
+.attr-name {
+  color: rgb(100, 92, 79);
+  font-size: 18px;
+}
+
+.attr-value {
+  background: url("texture2D/tags.png") center / 100% 100% no-repeat;
+  color: rgb(240, 236, 225);
+  font-family: "rocom-skill", "rocom-pet", sans-serif;
+  font-size: 18px;
+}
+
+.feature-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-width: 0;
+}
+
+.feature-icon {
+  width: 48px;
+  height: 48px;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 2px rgba(83, 69, 39, 0.18));
+}
+
+.feature-copy {
+  min-width: 0;
+}
+
+.feature-name {
+  min-height: 24px;
+  line-height: 24px;
+  color: #111;
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+
+.feature-desc {
+  color: rgb(100, 92, 79);
+  font-family: "rocom-skill", "rocom-pet", sans-serif;
+  font-size: 15px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.skill-section {
+  padding: 7px 7px 8px;
+  border: 1px solid rgba(137, 126, 101, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 252, 242, 0.46);
+}
+
+.skill-section .section-title {
+  margin-bottom: 5px;
+}
+
+.skill-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  min-width: 0;
+}
+
+.skill-chip {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 28px;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+  min-height: 32px;
+  padding: 3px 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 6px;
+  color: #fff;
+  background:
+    linear-gradient(90deg, var(--skill-color, rgb(186, 187, 198)) 0 30px, rgba(91, 84, 72, 0.72) 30px 100%),
+    var(--skill-color, rgb(186, 187, 198));
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+}
+
+.skill-chip::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 0;
+  border-radius: 5px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+.skill-icon,
+.skill-type,
+.skill-name,
+.skill-cost {
+  position: relative;
+  z-index: 1;
+}
+
+.skill-icon {
+  width: 23px;
+  height: 23px;
+  object-fit: contain;
+}
+
+.skill-type {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
+.skill-name {
+  min-width: 0;
+  color: #fff;
+  font-family: "rocom-skill", "rocom-pet", sans-serif;
+  font-size: 13px;
+  line-height: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-cost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 22px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.14);
+  color: #fff;
+  font-family: "rocom-skill", "rocom-pet", sans-serif;
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.skill-cost img {
+  width: 13px;
+  height: 13px;
+  margin-left: 1px;
+  object-fit: contain;
+}
+
+.learned-skill {
+  min-height: 30px;
+}
+
+.learned-skill .skill-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.learned-section {
+  padding-bottom: 7px;
+}
+
+.empty-text,
+.panel-error {
+  color: rgb(100, 92, 79);
+  font-family: "rocom-skill", "rocom-pet", sans-serif;
+  font-size: 15px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.panel-error {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+}
+
+.empty-panel {
+  width: 100%;
+  min-height: 420px;
+  padding-top: 150px;
+  text-align: center;
+  color: rgb(100, 92, 79);
+  font-size: 34px;
+}
+
+.page-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 18px;
+}
+
+.page-footer img {
+  width: 460px;
+  height: 29px;
+  display: block;
+}

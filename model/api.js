@@ -1,6 +1,9 @@
 import WeGameApi from '../../../model/api.js'
+import Config from '../../../utils/config.js'
 import { trimText } from '../utils/rocom.js'
 
+const ROCOM_DEFAULT_BASE_URL = 'https://wegame.shallow.ink'
+const ROCOM_DEFAULT_API_KEY = 'sk-fd65b3f4e2b7c7ac26aaaf4ae8a2f61e'
 const DEFAULT_INGAME_WAIT_MS = 5000
 const DEFAULT_INGAME_TASK_TIMEOUT_MS = 5 * 60 * 1000
 const DEFAULT_INGAME_TASK_INTERVAL_MS = 3000
@@ -138,6 +141,58 @@ function buildScopedOptions (api, userIdentifier = '', params = {}) {
 }
 
 export default class RocomApi extends WeGameApi {
+  getBaseUrl () {
+    const configuredBaseUrl = trimText(Config.get('wegame', 'base_url')).replace(/\/+$/, '')
+    return configuredBaseUrl || ROCOM_DEFAULT_BASE_URL
+  }
+
+  getRocomApiKey () {
+    return trimText(Config.get('wegame', 'api_key')) || ROCOM_DEFAULT_API_KEY
+  }
+
+  getApiKey () {
+    return this.getRocomApiKey()
+  }
+
+  async getBaseAuthHeaders () {
+    return { 'X-API-Key': this.getRocomApiKey() }
+  }
+
+  buildOptionalUserScopeOptions (userIdentifier) {
+    const normalized = trimText(userIdentifier)
+    if (!normalized) return {}
+
+    return {
+      headers: {
+        'X-User-Identifier': normalized,
+        ...this.getClientScopeHeaders()
+      },
+      params: {
+        user_identifier: normalized,
+        ...this.getClientScopeParams()
+      }
+    }
+  }
+
+  buildUserScopeOptions (userIdentifier) {
+    const normalized = trimText(userIdentifier)
+    if (!normalized) {
+      throw new Error('缺少 user_identifier')
+    }
+
+    return {
+      headers: {
+        'X-API-Key': this.getRocomApiKey(),
+        'X-User-Identifier': normalized,
+        ...this.getClientScopeHeaders()
+      },
+      params: {
+        user_identifier: normalized,
+        ...this.getClientScopeParams()
+      }
+    }
+  }
+
   requestRocomGet (urlPath, frameworkToken, params = {}, requestOptions = {}) {
     const scoped = buildScopedPayload(this, requestOptions.userIdentifier, params)
     return this.request(urlPath, {
@@ -354,6 +409,21 @@ export default class RocomApi extends WeGameApi {
     return request('/api/v1/games/rocom/ingame/home/info', {
       uid
     }, {
+      waitMs: 5000,
+      httpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,
+      taskHttpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,
+      intervalMs: DEFAULT_INGAME_HOME_TASK_INTERVAL_MS,
+      timeoutMs: DEFAULT_INGAME_HOME_TASK_TIMEOUT_MS,
+      ...options
+    })
+  }
+
+  getIngamePetData (data = {}, options = {}) {
+    const request = normalizeIngameMethod(options.method) === 'get'
+      ? this.requestRocomIngameGet.bind(this)
+      : this.requestRocomIngamePost.bind(this)
+
+    return request('/api/v1/games/rocom/ingame/pet/data', trimObject(data), {
       waitMs: 5000,
       httpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,
       taskHttpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,

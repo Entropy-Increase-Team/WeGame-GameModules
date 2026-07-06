@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1200, initial-scale=1">
+  <title>精灵状态</title>
+  <link rel="stylesheet" href="{{_res_path}}render/pet-detail/style.css">
+</head>
+<body>
+  <main class="pet-page">
+    <header class="page-header">
+      <img class="title-img" src="{{_res_path}}render/pet-detail/texture2D/title.png" alt="">
+      <div class="page-title">精灵状态</div>
+      <div class="page-subtitle">UID{{uid}} · {{pets ? pets.length : 0}} 只</div>
+    </header>
+
+    {{if pets && pets.length > 0}}
+    <section class="pet-grid">
+      {{each pets pet}}
+      <article class="pet-card" style="--type-color: {{pet.typeColor}};">
+        <section class="pet-card-head">
+          <div class="pet-portrait">
+            <div class="pet-blob"></div>
+            <img class="pet-image" src="{{pet.iconUrl}}" alt="{{pet.name}}" data-fallback="{{pet.fallbackIconUrl}}" data-fallback2="{{pet.fallbackIconUrl2}}" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.dataset.fallback=''}else if(this.dataset.fallback2){this.src=this.dataset.fallback2;this.dataset.fallback2=''}else{this.onerror=null;this.src='{{_res_path}}render/pet-detail/texture2D/img_head.png'}">
+            {{if pet.variantIcon}}
+            <img class="rare-star" src="{{_res_path}}{{pet.variantIcon}}" alt="">
+            {{/if}}
+          </div>
+
+          <div class="pet-summary">
+            <h2>{{pet.name}}</h2>
+            <div class="pet-meta">
+              <span>Lv.{{pet.level}}</span>
+              <span>{{pet.genderText}}</span>
+              {{if pet.natureText}}<span>{{pet.natureText}}</span>{{/if}}
+            </div>
+            <div class="type-tags">
+              {{each pet.typeTags tag}}
+              <span class="type-tag" style="--tag-color: {{tag.color}};">
+                <img src="{{_res_path}}render/pet-detail/texture2D/属性/{{tag.icon}}.png" alt="">
+                {{tag.name}}
+              </span>
+              {{/each}}
+              {{if pet.bloodTag}}
+              <span class="type-tag" style="--tag-color: {{pet.bloodTag.color}};">
+                <img src="{{_res_path}}render/pet-detail/texture2D/血脉/{{pet.bloodTag.icon}}.png" alt="">
+                {{pet.bloodTag.name}}
+              </span>
+              {{/if}}
+            </div>
+          </div>
+        </section>
+
+        <div class="pet-info-column">
+          <section class="compact-section attr-section">
+            <div class="section-title">
+              <img src="{{_res_path}}render/pet-detail/texture2D/a_title.png" alt="">
+              <span>精灵属性</span>
+            </div>
+            <div class="attr-table">
+              <div class="attr-head">属性</div>
+              <div class="attr-head">数值</div>
+              <div class="attr-head">个体</div>
+              <div class="attr-head">成长</div>
+              {{each pet.attributes attr}}
+              <div class="attr-name">{{attr.label}}</div>
+              <div class="attr-value">{{attr.value}}</div>
+              <div class="attr-value">{{attr.talent}}</div>
+              <div class="attr-value">{{attr.effort}}</div>
+              {{/each}}
+            </div>
+          </section>
+
+          <section class="compact-section feature-section">
+            <div class="section-title">
+              <img src="{{_res_path}}render/pet-detail/texture2D/a_title.png" alt="">
+              <span>精灵特性</span>
+            </div>
+            {{if pet.feature}}
+            <div class="feature-row">
+              <img class="feature-icon" src="{{pet.featureIcon}}" alt="" data-fallback="{{pet.fallbackFeatureIcon}}" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.dataset.fallback=''}else{this.style.display='none'}">
+              <div class="feature-copy">
+                <div class="feature-name">{{pet.feature.name}}</div>
+                <div class="feature-desc">{{pet.feature.desc}}</div>
+              </div>
+            </div>
+            {{else}}
+            <div class="empty-text">暂无特性数据</div>
+            {{/if}}
+          </section>
+        </div>
+
+        <div class="pet-skill-column">
+        {{if pet.equipSkills && pet.equipSkills.length > 0}}
+        <section class="compact-section skill-section equip-section">
+          <div class="section-title">
+            <img src="{{_res_path}}render/pet-detail/texture2D/a_title.png" alt="">
+            <span>装备技能</span>
+            <em>{{pet.equipSkills.length}}</em>
+          </div>
+          <div class="skill-grid equip-grid">
+            {{each pet.equipSkills skill}}
+            <div class="skill-chip" style="--skill-color: {{skill.typeColor}};">
+              <img class="skill-icon" src="{{skill.iconUrl}}" alt="{{skill.name}}" data-fallback="{{skill.fallbackIconUrl}}" data-placeholder="{{skill.placeholderIconUrl}}" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.dataset.fallback=''}else if(this.dataset.placeholder){this.src=this.dataset.placeholder;this.dataset.placeholder=''}else{this.onerror=null;this.src='{{_res_path}}render/pet-detail/texture2D/icon.png'}">
+              <img class="skill-type" src="{{_res_path}}render/pet-detail/texture2D/属性/{{skill.typeIcon}}.png" alt="{{skill.families}}" onerror="this.src='{{_res_path}}render/pet-detail/texture2D/属性/无.png';this.onerror=null">
+              <div class="skill-name">{{skill.name}}</div>
+              <div class="skill-cost">{{skill.cost}}<img src="{{_res_path}}render/pet-detail/texture2D/star.png" alt=""></div>
+            </div>
+            {{/each}}
+          </div>
+        </section>
+        {{/if}}
+
+        {{if pet.learnedSkills && pet.learnedSkills.length > 0}}
+        <section class="compact-section skill-section learned-section">
+          <div class="section-title">
+            <img src="{{_res_path}}render/pet-detail/texture2D/a_title.png" alt="">
+            <span>已学技能</span>
+            <em>{{pet.learnedSkills.length}}</em>
+          </div>
+          <div class="skill-grid learned-grid">
+            {{each pet.learnedSkills skill}}
+            <div class="skill-chip learned-skill" style="--skill-color: {{skill.typeColor}};">
+              <img class="skill-icon" src="{{skill.iconUrl}}" alt="{{skill.name}}" data-fallback="{{skill.fallbackIconUrl}}" data-placeholder="{{skill.placeholderIconUrl}}" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.dataset.fallback=''}else if(this.dataset.placeholder){this.src=this.dataset.placeholder;this.dataset.placeholder=''}else{this.onerror=null;this.src='{{_res_path}}render/pet-detail/texture2D/icon.png'}">
+              <img class="skill-type" src="{{_res_path}}render/pet-detail/texture2D/属性/{{skill.typeIcon}}.png" alt="{{skill.families}}" onerror="this.src='{{_res_path}}render/pet-detail/texture2D/属性/无.png';this.onerror=null">
+              <div class="skill-name">{{skill.name}}</div>
+              <div class="skill-cost">{{skill.cost}}<img src="{{_res_path}}render/pet-detail/texture2D/star.png" alt=""></div>
+            </div>
+            {{/each}}
+          </div>
+        </section>
+        {{/if}}
+        </div>
+
+        {{if pet.errorText}}
+        <div class="panel-error">{{pet.errorText}}</div>
+        {{/if}}
+      </article>
+      {{/each}}
+    </section>
+    {{else}}
+    <section class="empty-panel">{{emptyText}}</section>
+    {{/if}}
+
+    <footer class="page-footer">
+      <img src="{{_res_path}}render/pet-detail/texture2D/footer.png" alt="">
+    </footer>
+  </main>
+</body>
+</html>
