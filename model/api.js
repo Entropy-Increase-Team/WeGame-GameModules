@@ -477,8 +477,8 @@ export default class RocomApi extends WeGameApi {
     return this.requestRocomPublicGet('/api/v1/games/rocom/pet/skill-users', params, options)
   }
 
-  getPetSizeQuery (params = {}, options = {}) {
-    return this.requestRocomPublicGet('/api/v1/games/rocom/pet/size-query', params, options)
+  getWikiPetSizeQuery (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/wiki/pet-size/query', params, options)
   }
 
   getMerchantInfo (params = {}, options = {}) {
@@ -543,10 +543,6 @@ export default class RocomApi extends WeGameApi {
 
   getEggPetGroups (params = {}, options = {}) {
     return this.requestRocomPublicGet('/api/v1/games/rocom/egg/pet-groups', params, options)
-  }
-
-  getEggSearch (params = {}, options = {}) {
-    return this.requestRocomPublicGet('/api/v1/games/rocom/egg/search', params, options)
   }
 
   getEggExchanges (params = {}, options = {}) {

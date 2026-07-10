@@ -235,19 +235,19 @@ export class RocomEggs extends plugin {
 
     if (diameter !== null && weight !== null) {
       try {
-        const apiResult = await this.api.getEggSearch({
-          height: diameter,
+        const apiResult = await this.api.getWikiPetSizeQuery({
+          diameter,
           weight
         }, {
           userIdentifier: this.accountService.getUserIdentifier()
         })
-        renderData = eggService.buildEggSearchData(diameter, weight, apiResult, {
+        renderData = eggService.buildPetSizeQueryData(diameter, weight, apiResult, {
           commandHint,
           copyright
         })
-        fallbackText = eggService.buildEggSearchText(diameter, weight, apiResult)
+        fallbackText = eggService.buildPetSizeQueryText(diameter, weight, apiResult)
       } catch (error) {
-        logger.warn(`[WeGame-plugin][rocom] 孵蛋反查 API 失败，回退本地数据：${error.message || error}`)
+        logger.warn(`[WeGame-plugin][rocom] 尺寸反查 API 失败，回退本地数据：${error.message || error}`)
       }
     }
 

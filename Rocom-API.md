@@ -32,7 +32,7 @@
 - `/api/v1/games/rocom/ingame/*`
 
 这里的 `ingame` 只指 `/api/v1/games/rocom/ingame/*` 这一组数据查询接口。
-`/api/v1/games/rocom/merchant/info` 和 `/api/v1/games/rocom/pet/size-query` 属于普通 RoCom 路由。
+`/api/v1/games/rocom/merchant/info` 属于普通 RoCom 路由，蛋尺寸反查使用 Wiki 路由 `/api/v1/games/rocom/wiki/pet-size/query`。
 
 以下认证规则主要针对普通 RoCom 路由，请先记住：
 
@@ -132,8 +132,7 @@
 | `GET /pet/list` | 基础认证 | `q`、`type`、`egg_group`、`skill`、`skill_id`、`page_no`、`page_size` | 本地资料查询 |
 | `GET /pet/detail` | 基础认证；`id` 或 `name` 二选一 | - | 同时传入时优先使用 `id` |
 | `GET /pet/skill-users` | 基础认证；`skill_id` 或 `skill` 二选一 | - | 同时传入时优先使用 `skill_id` |
-| `GET /pet/size-query` | 基础认证；`diameter`、`weight` | `sameRideEgg` | `sameRideEgg=1` 查询同乘蛋 |
-| `GET /egg/search` | 基础认证；`height`、`weight` | `page_no`、`page_size` | 按身高和体重反查可能精灵蛋 |
+| `GET /wiki/pet-size/query` | 基础认证；`diameter`、`weight` | `random_egg_id`、`pool`、`include_display_only`、`type_id`、`egg_group_id`、`ride_talent`、`page_no`、`page_size` | 按蛋态尺寸反查可能精灵 |
 | `GET /egg/groups` | 基础认证 | - | 查询本地蛋组字典 |
 | `GET /egg/group-pets` | 基础认证；`group_ids` | `match_mode`、`page_no`、`page_size` | 按蛋组 ID 查询精灵 |
 | `GET /egg/pet-groups` | 基础认证；`q` | `limit` | 按精灵名反查蛋组 |
@@ -977,9 +976,9 @@ Accept: application/json
 }
 ```
 
-### 孵蛋与蛋组查询
+### 蛋尺寸与蛋组查询
 
-- `GET /api/v1/games/rocom/egg/search`
+- `GET /api/v1/games/rocom/wiki/pet-size/query`
 - `GET /api/v1/games/rocom/egg/groups`
 - `GET /api/v1/games/rocom/egg/group-pets`
 - `GET /api/v1/games/rocom/egg/pet-groups`
@@ -992,22 +991,27 @@ Accept: application/json
 - 认证层支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`；默认收费配置下需要 Web JWT 或归属到用户的 API Key 完成扣费调用
 - 下方精灵 ID、图标和名称用于展示字段结构，实际值以本地同步数据为准
 
-#### 孵蛋反查
+#### 蛋尺寸反查
 
-`GET /api/v1/games/rocom/egg/search?height=0.2&weight=1&page_no=1&page_size=20`
+`GET /api/v1/games/rocom/wiki/pet-size/query?diameter=0.29&weight=3.294&page_no=1&page_size=20`
 
 参数说明：
 
-- `height`：必填，身高，单位 `m`
-- `weight`：必填，体重，单位 `kg`
+- `diameter`：必填，蛋态显示身高/直径，单位 `m`
+- `weight`：必填，蛋态重量，单位 `kg`
+- `random_egg_id`：可选，孵蛋随机池 ID，默认 `1001`
+- `pool`：可选，孵蛋随机池别名，默认 `magic`
+- `include_display_only`：可选，是否返回低可信展示结果
+- `type_id`：可选，属性 ID
+- `egg_group_id`：可选，蛋组 ID
+- `ride_talent`：可选，仅返回特长池包含同乘的精灵蛋
 - `page_no`：可选，页码，默认 `1`
 - `page_size`：可选，每页数量，默认 `20`，最大 `100`
 
 匹配规则：
 
-- 后端将 `height` 转为厘米：`round(height * 100)`
-- 后端将 `weight` 转为克：`round(weight * 1000)`
-- 命中条件为 `height_low <= height_cm <= height_high` 且 `weight_low <= weight_g <= weight_high`
+- 后端按蛋态尺寸公式计算候选，并在 `query` 中回显直径、重量、随机池和公式版本
+- 结果位于 `items`，每项包含 `pet` 精灵摘要、`egg_size` 蛋尺寸范围和 `match` 匹配信息
 - 排序按 `r_value` 升序、范围面积升序、名称升序
 
 响应示例（字段结构）：
@@ -1717,7 +1721,7 @@ API Key 请求头：
 ## ingame API
 
 本章节描述 `/api/v1/games/rocom/ingame/*` 数据查询接口。
-`/merchant/info` 和 `/pet/size-query` 属于普通 RoCom 路由，在后文单独说明。
+`/merchant/info` 属于普通 RoCom 路由；蛋尺寸反查使用 Wiki 路由 `/wiki/pet-size/query`。
 
 请求头要求：
 
@@ -2367,82 +2371,33 @@ Accept: application/json
 
 本章节描述挂在普通 RoCom 路由下的补充能力接口。
 
-### 精灵尺寸查询
+### 蛋尺寸反查
 
-- `GET /api/v1/games/rocom/pet/size-query`
+- `GET /api/v1/games/rocom/wiki/pet-size/query`
 
 说明：
-根据精灵尺寸（直径，单位米）与重量（单位千克）查询匹配的精灵候选列表。该接口透传上游 `data`，并使用本项目统一的 `code/message/data` 响应格式返回。
+按蛋态显示身高/直径（单位米）与蛋态重量（单位千克）反查可能精灵。接口返回分页 `items`，每项包含精灵摘要、蛋尺寸范围和匹配信息。
 
 参数说明：
-`diameter`（必填）精灵尺寸，单位米，例如 `0.45`。
-`weight`（必填）精灵重量，单位千克，例如 `35.6`。
-`sameRideEgg`（可选）是否查询同乘蛋，传 `1` 表示查询同乘；不传或传 `0` 为普通查询。
+`diameter`（必填）蛋态显示身高/直径，单位米，例如 `0.29`。
+`weight`（必填）蛋态重量，单位千克，例如 `3.294`。
+`random_egg_id`（可选）孵蛋随机池 ID，默认 `1001`。
+`pool`（可选）孵蛋随机池别名，默认 `magic`。
+`include_display_only`（可选）是否返回低可信展示结果。
+`type_id`（可选）属性 ID。
+`egg_group_id`（可选）蛋组 ID。
+`ride_talent`（可选）仅返回特长池包含同乘的精灵蛋。
+`page_no`（可选）页码，默认 `1`。
+`page_size`（可选）每页数量，默认 `20`，最大 `100`。
 
 鉴权说明：
 
 - 请求头按“不需要 `X-Framework-Token` 的普通查询接口”模板传递
 - 认证层支持 Web JWT、匿名令牌、或持有 `rocom.access` 权限的 `X-API-Key`；默认收费配置下需要 Web JWT 或归属到用户的 API Key 完成扣费调用
-- 本接口为工具类查询，**不需要** 传 `X-Framework-Token`
-
-响应说明：
-`candidates` / `exactResults` 条目主体由上游返回。后端会按条目中的 `pet` 名称查询本地精灵资料，并补充 `egg_groups` 蛋组列表；查不到时返回空数组。上游当前会返回 `petImage`（大图）与 `petIcon`（小图）。同乘查询结果中会包含 `isSameRideEgg: true` 等字段。
+- 本接口为 Wiki 工具类查询，**不需要** 传 `X-Framework-Token`
 
 示例：
-`GET /api/v1/games/rocom/pet/size-query?diameter=1.23&weight=45.6`
-
-同乘查询示例：
-`GET /api/v1/games/rocom/pet/size-query?diameter=0.231&weight=3.601&sameRideEgg=1`
-
-响应示例：
-
-```json
-{
-  "code": 0,
-  "message": "成功",
-  "data": {
-    "candidates": [
-      {
-        "ImageKey": "3516.png",
-        "attributes": ["水"],
-        "diameterMax": 0.32,
-        "diameterMin": 0.23,
-        "egg_groups": [
-          {
-            "group_id": 1,
-            "display_name": "动物组",
-            "official_name": "动物组"
-          }
-        ],
-        "isSameRideEgg": true,
-        "pet": "板板壳",
-        "petId": 12,
-        "petImage": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3516/image.png",
-        "petIcon": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3516/icon.png",
-        "weightMax": 4.2,
-        "weightMin": 2.625
-      }
-    ],
-    "exactResults": [
-      {
-        "ImageKey": "3200.png",
-        "attributes": ["机械"],
-        "diameterMax": 0.22,
-        "diameterMin": 0.22,
-        "isSameRideEgg": true,
-        "pet": "机械方方",
-        "petId": 263,
-        "petImage": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3200/image.png",
-        "petIcon": "https://game.gtimg.cn/images/rocom/rocodata/jingling/3200/icon.png",
-        "probability": 100,
-        "weightMax": 3.718,
-        "weightMin": 3.718
-      }
-    ],
-    "searchMode": "tolerance2"
-  }
-}
-```
+`GET /api/v1/games/rocom/wiki/pet-size/query?diameter=0.29&weight=3.294&page_size=20`
 
 ### 公告列表
 

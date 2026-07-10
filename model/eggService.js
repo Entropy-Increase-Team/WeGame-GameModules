@@ -530,44 +530,6 @@ class EggService {
     }
   }
 
-  buildSizeSearchDataFromApi (sizeValue = null, weight = null, results = {}, options = {}) {
-    const {
-      dimensionLabel = '身高',
-      dimensionUnit = 'cm',
-      commandHint = '',
-      copyright = DEFAULT_COPYRIGHT
-    } = options
-
-    const conditions = []
-    if (sizeValue !== null && sizeValue !== undefined) {
-      conditions.push(`${dimensionLabel} ${sizeValue} ${dimensionUnit}`)
-    }
-    if (weight !== null && weight !== undefined) {
-      conditions.push(`体重 ${weight} kg`)
-    }
-
-    const perfectMatches = (Array.isArray(results?.exactResults) ? results.exactResults : [])
-      .map((item) => this.formatSizeApiCard(item))
-    const rangeMatches = (Array.isArray(results?.candidates) ? results.candidates : [])
-      .map((item) => this.formatSizeApiCard(item))
-    const searchMode = trimText(results?.searchMode)
-    let queryLabel = conditions.join(' / ') || '尺寸反查'
-
-    if (searchMode) {
-      queryLabel = `${queryLabel} · 模式 ${searchMode}`
-    }
-
-    return {
-      query_label: queryLabel,
-      perfect_matches: perfectMatches,
-      range_matches: rangeMatches,
-      total_count: perfectMatches.length + rangeMatches.length,
-      has_results: perfectMatches.length > 0 || rangeMatches.length > 0,
-      commandHint,
-      copyright
-    }
-  }
-
   buildSizeSearchText (height = null, weight = null, results = {}) {
     const conditions = []
     if (height !== null && height !== undefined) conditions.push(`身高=${height}cm`)
@@ -601,47 +563,6 @@ class EggService {
         lines.push(
           `${index + 1}. ${this.getPetName(pet)} (#${pet?.id}) - ${this.formatRange(breeding?.height_low, breeding?.height_high, 'cm')} / ${this.formatRange(this.toWeightKg(breeding?.weight_low), this.toWeightKg(breeding?.weight_high), 'kg')} · ${formatEggGroups(this.getEggGroups(pet))}`
         )
-      })
-    }
-
-    lines.push('')
-    lines.push('提示：发送 +查蛋 <精灵名> 查看详细蛋组信息')
-    return lines.join('\n')
-  }
-
-  buildSizeSearchTextFromApi (sizeValue = null, weight = null, results = {}, options = {}) {
-    const dimensionLabel = options.dimensionLabel || '身高'
-    const dimensionUnit = options.dimensionUnit || 'cm'
-    const conditions = []
-    if (sizeValue !== null && sizeValue !== undefined) {
-      conditions.push(`${dimensionLabel}=${sizeValue}${dimensionUnit}`)
-    }
-    if (weight !== null && weight !== undefined) {
-      conditions.push(`体重=${weight}kg`)
-    }
-    const conditionText = conditions.join(' + ') || '当前条件'
-
-    const exactResults = Array.isArray(results?.exactResults) ? results.exactResults : []
-    const candidates = Array.isArray(results?.candidates) ? results.candidates : []
-
-    if (exactResults.length === 0 && candidates.length === 0) {
-      return `未找到符合 ${conditionText} 的精灵。`
-    }
-
-    const lines = []
-
-    if (exactResults.length > 0) {
-      lines.push(`完美匹配 ${conditionText} 的精灵（共 ${exactResults.length} 只）：`)
-      exactResults.slice(0, 10).forEach((item, index) => {
-        lines.push(`${index + 1}. ${this.formatSizeApiTextLine(item)}`)
-      })
-    }
-
-    if (candidates.length > 0) {
-      if (lines.length > 0) lines.push('')
-      lines.push(`范围匹配 ${conditionText} 的精灵（共 ${candidates.length} 只）：`)
-      candidates.slice(0, 10).forEach((item, index) => {
-        lines.push(`${index + 1}. ${this.formatSizeApiTextLine(item)}`)
       })
     }
 
@@ -700,83 +621,143 @@ class EggService {
     }
   }
 
-  formatSizeApiCard (item = {}) {
-    const extraParts = []
-    if (item?.probability !== undefined && item?.probability !== null && item?.probability !== '') {
-      extraParts.push(`匹配概率 ${item.probability}%`)
-    }
-    if (item?.matchCount !== undefined && item?.matchCount !== null && item?.matchCount !== '') {
-      extraParts.push(`命中次数 ${item.matchCount}`)
+  formatPetSizeUnitRange (range = {}, preferredUnit = 'm') {
+    if (Array.isArray(range)) {
+      return this.formatRange(range[0], range[1], preferredUnit)
     }
 
+    if (!range || typeof range !== 'object') return '暂无数据'
+
+    const pickValue = (keys = []) => {
+      for (const key of keys) {
+        const value = range?.[key]
+        if (value !== undefined && value !== null && value !== '') return value
+      }
+      return null
+    }
+    const normalizeNumber = (value) => {
+      const numeric = Number(value)
+      if (!Number.isFinite(numeric)) return null
+      return Math.round(numeric * 1000) / 1000
+    }
+    const normalizeConverted = (value, factor) => {
+      if (value === null) return null
+      return normalizeNumber(Number(value) * factor)
+    }
+
+    if (preferredUnit === 'kg') {
+      const lowKg = pickValue(['min_kg', 'min'])
+      const highKg = pickValue(['max_kg', 'max'])
+      const low = lowKg !== null ? lowKg : normalizeConverted(pickValue(['min_g']), 0.001)
+      const high = highKg !== null ? highKg : normalizeConverted(pickValue(['max_g']), 0.001)
+      return this.formatRange(low, high, 'kg')
+    }
+
+    if (preferredUnit === 'cm') {
+      const lowCm = pickValue(['min_cm', 'min'])
+      const highCm = pickValue(['max_cm', 'max'])
+      const low = lowCm !== null ? lowCm : normalizeConverted(pickValue(['min_m']), 100)
+      const high = highCm !== null ? highCm : normalizeConverted(pickValue(['max_m']), 100)
+      return this.formatRange(low, high, 'cm')
+    }
+
+    const lowM = pickValue(['min_m', 'min'])
+    const highM = pickValue(['max_m', 'max'])
+    const low = lowM !== null ? lowM : normalizeConverted(pickValue(['min_cm']), 0.01)
+    const high = highM !== null ? highM : normalizeConverted(pickValue(['max_cm']), 0.01)
+    return this.formatRange(low, high, 'm')
+  }
+
+  formatPetSizeQueryMatchLabel (item = {}) {
+    const match = item?.match || {}
+    const parts = []
+    const matchPercentText = trimText(match?.match_percent_text)
+
+    if (matchPercentText) {
+      parts.push(matchPercentText)
+    } else {
+      const percent = Number(match?.percent)
+      if (Number.isFinite(percent)) {
+        parts.push(`${Math.round((percent > 1 ? percent : percent * 100) * 100) / 100}%`)
+      }
+    }
+
+    parts.push(trimText(match?.layer))
+
+    if (Array.isArray(match?.size_tags)) {
+      parts.push(...match.size_tags)
+    }
+
+    if (match?.display_only) {
+      parts.push('展示数据')
+    }
+
+    return dedupeList(parts).join(' / ')
+  }
+
+  formatPetSizeQueryCard (item = {}) {
+    const pet = item?.pet || {}
+    const petId = item?.pet_id || pet?.pet_id || pet?.id
+    const typeNames = dedupeList(Array.isArray(pet?.type_names) ? pet.type_names : [])
+    const eggGroupNames = dedupeList(Array.isArray(pet?.egg_group_names) ? pet.egg_group_names : [])
+    const eggGroupsLabel = eggGroupNames.length > 0
+      ? eggGroupNames.join(' / ')
+      : formatEggGroups(pet?.egg_group_ids)
+
     return {
-      id: item?.petId || '-',
-      name: trimText(item?.pet) || '未知精灵',
-      icon: item?.petIcon || this.getPetIconUrl(item?.petId),
-      image: item?.petImage || this.getPetImageUrl(item?.petId),
-      type_label: '后端未提供',
-      egg_groups_label: extraParts.length > 0 ? extraParts.join(' / ') : '后端未提供',
-      height_label: this.formatRange(item?.diameterMin, item?.diameterMax, 'm'),
-      weight_label: this.formatRange(item?.weightMin, item?.weightMax, 'kg')
+      id: petId || '-',
+      name: trimText(item?.name) || trimText(pet?.name) || '未知精灵',
+      icon: pet?.small_icon || pet?.icon || this.getPetIconUrl(petId),
+      image: pet?.icon || pet?.small_icon || this.getPetImageUrl(petId),
+      type_label: typeNames.length > 0 ? typeNames.join(' / ') : '未知',
+      egg_groups_label: eggGroupsLabel,
+      egg_label: trimText(item?.egg_item?.name),
+      match_label: this.formatPetSizeQueryMatchLabel(item),
+      height_label: this.formatPetSizeUnitRange(item?.egg_size?.height, 'm'),
+      weight_label: this.formatPetSizeUnitRange(item?.egg_size?.weight, 'kg')
     }
   }
 
-  formatSizeApiTextLine (item = {}) {
+  formatPetSizeQueryTextLine (item = {}) {
+    const card = this.formatPetSizeQueryCard(item)
     const extras = []
-    if (item?.probability !== undefined && item?.probability !== null && item?.probability !== '') {
-      extras.push(`概率 ${item.probability}%`)
+
+    if (card.egg_groups_label && card.egg_groups_label !== '暂无蛋组数据') {
+      extras.push(card.egg_groups_label)
     }
-    if (item?.matchCount !== undefined && item?.matchCount !== null && item?.matchCount !== '') {
-      extras.push(`命中 ${item.matchCount} 次`)
+    if (card.egg_label) {
+      extras.push(card.egg_label)
+    }
+    if (card.match_label) {
+      extras.push(`匹配 ${card.match_label}`)
     }
 
     const suffix = extras.length > 0 ? ` · ${extras.join(' / ')}` : ''
-    return `${trimText(item?.pet) || '未知精灵'} (#${item?.petId || '-'}) - ${this.formatRange(item?.diameterMin, item?.diameterMax, 'm')} / ${this.formatRange(item?.weightMin, item?.weightMax, 'kg')}${suffix}`
+    return `${card.name} (#${card.id}) - ${card.height_label} / ${card.weight_label}${suffix}`
   }
 
-  formatEggSearchCard (item = {}) {
-    const eggGroups = Array.isArray(item?.egg_groups)
-      ? item.egg_groups.map((g) => trimText(g?.official_name) || trimText(g?.display_name) || `蛋组${g?.group_id}`)
-      : []
-    const heightRange = Array.isArray(item?.height_range_m) ? item.height_range_m : []
-    const weightRange = Array.isArray(item?.weight_range_kg) ? item.weight_range_kg : []
-
-    return {
-      id: item?.id || '-',
-      name: trimText(item?.name) || '未知精灵',
-      icon: item?.pet_icon_url || this.getPetIconUrl(item?.id),
-      image: item?.pet_img_url || this.getPetImageUrl(item?.id),
-      type_label: Array.isArray(item?.unit_type) ? item.unit_type.join(' / ') : '未知',
-      egg_groups_label: eggGroups.length > 0 ? eggGroups.join(' / ') : '暂无蛋组数据',
-      height_label: this.formatRange(heightRange[0], heightRange[1], 'm'),
-      weight_label: this.formatRange(weightRange[0], weightRange[1], 'kg')
-    }
-  }
-
-  formatEggSearchTextLine (item = {}) {
-    const eggGroups = Array.isArray(item?.egg_groups)
-      ? item.egg_groups.map((g) => trimText(g?.official_name) || trimText(g?.display_name) || `蛋组${g?.group_id}`)
-      : []
-    const heightRange = Array.isArray(item?.height_range_m) ? item.height_range_m : []
-    const weightRange = Array.isArray(item?.weight_range_kg) ? item.weight_range_kg : []
-    const eggGroupsLabel = eggGroups.length > 0 ? ` · ${eggGroups.join(' / ')}` : ''
-
-    return `${trimText(item?.name) || '未知精灵'} (#${item?.id || '-'}) - ${this.formatRange(heightRange[0], heightRange[1], 'm')} / ${this.formatRange(weightRange[0], weightRange[1], 'kg')}${eggGroupsLabel}`
-  }
-
-  buildEggSearchData (heightM = null, weightKg = null, result = {}, options = {}) {
+  buildPetSizeQueryData (diameterM = null, weightKg = null, result = {}, options = {}) {
     const { commandHint = '', copyright = DEFAULT_COPYRIGHT } = options
+    const query = result?.query || {}
+    const queryDiameter = diameterM !== null && diameterM !== undefined ? diameterM : query?.diameter
+    const queryWeight = weightKg !== null && weightKg !== undefined ? weightKg : query?.weight
     const conditions = []
-    if (heightM !== null && heightM !== undefined) conditions.push(`身高 ${heightM} m`)
-    if (weightKg !== null && weightKg !== undefined) conditions.push(`体重 ${weightKg} kg`)
 
+    if (queryDiameter !== null && queryDiameter !== undefined) conditions.push(`直径 ${queryDiameter} m`)
+    if (queryWeight !== null && queryWeight !== undefined) conditions.push(`体重 ${queryWeight} kg`)
+
+    const poolName = trimText(query?.pool?.name || query?.pool?.key)
+    const queryLabel = [
+      conditions.join(' / ') || '尺寸反查',
+      poolName ? `池 ${poolName}` : ''
+    ].filter(Boolean).join(' · ')
     const items = Array.isArray(result?.items) ? result.items : []
-    const cards = items.map((item) => this.formatEggSearchCard(item))
+    const cards = items.map((item) => this.formatPetSizeQueryCard(item))
 
     return {
-      query_label: conditions.join(' / ') || '孵蛋反查',
-      perfect_matches: cards,
-      range_matches: [],
+      query_label: queryLabel,
+      perfect_matches: [],
+      range_matches: cards,
       total_count: result?.total ?? cards.length,
       has_results: cards.length > 0,
       commandHint,
@@ -784,12 +765,16 @@ class EggService {
     }
   }
 
-  buildEggSearchText (heightM = null, weightKg = null, result = {}) {
+  buildPetSizeQueryText (diameterM = null, weightKg = null, result = {}) {
+    const query = result?.query || {}
+    const queryDiameter = diameterM !== null && diameterM !== undefined ? diameterM : query?.diameter
+    const queryWeight = weightKg !== null && weightKg !== undefined ? weightKg : query?.weight
     const conditions = []
-    if (heightM !== null && heightM !== undefined) conditions.push(`身高=${heightM}m`)
-    if (weightKg !== null && weightKg !== undefined) conditions.push(`体重=${weightKg}kg`)
-    const conditionText = conditions.join(' + ') || '当前条件'
 
+    if (queryDiameter !== null && queryDiameter !== undefined) conditions.push(`直径=${queryDiameter}m`)
+    if (queryWeight !== null && queryWeight !== undefined) conditions.push(`体重=${queryWeight}kg`)
+
+    const conditionText = conditions.join(' + ') || '当前条件'
     const items = Array.isArray(result?.items) ? result.items : []
 
     if (items.length === 0) {
@@ -798,7 +783,7 @@ class EggService {
 
     const lines = [`符合 ${conditionText} 的精灵（共 ${result?.total ?? items.length} 只）：`]
     items.slice(0, 10).forEach((item, index) => {
-      lines.push(`${index + 1}. ${this.formatEggSearchTextLine(item)}`)
+      lines.push(`${index + 1}. ${this.formatPetSizeQueryTextLine(item)}`)
     })
 
     lines.push('')
