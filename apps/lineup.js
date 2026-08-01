@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import WeGameAccountService from '../../../model/accountService.js'
 import { renderModuleTemplate } from '../../../model/moduleRender.js'
 import RocomApi from '../model/api.js'
@@ -5,6 +7,69 @@ import RocomConfig from '../utils/config.js'
 import { buildCommandReg, formatCommand, stripCommandPrefix } from '../utils/command.js'
 import { ensureUpstreamSuccess } from '../../../utils/queryHelper.js'
 import { trimText, toNumber, normalizeUrl, encodeAssetPath, resolveAccountType } from '../utils/rocom.js'
+
+const SHARE_CODE_PARSE_COMMANDS = ['阵容解析', '解析阵容', '分享码解析']
+const PET_MAP_PATH = path.join(process.cwd(), 'plugins', 'WeGame-plugin', 'modules', 'rocom', 'utils', 'map', 'pet_list.json')
+const LOCAL_PET_MAP_PATH = path.join(process.cwd(), 'utils', 'map', 'pet_list.json')
+const NATURE_MAP_PATH = path.join(process.cwd(), 'plugins', 'WeGame-plugin', 'modules', 'rocom', 'utils', 'map', 'nature_map.json')
+const LOCAL_NATURE_MAP_PATH = path.join(process.cwd(), 'utils', 'map', 'nature_map.json')
+const ELEMENT_COLORS = {
+  草: '#4ebc73',
+  火: '#db5525',
+  水: '#3f89b4',
+  光: '#6aa9fe',
+  地: '#9a7e3f',
+  冰: '#63aeda',
+  龙: '#ed4962',
+  电: '#e7c506',
+  毒: '#ba62e0',
+  虫: '#96ca0f',
+  武: '#ff9636',
+  翼: '#3ec7ca',
+  萌: '#fc74a7',
+  幽: '#9446ec',
+  恶: '#cf467a',
+  机械: '#40cba9',
+  幻: '#9fa7f8',
+  普通: '#babbc6',
+  无: '#babbc6'
+}
+
+let petMapCache = null
+let natureMapCache = null
+
+function loadJsonMap (filePaths = [], label = '映射') {
+  for (const filePath of filePaths) {
+    try {
+      if (fs.existsSync(filePath)) {
+        return JSON.parse(fs.readFileSync(filePath, 'utf8'))
+      }
+    } catch (error) {
+      logger.warn(`[WeGame-plugin][rocom] 读取${label}失败：${error.message || error}`)
+    }
+  }
+  return {}
+}
+
+function loadPetMap () {
+  if (!petMapCache) petMapCache = loadJsonMap([PET_MAP_PATH, LOCAL_PET_MAP_PATH], '精灵映射')
+  return petMapCache
+}
+
+function loadNatureMap () {
+  if (!natureMapCache) natureMapCache = loadJsonMap([NATURE_MAP_PATH, LOCAL_NATURE_MAP_PATH], '性格映射')
+  return natureMapCache
+}
+
+function normalizeResourceUrl (value = '', baseUrl = '') {
+  const url = normalizeUrl(value)
+  if (url) return url
+  const text = trimText(value)
+  if (!text) return ''
+  const normalizedBaseUrl = trimText(baseUrl).replace(/\/+$/, '')
+  if (text.startsWith('/') && normalizedBaseUrl) return `${normalizedBaseUrl}${text}`
+  return ''
+}
 
 function getDetailSearchPages () {
   return Number(RocomConfig.get('lineup', 'detail_search_pages')) ||
@@ -30,6 +95,10 @@ export class RocomLineup extends plugin {
       priority: 115,
       rule: [
         {
+          reg: buildCommandReg('(?:阵容解析|解析阵容|分享码解析)(?:\\s+[\\s\\S]+)?'),
+          fnc: 'parseShareCode'
+        },
+        {
           reg: buildCommandReg('(?:查看阵容|阵容详情)(?:\\s+.+)?'),
           fnc: 'queryLineupDetail'
         },
@@ -43,6 +112,46 @@ export class RocomLineup extends plugin {
     this.e = e
     this.api = new RocomApi()
     this.accountService = new WeGameAccountService(e)
+  }
+
+  async parseShareCode () {
+    try {
+      const shareCode = this.parseShareCodeArg()
+      const userIdentifier = this.accountService.getUserIdentifier()
+      await this.reply('正在解析阵容码...')
+
+      const data = await this.api.parseShareCode({ share_code: shareCode }, { userIdentifier })
+      ensureUpstreamSuccess(data)
+      const teamData = this.normalizeShareCodeTeam(data)
+      if (teamData.teams.length === 0) {
+        throw new Error('阵容码解析成功，但没有返回阵容精灵数据')
+      }
+
+      const image = await renderModuleTemplate(
+        this.e,
+        'rocom',
+        'render/share-code-team/index',
+        {
+          saveId: `rocom-share-code-${this.e.user_id}-${Date.now()}`,
+          team: teamData
+        },
+        {
+          retType: 'base64',
+          beforeRender: ({ data }) => this.withShareCodeRenderAssets(data)
+        }
+      )
+
+      if (!image) {
+        throw new Error('阵容卡片渲染失败')
+      }
+
+      await this.reply(image)
+      return true
+    } catch (error) {
+      logger.error('[WeGame-plugin][rocom] 阵容码解析失败', error)
+      await this.reply(`阵容码解析失败：${error.message || error}`)
+      return true
+    }
   }
 
   async queryLineupList () {
@@ -138,6 +247,124 @@ export class RocomLineup extends plugin {
       logger.error('[WeGame-plugin][rocom] 阵容详情查询失败', error)
       await this.reply(`阵容详情查询失败：${error.message || error}`)
       return true
+    }
+  }
+
+  stripFirstCommand (commands = []) {
+    for (const command of commands) {
+      const raw = stripCommandPrefix(this.e.msg, command)
+      if (raw) return raw
+    }
+    return ''
+  }
+
+  parseShareCodeArg () {
+    const shareCode = trimText(this.stripFirstCommand(SHARE_CODE_PARSE_COMMANDS))
+    if (!shareCode) {
+      throw new Error(`格式：${formatCommand('阵容解析 <阵容码>')}`)
+    }
+    return shareCode
+  }
+
+  normalizeShareCodeTeam (payload = {}) {
+    const data = payload?.data && typeof payload.data === 'object' ? payload.data : payload
+    const teams = Array.isArray(data?.teams) ? data.teams : []
+    const spriteCount = toNumber(data?.sprite_count ?? data?.spriteCount, teams.length) || teams.length
+    const baseUrl = this.api.getBaseUrl()
+
+    return {
+      share_code: trimText(data?.share_code || data?.shareCode),
+      mode_name: trimText(data?.mode?.name) || '阵容分享',
+      magic_icon: normalizeResourceUrl(data?.magic?.icon, baseUrl),
+      sprite_count: spriteCount,
+      count_label: `/ ${spriteCount} 精灵`,
+      teams: teams
+        .slice()
+        .sort((a, b) => toNumber(a?.slot, 0) - toNumber(b?.slot, 0))
+        .map((team, index) => this.normalizeShareCodePet(team, index))
+    }
+  }
+
+  normalizeShareCodePet (team = {}, index = 0) {
+    const baseUrl = this.api.getBaseUrl()
+    const petId = trimText(team?.pet?.id || team?.pet_id || team?.id)
+    const petMeta = loadPetMap()[petId] || {}
+    const bloodlineName = trimText(team?.bloodline?.name)
+    const bloodlineElement = bloodlineName.replace(/系血脉$/, '').replace(/血脉$/, '') || '普通'
+    const nature = loadNatureMap()[trimText(team?.personality?.id)] || {}
+    const typeNames = Array.isArray(team?.pet?.type_names)
+      ? team.pet.type_names
+      : Array.isArray(petMeta?.unit_type) ? petMeta.unit_type : []
+    const slot = toNumber(team?.slot, index + 1)
+
+    return {
+      slot,
+      slotText: String(slot).padStart(2, '0'),
+      color: ELEMENT_COLORS[bloodlineElement] || '#a687d5',
+      pet: {
+        id: petId,
+        name: trimText(team?.pet?.name) || trimText(petMeta?.name) || `精灵 ${index + 1}`,
+        icon: normalizeResourceUrl(team?.pet?.icon || team?.pet?.pet_img_url || team?.pet_img_url, baseUrl)
+      },
+      typeIcons: typeNames.map((name) => trimText(name)).filter(Boolean),
+      bloodline: {
+        name: bloodlineName || `${bloodlineElement}系血脉`,
+        element: bloodlineElement,
+        icon: normalizeResourceUrl(team?.bloodline?.icon, baseUrl)
+      },
+      personality: {
+        id: trimText(team?.personality?.id),
+        name: trimText(team?.personality?.name) || trimText(nature?.name) || '未知',
+        up: trimText(nature?.up),
+        down: trimText(nature?.down)
+      },
+      ivs_detail: (Array.isArray(team?.ivs_detail) ? team.ivs_detail : []).map((item) => ({
+        name: trimText(item?.name || item?.label || item?.text || item)
+      })).filter((item) => item.name),
+      skills: (Array.isArray(team?.skills) ? team.skills : []).map((skill) => ({
+        name: trimText(skill?.name || skill?.skill_name) || '未知技能',
+        icon: normalizeResourceUrl(skill?.icon || skill?.skill_img_url, baseUrl)
+      }))
+    }
+  }
+
+  withShareCodeRenderAssets (data = {}) {
+    const buildResUrl = (assetPath) => `${data.pluResPath}${encodeAssetPath(assetPath)}`
+    const assetRoot = 'render/share-code-team/assets'
+    const fallbackPetImage = buildResUrl(`${assetRoot}/roco_icon.png`)
+    const baseUrl = this.api.getBaseUrl()
+    const normalizeImage = (value = '') => normalizeResourceUrl(value, baseUrl) || fallbackPetImage
+    const asset = (assetPath = '') => buildResUrl(`${assetRoot}/${assetPath}`)
+
+    return {
+      ...data,
+      team: {
+        ...(data.team || {}),
+        magic_icon: normalizeImage(data.team?.magic_icon),
+        teams: (data.team?.teams || []).map((team) => ({
+          ...team,
+          pet: {
+            ...team.pet,
+            icon: normalizeImage(team?.pet?.icon)
+          },
+          typeIcons: (team?.typeIcons || []).map((name) => ({ name, icon: asset(`宠物属性/${name}.png`) })),
+          bloodline: {
+            ...team.bloodline,
+            icon: normalizeResourceUrl(team?.bloodline?.icon, baseUrl) || asset(`血脉/${team?.bloodline?.element || '普通'}.png`)
+          },
+          skills: (team?.skills || []).map((skill) => ({
+            ...skill,
+            icon: normalizeImage(skill?.icon)
+          }))
+        }))
+      },
+      shareAssets: {
+        rocoIcon: fallbackPetImage,
+        logo: asset('eit-logo.png'),
+        star: asset('img_xingxingdi.png'),
+        wax: asset('火漆印.png'),
+        frame: asset('立绘背景框.png')
+      }
     }
   }
 

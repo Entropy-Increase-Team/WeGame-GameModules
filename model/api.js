@@ -493,6 +493,18 @@ export default class RocomApi extends WeGameApi {
     return this.requestRocomGet('/api/v1/games/rocom/lineup/list', frameworkToken, params, options)
   }
 
+  parseShareCode (data = {}, options = {}) {
+    return this.requestRocomPublicPost('/api/v1/games/rocom/tools/share-code/parse', data, options)
+  }
+
+  generateShareCode (data = {}, options = {}) {
+    return this.requestRocomPublicPost('/api/v1/games/rocom/tools/share-code/generate', data, options)
+  }
+
+  getShareCodeRecords (params = {}, options = {}) {
+    return this.requestRocomPublicGet('/api/v1/games/rocom/tools/share-code/records', params, options)
+  }
+
   getExchangePosters (frameworkToken, params = {}, options = {}) {
     return this.requestRocomGet('/api/v1/games/rocom/exchange/posters', frameworkToken, params, options)
   }

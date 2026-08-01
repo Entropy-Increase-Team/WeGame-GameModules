@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1080, initial-scale=1">
+  <link rel="stylesheet" href="{{_res_path}}render/share-code-team/style.css">
+</head>
+<body>
+  <div class="share-page">
+    <svg class="svg-defs" aria-hidden="true">
+      <defs>
+        <filter id="contourStroke" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+          <feFlood flood-color="#000" result="color"></feFlood>
+          <feMorphology in="SourceAlpha" operator="dilate" radius="1" result="dilated"></feMorphology>
+          <feComposite in="color" in2="dilated" operator="in" result="outline"></feComposite>
+          <feMerge><feMergeNode in="outline"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+        </filter>
+      </defs>
+    </svg>
+
+    <div class="nav-logo"><img src="{{shareAssets.rocoIcon}}" alt="roco"></div>
+    <div class="nav-bar">
+      <span class="nav-title">阵容分享</span>
+      <div class="nav-badge"><span>洛克</span><span>王国</span></div>
+    </div>
+
+    <main class="panel">
+      <section class="team-overview">
+        <img class="ov-star" src="{{shareAssets.star}}" alt="">
+        <div class="ov-magic"><img src="{{team.magic_icon}}" alt=""></div>
+        <div class="ov-text">
+          <span class="ov-mode">{{team.mode_name}}</span>
+          <span class="ov-sub">共 {{team.sprite_count}} 只精灵</span>
+          {{if team.share_code}}<span class="ov-code">{{team.share_code}}</span>{{/if}}
+        </div>
+        <div class="ov-count"><span class="n">{{team.sprite_count}}</span><span class="u">{{team.count_label}}</span></div>
+      </section>
+
+      <section class="section-title-area">
+        <div class="bg-text">roco kingdom team</div>
+        <div class="main-title">阵容详情</div>
+      </section>
+
+      <section class="team-grid">
+        {{each team.teams pet}}
+        <article class="pet-card" style="--el: {{pet.color}};">
+          <div class="star-deco"><img src="{{shareAssets.star}}" alt=""></div>
+          <div class="card-top">
+            <div class="illust-wrap">
+              <div class="illust-card">
+                <div class="wax-seal"><img src="{{shareAssets.wax}}" alt=""></div>
+                <div class="pet-number">
+                  <span class="n-row"><span class="n-label">NO</span><span class="n-dot">.</span></span>
+                  <span class="n-id">{{pet.slotText}}</span>
+                </div>
+                <div class="illust-frame">
+                  <img class="frame-bg" src="{{shareAssets.frame}}" alt="">
+                  <div class="pet-illust"><img src="{{pet.pet.icon}}" alt="{{pet.pet.name}}" onerror="this.src='{{shareAssets.rocoIcon}}'"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="info-col">
+              <div class="name-row">
+                <div class="pet-name">{{pet.pet.name}}</div>
+                <div class="type-icons">
+                  {{each pet.typeIcons typeIcon}}
+                  <img class="ti-ico" src="{{typeIcon.icon}}" alt="{{typeIcon.name}}" onerror="this.style.visibility='hidden'">
+                  {{/each}}
+                  <img class="ti-ico" src="{{pet.bloodline.icon}}" alt="{{pet.bloodline.name}}" onerror="this.style.visibility='hidden'">
+                </div>
+              </div>
+
+              <div class="pill-row">
+                <div class="el-pill personality">
+                  <span class="el-ico">{{pet.personality.name}}</span>
+                  {{if pet.personality.up || pet.personality.down}}
+                  <span class="el-lbl">
+                    {{if pet.personality.up}}<span class="nat-pair">{{pet.personality.up}}<span class="nat-arr up">▲</span></span>{{/if}}
+                    {{if pet.personality.down}}<span class="nat-pair">{{pet.personality.down}}<span class="nat-arr down">▼</span></span>{{/if}}
+                  </span>
+                  {{/if}}
+                </div>
+              </div>
+
+              <div class="iv-block">
+                <div class="iv-head">个体资质</div>
+                <div class="iv-bars">
+                  {{each pet.ivs_detail iv}}
+                  <div class="iv-bar">{{iv.name}}</div>
+                  {{/each}}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="skills-block">
+            <div class="skill-row">
+              {{each pet.skills skill}}
+              <div class="skill-chip">
+                <div class="skill-icon-frame"><img class="sk-ico" src="{{skill.icon}}" alt="{{skill.name}}" onerror="this.src='{{shareAssets.rocoIcon}}'"></div>
+                <span class="sk-name">{{skill.name}}</span>
+              </div>
+              {{/each}}
+            </div>
+          </div>
+        </article>
+        {{/each}}
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-logo"><img src="{{shareAssets.logo}}" alt=""></div>
+      <span class="footer-team">熵增开放平台</span>
+      <div class="footer-stars"><span></span><span></span><span></span></div>
+    </footer>
+  </div>
+</body>
+</html>
