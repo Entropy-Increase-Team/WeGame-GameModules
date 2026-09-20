@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width={{renderWidth}}, initial-scale=1">
 <title>今日远行商人</title>
 <style>
   @font-face {
@@ -18,23 +18,34 @@
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  html,
   body {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    min-height: 100vh;
-    background: #1a1a2e;
+    width: {{renderWidth}}px;
+    min-height: {{renderHeight}}px;
+    background: #f4eee0;
+  }
+
+  body {
     -webkit-font-smoothing: antialiased;
   }
 
   .page {
     position: relative;
+    width: {{renderWidth}}px;
+    height: {{renderHeight}}px;
+    background: #f4eee0;
+    overflow: hidden;
+  }
+
+  .page-canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
     width: 1080px;
     height: {{pageHeight}}px;
-    background: #f4eee0;
-    overflow: visible;
-    transform: scale(0.5);
+    transform: scale({{renderScale}});
     transform-origin: top left;
+    overflow: visible;
   }
 
   .title-bg {
@@ -408,6 +419,7 @@
 </svg>
 
   <div id="container" class="page">
+    <div class="page-canvas">
     <img class="title-bg" src="{{_res_path}}render/yuanxing-shangren/img/标题.png" alt="标题">
 
     <div class="time-group">
@@ -456,6 +468,7 @@
     {{/if}}
 
     <img class="bottom-img" src="{{_res_path}}render/yuanxing-shangren/img/底部信息框.png" alt="底部信息框" style="top: {{bottomFrameTop}}px">
+    </div>
   </div>
 
 </body>

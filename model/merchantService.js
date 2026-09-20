@@ -2,6 +2,11 @@ import RocomApi from './api.js'
 import { trimText } from '../utils/rocom.js'
 
 const CHINA_TIMEZONE = 'Asia/Shanghai'
+const MERCHANT_CARD_SOURCE_WIDTH = 1080
+const MERCHANT_CARD_TARGET_SCALE = 0.5
+const MERCHANT_CARD_RENDER_ZOOM = 2
+const MERCHANT_CARD_RENDER_SCALE = MERCHANT_CARD_TARGET_SCALE / MERCHANT_CARD_RENDER_ZOOM
+const MERCHANT_CARD_RENDER_WIDTH = Math.ceil(MERCHANT_CARD_SOURCE_WIDTH * MERCHANT_CARD_RENDER_SCALE)
 
 const chinaDateFormatter = new Intl.DateTimeFormat('zh-CN', {
   timeZone: CHINA_TIMEZONE,
@@ -533,12 +538,16 @@ class MerchantService {
     const lastCardTop = goods.length > 0 ? goods[goods.length - 1].top : startY
     const bottomFrameTop = lastCardTop + 287
     const pageHeight = bottomFrameTop + 160
+    const renderHeight = Math.ceil(pageHeight * MERCHANT_CARD_RENDER_SCALE)
 
     return {
       dateStr,
       goods,
       bottomFrameTop,
-      pageHeight
+      pageHeight,
+      renderWidth: MERCHANT_CARD_RENDER_WIDTH,
+      renderHeight,
+      renderScale: MERCHANT_CARD_RENDER_SCALE
     }
   }
 
@@ -664,13 +673,17 @@ class MerchantService {
     const lastCardTop = goods.length > 0 ? goods[goods.length - 1].top : startY
     const bottomFrameTop = lastCardTop + 287
     const pageHeight = bottomFrameTop + 160
+    const renderHeight = Math.ceil(pageHeight * MERCHANT_CARD_RENDER_SCALE)
 
     return {
       dateStr,
       timeRange,
       goods,
       bottomFrameTop,
-      pageHeight
+      pageHeight,
+      renderWidth: MERCHANT_CARD_RENDER_WIDTH,
+      renderHeight,
+      renderScale: MERCHANT_CARD_RENDER_SCALE
     }
   }
 
