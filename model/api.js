@@ -57,6 +57,10 @@ function isCompletedGatewayPayload (payload = {}) {
   if (trimText(payload.title)) return true
   if (payload.source !== undefined) return true
   if (payload.home_info !== undefined) return true
+  // 新响应格式：不再返回 rows，而是直接给出结构化业务对象
+  if (payload.player_info !== undefined) return true
+  if (payload.player_card_brief_info !== undefined) return true
+  if (payload.academy_career_snapshot !== undefined) return true
   return false
 }
 
@@ -148,6 +152,25 @@ export default class RocomApi extends WeGameApi {
 
   getRocomApiKey () {
     return trimText(Config.get('wegame', 'api_key')) || ROCOM_DEFAULT_API_KEY
+  }
+
+  /**
+   * 把接口返回的资源地址补全成可直接访问的绝对地址。
+   * 新响应里名片地址是 relative/api/v1/resources/... 形式，需要拼上 base_url。
+   */
+  resolveResourceUrl (value = '') {
+    const text = trimText(value)
+    if (!text) return ''
+    if (/^https?:\/\//i.test(text)) return text
+    if (text.startsWith('//')) return `https:${text}`
+
+    const path = text
+      .replace(/^relative\//i, '')
+      .replace(/^\/+/, '')
+
+    if (!path) return ''
+
+    return `${this.getBaseUrl()}/${path}`
   }
 
   getApiKey () {
@@ -387,6 +410,16 @@ export default class RocomApi extends WeGameApi {
       : this.requestRocomIngamePost.bind(this)
 
     return request('/api/v1/games/rocom/ingame/player/search', {
+      uid
+    }, options)
+  }
+
+  getPlayerCard (uid, options = {}) {
+    const request = normalizeIngameMethod(options.method) === 'post'
+      ? this.requestRocomIngamePost.bind(this)
+      : this.requestRocomIngameGet.bind(this)
+
+    return request('/api/v1/games/rocom/ingame/player/card', {
       uid
     }, options)
   }

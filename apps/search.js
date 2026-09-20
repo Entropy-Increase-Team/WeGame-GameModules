@@ -5,87 +5,105 @@ import { buildCommandReg, formatCommand } from '../utils/command.js'
 import { trimText, pickPrimaryAccount, extractUidFromAccount } from '../utils/rocom.js'
 
 const UID_SEARCH_REG = buildCommandReg('(?:uid|UID)(?:\\s*(\\d+))?')
-const EMPTY_BUFFER_VALUE_REG = /^<\s*\d+B\s*>$/
+const EMPTY_BUFFER_VALUE_REG = /^<\s*\d+B(\s+hex=[0-9a-f]*)?\s*>$/i
 const STRUCTURED_VALUE_REG = /^\([^()]+,\s*\d+B\)$/
+const STRUCTURED_SKIP_KEYS = new Set(['meta', 'ret_info', 'notes', 'rows', 'title', 'result', 'data'])
+const MAX_STRUCTURED_DEPTH = 5
 const DISPLAY_FIELDS = [
   {
     label: 'UID',
-    fields: ['uid', 'uin', 'id'],
+    fields: ['player_info.uin', 'uin', 'uid', 'id'],
     rowLabels: ['UID', '用户ID', '角色ID']
   },
   {
     label: '昵称',
-    fields: ['name', 'nickname'],
+    fields: ['player_info.name', 'name', 'nickname'],
     rowLabels: ['昵称']
   },
   {
     label: '等级',
-    fields: ['level'],
+    fields: ['player_info.level', 'level'],
     rowLabels: ['等级']
   },
   {
+    label: '性别',
+    fields: ['player_info.gender', 'gender', 'sex'],
+    rowLabels: ['性别'],
+    formatter: formatGenderValue
+  },
+  {
     label: '在线状态',
-    fields: ['online', 'is_online', 'online_status'],
+    fields: ['player_info.online', 'online', 'is_online', 'online_status'],
     rowLabels: ['在线状态', '是否在线'],
     formatter: formatOnlineValue
   },
   {
     label: '最后离线时间',
-    fields: ['last_logout_time', 'last_offline_time', 'logout_time', 'offline_time'],
+    fields: ['player_info.last_logout_time', 'last_logout_time', 'last_offline_time', 'logout_time', 'offline_time'],
     rowLabels: ['最后离线时间', '离线时间'],
     formatter: formatTimeValue
   },
   {
     label: '个性签名',
-    fields: ['signature'],
-    rowLabels: ['个性签名'],
+    fields: ['player_info.signature', 'signature', 'player_card_brief_info.card_signature', 'card_signature'],
+    rowLabels: ['个性签名', '名片签名'],
     formatter: formatSignatureValue
   },
   {
     label: '世界等级',
-    fields: ['world_level', 'world_lv', 'worldlevel'],
+    fields: ['player_info.world_level', 'world_level', 'world_lv', 'worldlevel'],
     rowLabels: ['世界等级']
   },
   {
     label: '注册时间',
-    fields: ['register_time', 'create_time', 'reg_time'],
+    fields: ['player_info.regist_date', 'regist_date', 'register_timestamp', 'register_time', 'create_time', 'reg_time'],
     rowLabels: ['注册时间', '创建时间'],
     formatter: formatTimeValue
   },
   {
     label: '图鉴收集数',
-    fields: ['collection_count', 'current_collection_count', 'collection_num', 'illustration_count'],
+    fields: ['player_info.card_handbook_collect_num', 'card_handbook_collect_num', 'collection_count', 'current_collection_count', 'collection_num', 'illustration_count'],
     rowLabels: ['图鉴收集数', '收藏数', '图鉴数量']
   },
   {
     label: '家园名称',
-    fields: ['home_name', 'homeland_name', 'estate_name'],
+    fields: ['player_info.home_info.home_name', 'home_info.home_name', 'home_name', 'homeland_name', 'estate_name'],
     rowLabels: ['家园名称'],
     formatter: formatNoneValue
   },
   {
     label: '家园经验',
-    fields: ['home_exp', 'home_experience', 'homeland_exp'],
+    fields: ['player_info.home_info.home_experience', 'home_info.home_experience', 'home_exp', 'home_experience', 'homeland_exp'],
     rowLabels: ['家园经验']
   },
   {
     label: '家园等级',
-    fields: ['home_level', 'homeland_level'],
+    fields: ['player_info.home_info.home_level', 'home_info.home_level', 'home_level', 'homeland_level'],
     rowLabels: ['家园等级']
   },
   {
     label: '房间等级',
-    fields: ['room_level'],
+    fields: ['player_info.home_info.room_level', 'home_info.room_level', 'room_level'],
     rowLabels: ['房间等级']
   },
   {
     label: '家园舒适度',
-    fields: ['home_comfort', 'comfort', 'comfort_value', 'homeland_comfort'],
+    fields: ['player_info.home_info.home_comfort_level', 'home_info.home_comfort_level', 'home_comfort_level', 'home_comfort', 'comfort', 'comfort_value', 'homeland_comfort'],
     rowLabels: ['家园舒适度', '舒适度']
   }
 ]
-const CARD_IMAGE_FIELDS = ['background_url', 'card_url', 'card_image', 'name_card']
-const CARD_IMAGE_LABELS = ['名片', '名片链接', '名片地址']
+const CARD_IMAGE_FIELDS = [
+  'player_info.card_bussiness_card_url',
+  'card_bussiness_card_url',
+  'player_card_brief_info.business_card_info.cur_card_url',
+  'business_card_info.cur_card_url',
+  'cur_card_url',
+  'background_url',
+  'card_url',
+  'card_image',
+  'name_card'
+]
+const CARD_IMAGE_LABELS = ['商务名片URL', '当前名片URL', '名片', '名片链接', '名片地址']
 
 function stripWrappedQuotes (value = '') {
   const text = trimText(value)
@@ -103,12 +121,72 @@ function isEmptyBufferValue (value = '') {
   return EMPTY_BUFFER_VALUE_REG.test(trimText(value))
 }
 
+function isPlainObject (value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function stringifyFieldValue (value) {
+  if (typeof value === 'boolean') return value ? 'true' : 'false'
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'object') return ''
+  return String(value)
+}
+
+/**
+ * 新响应格式：data 下直接给出 player_info / player_card_brief_info 等结构化对象。
+ * 这里把嵌套对象拍平成 field=完整路径、leaf=末级字段名的行，方便与旧 rows 格式共用展示逻辑。
+ */
+function flattenStructuredRows (source = {}, prefix = '', rows = [], depth = 0) {
+  if (!isPlainObject(source) || depth > MAX_STRUCTURED_DEPTH) return rows
+
+  for (const [key, value] of Object.entries(source)) {
+    const path = prefix ? `${prefix}.${key}` : key
+
+    if (isPlainObject(value)) {
+      flattenStructuredRows(value, path, rows, depth + 1)
+      continue
+    }
+
+    if (Array.isArray(value)) continue
+
+    const text = stringifyFieldValue(value)
+    if (!text) continue
+
+    rows.push({ field: path, leaf: key, label: '', value: text })
+  }
+
+  return rows
+}
+
 function normalizeSearchRow (row = {}) {
+  const field = trimText(row?.field)
   return {
-    field: trimText(row?.field),
+    field,
+    leaf: field.split('.').pop() || field,
     label: trimText(row?.label),
     value: stripWrappedQuotes(row?.value)
   }
+}
+
+function normalizeSearchRows (payload = {}) {
+  if (!isPlainObject(payload)) return []
+
+  const structuredSource = Object.fromEntries(
+    Object.entries(payload).filter(([key]) => !STRUCTURED_SKIP_KEYS.has(key))
+  )
+  const structuredRows = flattenStructuredRows(structuredSource)
+  const legacyRows = (Array.isArray(payload.rows) ? payload.rows : [])
+    .map((item) => normalizeSearchRow(item))
+    .filter((item) => item.label || item.field || item.value)
+
+  return [...structuredRows, ...legacyRows]
+}
+
+function formatGenderValue (value = '') {
+  const text = trimText(value)
+  if (!text) return ''
+  const genderMap = { 0: '未知', 1: '男', 2: '女' }
+  return genderMap[text] || text
 }
 
 function formatOnlineValue (value = '') {
@@ -168,7 +246,9 @@ function formatTimeValue (value = '') {
   return formatter.format(date).replace(' ', ' ')
 }
 
-function formatRowValue (row = {}, formatter = null) {
+function formatRowValue (row, formatter = null) {
+  // 注意：这里不能给 row 设默认值 {}，否则字段缺失时会被当成“空值”，
+  // 进而把“无 / 未填写”之类的占位文案显示成真实数据。
   if (!row) {
     return ''
   }
@@ -192,6 +272,9 @@ function buildRowLookup (rows = []) {
   for (const row of rows) {
     if (row.field && !byField.has(row.field)) {
       byField.set(row.field, row)
+    }
+    if (row.leaf && !byField.has(row.leaf)) {
+      byField.set(row.leaf, row)
     }
     if (row.label && !byLabel.has(row.label)) {
       byLabel.set(row.label, row)
@@ -246,12 +329,24 @@ function buildDisplayLines (uid = '', rows = []) {
   return lines
 }
 
-function resolveCardImage (rows = []) {
+function resolveCardImage (rows = [], resolveUrl = null) {
   const lookup = buildRowLookup(rows)
-  return findRowValue(lookup, {
+  const rawValue = findRowValue(lookup, {
     fields: CARD_IMAGE_FIELDS,
     rowLabels: CARD_IMAGE_LABELS
   })
+
+  const text = trimText(rawValue)
+  if (!text) return ''
+  if (/^https?:\/\//i.test(text)) return text
+  if (text.startsWith('//')) return `https:${text}`
+
+  // 新响应里的名片地址是 relative/api/v1/resources/... 形式的相对路径，需要补全成绝对地址
+  if (typeof resolveUrl === 'function') {
+    return trimText(resolveUrl(text))
+  }
+
+  return ''
 }
 
 function formatPlayerSearchError (error) {
@@ -352,11 +447,9 @@ export class RocomPlayerSearch extends plugin {
   }
 
   buildForwardNodes (uid = '', payload = {}) {
-    const rows = (Array.isArray(payload?.rows) ? payload.rows : [])
-      .map((item) => normalizeSearchRow(item))
-      .filter((item) => item.label || item.field || item.value)
+    const rows = normalizeSearchRows(payload)
     const lines = buildDisplayLines(uid, rows)
-    const cardImage = resolveCardImage(rows)
+    const cardImage = resolveCardImage(rows, this.resolveCardImageUrl.bind(this))
     const nodes = []
 
     if (lines.length > 0) {
@@ -370,5 +463,13 @@ export class RocomPlayerSearch extends plugin {
     }
 
     return nodes
+  }
+
+  resolveCardImageUrl (value = '') {
+    if (typeof this.api?.resolveResourceUrl === 'function') {
+      return this.api.resolveResourceUrl(value)
+    }
+
+    return ''
   }
 }
