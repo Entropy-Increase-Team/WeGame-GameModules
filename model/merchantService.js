@@ -7,6 +7,9 @@ const MERCHANT_CARD_TARGET_SCALE = 0.5
 const MERCHANT_CARD_RENDER_ZOOM = 2
 const MERCHANT_CARD_RENDER_SCALE = MERCHANT_CARD_TARGET_SCALE / MERCHANT_CARD_RENDER_ZOOM
 const MERCHANT_CARD_RENDER_WIDTH = Math.ceil(MERCHANT_CARD_SOURCE_WIDTH * MERCHANT_CARD_RENDER_SCALE)
+const MERCHANT_CARD_STROKE_11 = 11 * MERCHANT_CARD_RENDER_SCALE
+const MERCHANT_CARD_STROKE_10 = 10 * MERCHANT_CARD_RENDER_SCALE
+const MERCHANT_CARD_OFFSET_3 = 3 * MERCHANT_CARD_RENDER_SCALE
 
 const chinaDateFormatter = new Intl.DateTimeFormat('zh-CN', {
   timeZone: CHINA_TIMEZONE,
@@ -547,7 +550,10 @@ class MerchantService {
       pageHeight,
       renderWidth: MERCHANT_CARD_RENDER_WIDTH,
       renderHeight,
-      renderScale: MERCHANT_CARD_RENDER_SCALE
+      renderScale: MERCHANT_CARD_RENDER_SCALE,
+      renderStroke11: MERCHANT_CARD_STROKE_11,
+      renderStroke10: MERCHANT_CARD_STROKE_10,
+      renderOffset3: MERCHANT_CARD_OFFSET_3
     }
   }
 
@@ -683,7 +689,10 @@ class MerchantService {
       pageHeight,
       renderWidth: MERCHANT_CARD_RENDER_WIDTH,
       renderHeight,
-      renderScale: MERCHANT_CARD_RENDER_SCALE
+      renderScale: MERCHANT_CARD_RENDER_SCALE,
+      renderStroke11: MERCHANT_CARD_STROKE_11,
+      renderStroke10: MERCHANT_CARD_STROKE_10,
+      renderOffset3: MERCHANT_CARD_OFFSET_3
     }
   }
 

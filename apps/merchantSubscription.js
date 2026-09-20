@@ -1,5 +1,6 @@
 import { renderModuleTemplate } from '../../../model/moduleRender.js'
 import merchantService from '../model/merchantService.js'
+import { MERCHANT_RENDER_OPTIONS } from '../model/merchantRender.js'
 import merchantSubscriptionService, {
   buildMerchantSubscriptionKey,
   parseMerchantSubscriptionArgs
@@ -172,7 +173,7 @@ export class RocomMerchantSubscription extends plugin {
         'render/yuanxing-shangren/merchant',
         merchantService.buildCurrentRoundCardRenderData(payload),
         {
-          retType: 'base64',
+          ...MERCHANT_RENDER_OPTIONS,
           beforeRender: ({ data }) => this.withRenderAssets(data)
         }
       )

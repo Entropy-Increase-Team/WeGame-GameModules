@@ -8,6 +8,7 @@ import WeGameAccountService from '../../../model/accountService.js'
 import { replyLargeText } from '../../../utils/queryHelper.js'
 import RocomApi from '../model/api.js'
 import merchantService from '../model/merchantService.js'
+import { MERCHANT_RENDER_OPTIONS } from '../model/merchantRender.js'
 import activitiesService from '../model/activitiesService.js'
 import { buildCommandReg } from '../utils/command.js'
 import { trimText, encodeAssetPath } from '../utils/rocom.js'
@@ -130,9 +131,7 @@ export class RocomTools extends plugin {
           saveId: `merchant-${this.e.user_id}-${Date.now()}`,
           ...renderData
         },
-        {
-          retType: 'base64'
-        }
+        MERCHANT_RENDER_OPTIONS
       )
 
       if (image) {
@@ -165,9 +164,7 @@ export class RocomTools extends plugin {
           saveId: `merchant-today-${this.e.user_id}-${Date.now()}`,
           ...renderData
         },
-        {
-          retType: 'base64'
-        }
+        MERCHANT_RENDER_OPTIONS
       )
 
       if (image) {

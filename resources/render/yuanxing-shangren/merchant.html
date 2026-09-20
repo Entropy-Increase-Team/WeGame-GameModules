@@ -18,6 +18,10 @@
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  :root {
+    --render-scale: {{renderScale}};
+  }
+
   html,
   body {
     width: {{renderWidth}}px;
@@ -41,26 +45,25 @@
     position: absolute;
     left: 0;
     top: 0;
-    width: 1080px;
-    height: {{pageHeight}}px;
-    zoom: {{renderScale}};
+    width: {{renderWidth}}px;
+    height: {{renderHeight}}px;
     overflow: visible;
   }
 
   .title-bg {
     position: absolute;
-    left: 20px;
-    top: 21px;
-    width: 1041px;
-    height: 535px;
+    left: 5px;
+    top: 5.25px;
+    width: 260.25px;
+    height: 133.75px;
     object-fit: contain;
     z-index: 2;
   }
 
   .time-group {
     position: absolute;
-    left: 372px;
-    top: 447px;
+    left: 93px;
+    top: 111.75px;
     display: flex;
     align-items: flex-end;
     gap: 0;
@@ -69,19 +72,19 @@
   }
   .time-date {
     font-family: 'RocoProduct', sans-serif;
-    font-size: 32px;
+    font-size: 8px;
     color: #817873;
     letter-spacing: -0.05em;
     line-height: 1;
     filter: url(#timeStroke10);
     overflow: visible;
     position: relative;
-    left: -30px;
+    left: -7.5px;
     z-index: 2;
   }
   .time-range {
     font-family: 'RocoProduct', sans-serif;
-    font-size: 50px;
+    font-size: 12.5px;
     color: #f0c946;
     letter-spacing: -0.05em;
     line-height: 1;
@@ -93,9 +96,9 @@
 
   .goods-card {
     position: absolute;
-    left: 20px;
-    width: 1043px;
-    height: 308px;
+    left: 5px;
+    width: 260.75px;
+    height: 77px;
     overflow: visible;
   }
   .goods-card.ended {
@@ -120,17 +123,17 @@
   .goods-card-bg {
     position: absolute;
     left: 0; top: 0;
-    width: 1043px;
-    height: 308px;
-    border-radius: 15px;
+    width: 260.75px;
+    height: 77px;
+    border-radius: 3.75px;
     background: #cec8bc;
   }
 
   .goods-name-wrap {
     position: absolute;
-    top: -8px;
-    left: -22px;
-    width: 800px;
+    top: -2px;
+    left: -5.5px;
+    width: 200px;
     text-align: center;
     transform: scaleX(1.1);
     transform-origin: center center;
@@ -139,12 +142,12 @@
   .goods-name-shadow {
     position: absolute;
     left: 50%;
-    top: 4px;
+    top: 1px;
     transform: translateX(-50%);
     font-family: 'RocoProduct', sans-serif;
-    font-size: 150px;
+    font-size: 37.5px;
     color: #f4eee0;
-    letter-spacing: 2px;
+    letter-spacing: 0.5px;
     line-height: 1;
     white-space: nowrap;
     pointer-events: none;
@@ -154,19 +157,19 @@
   .goods-name {
     position: relative;
     font-family: 'RocoProduct', sans-serif;
-    font-size: 150px;
+    font-size: 37.5px;
     color: #3f3832;
-    letter-spacing: 2px;
+    letter-spacing: 0.5px;
     line-height: 1;
     white-space: nowrap;
   }
 
   .goods-img-wrap {
     position: absolute;
-    left: 725px;
-    top: 31px;
-    width: 296px;
-    height: 246px;
+    left: 181.25px;
+    top: 7.75px;
+    width: 74px;
+    height: 61.5px;
     z-index: 1;
     overflow: visible;
   }
@@ -189,10 +192,10 @@
 
   .num-badge {
     position: absolute;
-    left: 745px;
-    top: -15px;
-    width: 74px;
-    height: 53px;
+    left: 186.25px;
+    top: -3.75px;
+    width: 18.5px;
+    height: 13.25px;
     z-index: 2;
   }
   .num-badge-bg {
@@ -209,18 +212,18 @@
     align-items: center;
     justify-content: center;
     font-family: 'RocoName', sans-serif;
-    font-size: 28px;
+    font-size: 7px;
     color: #f5efe3;
     letter-spacing: -0.05em;
     z-index: 1;
-    padding-top: 2px;
+    padding-top: 0.5px;
   }
 
   .price-group {
     position: absolute;
-    left: 181px;
-    top: 134px;
-    width: 393px;
+    left: 45.25px;
+    top: 33.5px;
+    width: 98.25px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -232,8 +235,8 @@
     overflow: visible;
   }
   .coin-icon {
-    width: 91px;
-    height: 90px;
+    width: 22.75px;
+    height: 22.5px;
     object-fit: contain;
     position: relative;
     filter: url(#imgStroke11NoOffset);
@@ -243,15 +246,16 @@
   .price-value-wrap {
     position: relative;
     display: inline-block;
-    margin-left: -2px;
+    margin-left: -0.5px;
     overflow: visible;
     z-index: 1;
   }
   .price-shadow {
     position: absolute;
-    left: 2px; top: 4px;
+    left: 0.5px;
+    top: 1px;
     font-family: 'RocoName', sans-serif;
-    font-size: 120px;
+    font-size: 30px;
     color: #f4eee0;
     line-height: 1;
     letter-spacing: -0.1em;
@@ -265,7 +269,7 @@
 
   .price-value {
     font-family: 'RocoName', sans-serif;
-    font-size: 120px;
+    font-size: 30px;
     background: linear-gradient(to bottom, #d07338, #dd9036);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -280,10 +284,10 @@
 
   .price-sep {
     font-family: 'RocoName', sans-serif;
-    font-size: 120px;
+    font-size: 30px;
     color: #837f76;
     line-height: 1;
-    margin-left: 9px;
+    margin-left: 2.25px;
     position: relative;
     overflow: visible;
     z-index: 2;
@@ -291,8 +295,8 @@
   .price-sep::after {
     content: attr(data-text);
     position: absolute;
-    left: 2px;
-    top: 4px;
+    left: 0.5px;
+    top: 1px;
     color: #f4eee0;
     z-index: -1;
     pointer-events: none;
@@ -301,19 +305,19 @@
 
   .price-unit {
     font-family: 'RocoName', sans-serif;
-    font-size: 50px;
+    font-size: 12.5px;
     color: #837f76;
     line-height: 1;
     position: relative;
-    bottom: 15px;
-    margin-left: -8px;
+    bottom: 3.75px;
+    margin-left: -2px;
     overflow: visible;
   }
   .price-unit::after {
     content: attr(data-text);
     position: absolute;
-    left: 2px;
-    top: 4px;
+    left: 0.5px;
+    top: 1px;
     color: #f4eee0;
     z-index: -1;
     pointer-events: none;
@@ -322,11 +326,11 @@
 
   .limit-area {
     position: absolute;
-    left: 377px;
-    top: 243px;
-    min-width: 393px;
+    left: 94.25px;
+    top: 60.75px;
+    min-width: 98.25px;
     width: auto;
-    height: 54px;
+    height: 13.5px;
     z-index: 1;
     transform: translateX(-50%);
   }
@@ -334,10 +338,10 @@
     position: absolute;
     left: 0; top: 0;
     width: 100%; height: 100%;
-    border-radius: 14px;
+    border-radius: 3.5px;
     background: #878070;
     border: none;
-    box-shadow: 0 0 0 8px #f4ede5;
+    box-shadow: 0 0 0 2px #f4ede5;
   }
   .limit-text {
     position: relative;
@@ -347,18 +351,18 @@
     align-items: center;
     justify-content: center;
     font-family: 'RocoName', sans-serif;
-    font-size: 36px;
+    font-size: 9px;
     color: #fdf7e9;
     letter-spacing: 0;
     white-space: nowrap;
-    padding: 0 20px;
+    padding: 0 5px;
   }
 
   .bottom-img {
     position: absolute;
     left: 0;
-    width: 1080px;
-    height: 160px;
+    width: 270px;
+    height: 40px;
     object-fit: contain;
     z-index: 2;
   }
@@ -372,10 +376,10 @@
     position: relative;
     z-index: 1;
     font-family: 'RocoProduct', sans-serif;
-    font-size: 64px;
+    font-size: 16px;
     color: #878070;
     text-align: center;
-    letter-spacing: 4px;
+    letter-spacing: 1px;
   }
 </style>
 </head>
@@ -386,9 +390,9 @@
     <filter id="imgStroke11" x="-10%" y="-10%" width="120%" height="120%"
             color-interpolation-filters="sRGB">
       <feFlood flood-color="#f4eee0" result="color"/>
-      <feMorphology in="SourceAlpha" operator="dilate" radius="11" result="dilated"/>
+      <feMorphology in="SourceAlpha" operator="dilate" radius="{{renderStroke11}}" result="dilated"/>
       <feComposite in="color" in2="dilated" operator="in" result="outline"/>
-      <feOffset in="outline" dx="3" dy="3" result="offset"/>
+      <feOffset in="outline" dx="{{renderOffset3}}" dy="{{renderOffset3}}" result="offset"/>
       <feMerge>
         <feMergeNode in="offset"/>
         <feMergeNode in="SourceGraphic"/>
@@ -397,7 +401,7 @@
     <filter id="imgStroke11NoOffset" x="-10%" y="-10%" width="120%" height="120%"
             color-interpolation-filters="sRGB">
       <feFlood flood-color="#f4eee0" result="color"/>
-      <feMorphology in="SourceAlpha" operator="dilate" radius="11" result="dilated"/>
+      <feMorphology in="SourceAlpha" operator="dilate" radius="{{renderStroke11}}" result="dilated"/>
       <feComposite in="color" in2="dilated" operator="in" result="outline"/>
       <feMerge>
         <feMergeNode in="outline"/>
@@ -407,7 +411,7 @@
     <filter id="timeStroke10" x="-10%" y="-10%" width="120%" height="120%"
             color-interpolation-filters="sRGB">
       <feFlood flood-color="#3f3832" result="color"/>
-      <feMorphology in="SourceAlpha" operator="dilate" radius="10" result="dilated"/>
+      <feMorphology in="SourceAlpha" operator="dilate" radius="{{renderStroke10}}" result="dilated"/>
       <feComposite in="color" in2="dilated" operator="in" result="outline"/>
       <feMerge>
         <feMergeNode in="outline"/>
@@ -428,7 +432,7 @@
 
     {{if goods && goods.length > 0}}
     {{each goods item}}
-    <div class="goods-card{{if item.isEnded}} ended{{/if}}" style="top: {{item.top}}px">
+    <div class="goods-card{{if item.isEnded}} ended{{/if}}" style="top: calc({{item.top}}px * var(--render-scale))">
       <div class="goods-card-bg"></div>
       <div class="goods-name-wrap">
         <span class="goods-name-shadow">{{item.goods_name}}</span>
@@ -460,13 +464,13 @@
     </div>
     {{/each}}
     {{else}}
-    <div class="goods-card goods-card-empty" style="top: 592px">
+    <div class="goods-card goods-card-empty" style="top: 148px">
       <div class="goods-card-bg"></div>
       <div class="goods-empty-text">暂无商品</div>
     </div>
     {{/if}}
 
-    <img class="bottom-img" src="{{_res_path}}render/yuanxing-shangren/img/底部信息框.png" alt="底部信息框" style="top: {{bottomFrameTop}}px">
+    <img class="bottom-img" src="{{_res_path}}render/yuanxing-shangren/img/底部信息框.png" alt="底部信息框" style="top: calc({{bottomFrameTop}}px * var(--render-scale))">
     </div>
   </div>
 
