@@ -3,10 +3,14 @@ import { trimText } from '../utils/rocom.js'
 
 const CHINA_TIMEZONE = 'Asia/Shanghai'
 const MERCHANT_CARD_SOURCE_WIDTH = 1080
-const MERCHANT_CARD_TARGET_SCALE = 0.5
-const MERCHANT_CARD_RENDER_ZOOM = 2
-const MERCHANT_CARD_RENDER_SCALE = MERCHANT_CARD_TARGET_SCALE / MERCHANT_CARD_RENDER_ZOOM
-const MERCHANT_CARD_RENDER_WIDTH = Math.ceil(MERCHANT_CARD_SOURCE_WIDTH * MERCHANT_CARD_RENDER_SCALE)
+const MERCHANT_CARD_LAYOUT_SCALE = 0.25
+const MERCHANT_CARD_OUTPUT_WIDTH = 3840
+const MERCHANT_CARD_DEVICE_SCALE_FACTOR = 4
+const MERCHANT_CARD_RENDER_SCALE = MERCHANT_CARD_LAYOUT_SCALE
+const MERCHANT_CARD_RENDER_WIDTH = Math.ceil(MERCHANT_CARD_OUTPUT_WIDTH / MERCHANT_CARD_DEVICE_SCALE_FACTOR)
+const MERCHANT_CARD_OUTPUT_SCALE = MERCHANT_CARD_RENDER_WIDTH / MERCHANT_CARD_SOURCE_WIDTH
+const MERCHANT_CARD_RENDER_BASE_WIDTH = MERCHANT_CARD_SOURCE_WIDTH * MERCHANT_CARD_LAYOUT_SCALE
+const MERCHANT_CARD_RENDER_ZOOM = MERCHANT_CARD_RENDER_WIDTH / MERCHANT_CARD_RENDER_BASE_WIDTH
 const MERCHANT_CARD_STROKE_11 = 11 * MERCHANT_CARD_RENDER_SCALE
 const MERCHANT_CARD_STROKE_10 = 10 * MERCHANT_CARD_RENDER_SCALE
 const MERCHANT_CARD_OFFSET_3 = 3 * MERCHANT_CARD_RENDER_SCALE
@@ -541,7 +545,8 @@ class MerchantService {
     const lastCardTop = goods.length > 0 ? goods[goods.length - 1].top : startY
     const bottomFrameTop = lastCardTop + 287
     const pageHeight = bottomFrameTop + 160
-    const renderHeight = Math.ceil(pageHeight * MERCHANT_CARD_RENDER_SCALE)
+    const renderHeight = Math.ceil(pageHeight * MERCHANT_CARD_OUTPUT_SCALE)
+    const renderBaseHeight = pageHeight * MERCHANT_CARD_LAYOUT_SCALE
 
     return {
       dateStr,
@@ -550,7 +555,11 @@ class MerchantService {
       pageHeight,
       renderWidth: MERCHANT_CARD_RENDER_WIDTH,
       renderHeight,
+      renderBaseWidth: MERCHANT_CARD_RENDER_BASE_WIDTH,
+      renderBaseHeight,
       renderScale: MERCHANT_CARD_RENDER_SCALE,
+      renderZoom: MERCHANT_CARD_RENDER_ZOOM,
+      renderDeviceScaleFactor: MERCHANT_CARD_DEVICE_SCALE_FACTOR,
       renderStroke11: MERCHANT_CARD_STROKE_11,
       renderStroke10: MERCHANT_CARD_STROKE_10,
       renderOffset3: MERCHANT_CARD_OFFSET_3
@@ -679,7 +688,8 @@ class MerchantService {
     const lastCardTop = goods.length > 0 ? goods[goods.length - 1].top : startY
     const bottomFrameTop = lastCardTop + 287
     const pageHeight = bottomFrameTop + 160
-    const renderHeight = Math.ceil(pageHeight * MERCHANT_CARD_RENDER_SCALE)
+    const renderHeight = Math.ceil(pageHeight * MERCHANT_CARD_OUTPUT_SCALE)
+    const renderBaseHeight = pageHeight * MERCHANT_CARD_LAYOUT_SCALE
 
     return {
       dateStr,
@@ -689,7 +699,11 @@ class MerchantService {
       pageHeight,
       renderWidth: MERCHANT_CARD_RENDER_WIDTH,
       renderHeight,
+      renderBaseWidth: MERCHANT_CARD_RENDER_BASE_WIDTH,
+      renderBaseHeight,
       renderScale: MERCHANT_CARD_RENDER_SCALE,
+      renderZoom: MERCHANT_CARD_RENDER_ZOOM,
+      renderDeviceScaleFactor: MERCHANT_CARD_DEVICE_SCALE_FACTOR,
       renderStroke11: MERCHANT_CARD_STROKE_11,
       renderStroke10: MERCHANT_CARD_STROKE_10,
       renderOffset3: MERCHANT_CARD_OFFSET_3
