@@ -1884,6 +1884,20 @@ Accept: application/json
 - `data.goods[].next_refresh_time` 为**秒级**时间戳，即本轮结束时间；为 `0` 表示该商品全天在架
 - 实时价格以本接口为准：旧 `merchant/info` 的 `random_goods[].price` 可能为 `0` 且 `enable` 为 `false`
 
+#### 只返回当前轮次，没有「整天」接口
+
+本接口的 `data.goods[]` 是**当前这一轮在售的商品**，不是当天全量：
+
+- `data.shop.refresh_count / max_refresh_count` 表示「当前第几轮 / 每天几轮」（如 `3/4`）
+- `data.goods[].next_refresh_time` 是本轮结束时间；同一件商品在不同轮次各上一次时会出现多条同名档期
+- 参数只有 `shop_id` 与 `wait_ms`，**没有取整天或指定轮次的开关**；`shop_id` 也不是轮次编号（实测 `3005`/`3006` 是别的商店，`3007`~`3013` 除 `3009` 外均为 `rejected`）
+- 当天全量档期只能靠旧 `GET /api/v1/games/rocom/merchant/info`：`data.merchantActivities[0].get_props[]` 带每件的 `round` 与 `start_time` / `end_time`，覆盖当天全部轮次
+
+因此本模块的分工是：**实时接口给当前轮的权威在售/价格/限购，旧接口给整天的轮次档期与商品图标**。
+合并两边数据时必须按「商品名 + 轮次」去重，只让实时数据覆盖**同轮次**的旧档期，否则跨轮次的同名商品（实测「魔力果」第 2、3 轮都在售）会被吃掉。
+
+旧接口默认走服务端缓存，轮次切换后约 1 分钟追上（实测 `16:00:00` 查仍是第 2 轮，`16:01:11` 已是第 3 轮）；传 `refresh=true` 可强制刷新。
+
 `GET /api/v1/games/rocom/ingame/merchant/info` 请求示例：
 
 ```http

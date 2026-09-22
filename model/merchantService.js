@@ -395,7 +395,11 @@ class MerchantService {
 
     const getProps = []
     const randomGoods = []
-    const usedNames = new Set()
+    // 实时数据只对「当前轮次」是权威的，所以按 名称+轮次 去重：
+    // 同一件商品在不同轮次各上一次（实测魔力果第 2、3 轮都在售）必须都保留，
+    // 只跳过与实时商品同轮次的那条旧档期。
+    const realtimeRoundKeys = new Set()
+    const legacyRoundKeys = new Set()
     // 只记录实时接口已覆盖的商品，用于判断旧接口 random_goods 是否重复
     const realtimeNames = new Set()
     const realtimeGoodsIds = new Set()
@@ -442,7 +446,7 @@ class MerchantService {
         enable: true
       })
 
-      usedNames.add(name)
+      realtimeRoundKeys.add(`${name}@${Number(window.round) || 0}`)
       realtimeNames.add(name)
       if (Number.isFinite(goodsId)) realtimeGoodsIds.add(goodsId)
     }
@@ -450,9 +454,11 @@ class MerchantService {
     // 旧接口里还有、本轮实时商店没上的商品（当天其它轮次）保留下来，
     // 供「今日远行商人」和图标使用
     for (const entry of legacyIndex.items) {
-      if (usedNames.has(entry.name)) continue
+      const roundKey = `${entry.name}@${Number(entry.round) || 0}`
+      if (realtimeRoundKeys.has(roundKey)) continue
+      if (legacyRoundKeys.has(roundKey)) continue
+      legacyRoundKeys.add(roundKey)
       getProps.push({ ...entry })
-      usedNames.add(entry.name)
     }
 
     for (const item of legacyIndex.randomGoods) {
