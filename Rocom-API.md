@@ -1877,8 +1877,12 @@ Accept: application/json
 - `POST` 可使用 JSON 请求体 `{"shop_id":3019}`，也可用 query 参数 `shop_id` 作为 body 省略时的兜底
 - `GET` 和 `POST` 都可选传 `wait_ms`，用于指定同步等待查询结果的毫秒数；`POST` 可放在 JSON body 或 query 参数
 - 响应整理为 `data.ret_code`、`data.shop`、`data.goods`
-- 服务端按 `data.goods[].goods_id` 匹配本地 `random_goods.id`，为命中的商品补充 `goods_name`、`item_id`、`item_num`
-- 商品价格统一放在 `data.goods[].price`，其中 `origin` 为原价，`real` 为现价
+- 服务端按 `data.goods[].goods_id` 匹配本地 `random_goods.id`，把命中商品的 `goods_name`、`item_id`、`item_num` 放进**响应信封同级的 `goods_mapping` 数组**（不在 `data` 里，见下方「goods_mapping」）
+- `data.goods[]` 自身也可能内联 `goods_name` / `item_id` / `item_num`；两处取其一即可，内联字段优先
+- 商品价格统一放在 `data.goods[].price`，其中 `origin` 为原价，`real` 为现价；`price.real` 可能是数字，也可能是 `{ amount, currency_type, currency_id }` 结构
+- `data.shop.refresh_count` / `data.shop.max_refresh_count` 表示当前刷新轮次与每日总轮次（远行商人每天 08:00 / 12:00 / 16:00 / 20:00 共 4 轮）
+- `data.goods[].next_refresh_time` 为**秒级**时间戳，即本轮结束时间；为 `0` 表示该商品全天在架
+- 实时价格以本接口为准：旧 `merchant/info` 的 `random_goods[].price` 可能为 `0` 且 `enable` 为 `false`
 
 `GET /api/v1/games/rocom/ingame/merchant/info` 请求示例：
 
@@ -2075,6 +2079,79 @@ Accept: application/json
   }
 }
 ```
+
+#### goods_mapping
+
+`goods_mapping` 与 `code`、`message`、`data` **同级**，用来把 `data.goods[].goods_id` 还原成可读的商品信息：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "shop": {
+      "shop_id": 3009,
+      "goods_count": 1,
+      "refresh_count": 2,
+      "max_refresh_count": 4,
+      "version": 1790049601126311,
+      "disable_time": 0
+    },
+    "goods": [
+      {
+        "goods_id": 67005,
+        "buy_num": 0,
+        "limit_buy_num": 20,
+        "price": {
+          "origin": { "amount": 6000, "currency_type": 2, "currency_id": 1 },
+          "real": { "amount": 6000, "currency_type": 2, "currency_id": 1 }
+        },
+        "next_refresh_time": 1790064000,
+        "disable_time": 0,
+        "sub_goods": []
+      }
+    ],
+    "meta": {
+      "source": "cache",
+      "status": "ok",
+      "task_id": "tsk_xxx",
+      "cached_age_seconds": 243.501,
+      "queried_at": "2026-09-22T07:35:20.726218496Z"
+    }
+  },
+  "goods_mapping": [
+    {
+      "goods_id": 67005,
+      "goods_name": "魔力果",
+      "item_id": 100213,
+      "item_num": 1
+    }
+  ]
+}
+```
+
+- 只做展示或按名字匹配商品时，用 `data.goods[].goods_name` 优先，缺失时再按 `goods_id` 查 `goods_mapping`
+- 未命中本地 `random_goods` 的商品不会出现在 `goods_mapping` 里，此时需要自己兜底命名
+- `goods_mapping` 为空数组或缺失时，不应视为请求失败
+
+**注意**：如果客户端封装的请求方法只返回 `data`（很多 SDK 会剥掉信封），`goods_mapping` 会被一起丢掉，需要改用保留完整响应体的调用方式。
+
+#### 异步任务（HTTP 202）
+
+商店查询与其他 ingame 接口一致，可能返回 HTTP `202` 排队：
+
+```json
+{
+  "code": 0,
+  "message": "accepted",
+  "data": {
+    "task_id": "tsk_xxx",
+    "status": "queued"
+  }
+}
+```
+
+此时用 `GET /api/v1/games/rocom/ingame/tasks/{task_id}` 轮询任务状态，任务完成后返回的同样是上面的商店结构（`data.goods` + 信封级 `goods_mapping`）。同步返回时 `data.meta.task_id` 也会带上任务号，便于排查。
 
 ### 家园信息
 

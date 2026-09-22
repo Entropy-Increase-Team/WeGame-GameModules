@@ -61,6 +61,8 @@ function isCompletedGatewayPayload (payload = {}) {
   if (payload.player_info !== undefined) return true
   if (payload.player_card_brief_info !== undefined) return true
   if (payload.academy_career_snapshot !== undefined) return true
+  // ingame 商店：{ shop, goods } 结构
+  if (Array.isArray(payload.goods) && payload.shop !== undefined) return true
   return false
 }
 
@@ -260,43 +262,83 @@ export default class RocomApi extends WeGameApi {
     })
   }
 
-  async requestRocomPublicRawGet (urlPath, params = {}, requestOptions = {}) {
-    let response
-    const scoped = buildScopedPayload(this, requestOptions.userIdentifier, params)
+  /**
+   * 返回完整响应信封（不剥掉 data 之外的同级字段），用于 goods_mapping 这类
+   * 挂在 data 之外的补充数据。
+   */
+  async requestRocomRawEnvelope (urlPath, options = {}) {
+    const method = trimText(options.method).toLowerCase() === 'post' ? 'post' : 'get'
+    const scoped = buildScopedPayload(this, options.userIdentifier, options.params)
+    const fingerprint = this.getDeviceFingerprint()
+    const body = isPlainObject(options.data) ? options.data : {}
 
+    let response
     try {
       response = await this.client.request({
         url: `${this.getBaseUrl()}${urlPath}`,
-        method: 'get',
+        method,
         params: {
-          device_fingerprint: this.getDeviceFingerprint(),
+          device_fingerprint: fingerprint,
           ...scoped.payload
         },
+        ...(method === 'post'
+          ? {
+              data: {
+                device_fingerprint: fingerprint,
+                ...body
+              }
+            }
+          : {}),
         headers: {
           Accept: 'application/json',
+          ...(method === 'post' ? { 'Content-Type': 'application/json' } : {}),
           ...this.getDeviceHeaders(),
           ...scoped.headers,
           ...(await this.getBaseAuthHeaders())
-        }
+        },
+        ...(Number.isFinite(Number(options.timeout)) && Number(options.timeout) > 0
+          ? { timeout: Number(options.timeout) }
+          : {})
       })
     } catch (error) {
       throw new Error(error?.message || '请求失败')
     }
 
-    const body = response.data
+    const payload = response.data
 
     if (response.status >= 400) {
-      throw new Error(body?.message || response.statusText || `请求失败：HTTP ${response.status}`)
+      throw new Error(payload?.message || response.statusText || `请求失败：HTTP ${response.status}`)
     }
 
-    if (body && typeof body === 'object' && Object.prototype.hasOwnProperty.call(body, 'code')) {
-      if (Number(body.code) !== 0) {
-        throw new Error(body.message || `请求失败：业务码 ${body.code}`)
+    if (payload && typeof payload === 'object' && Object.prototype.hasOwnProperty.call(payload, 'code')) {
+      if (Number(payload.code) !== 0) {
+        throw new Error(payload.message || `请求失败：业务码 ${payload.code}`)
       }
-      return body.data ?? {}
     }
 
-    return body
+    return isPlainObject(payload) ? payload : { data: payload }
+  }
+
+  /** 把信封上 data 之外的补充字段并进 data，例如商店接口的 goods_mapping */
+  attachEnvelopeExtras (envelope = {}) {
+    const data = isPlainObject(envelope?.data) ? { ...envelope.data } : {}
+
+    if (Array.isArray(envelope?.goods_mapping)) {
+      data.goods_mapping = envelope.goods_mapping
+    }
+
+    return data
+  }
+
+  async requestRocomPublicRawGet (urlPath, params = {}, requestOptions = {}) {
+    const envelope = await this.requestRocomRawEnvelope(urlPath, {
+      method: 'get',
+      params,
+      userIdentifier: requestOptions.userIdentifier,
+      timeout: requestOptions.timeout
+    })
+
+    return envelope.data ?? {}
   }
 
   async requestRocomIngameGet (urlPath, params = {}, options = {}) {
@@ -327,6 +369,11 @@ export default class RocomApi extends WeGameApi {
     const normalizedTaskId = trimText(taskId)
     if (!normalizedTaskId) {
       throw new Error('缺少 Ingame 任务 ID')
+    }
+
+    // 允许调用方自定义任务查询（例如需要保留信封上的 goods_mapping）
+    if (typeof options.fetchTask === 'function') {
+      return options.fetchTask(normalizedTaskId)
     }
 
     return this.requestRocomPublicGet(`/api/v1/games/rocom/ingame/tasks/${encodeURIComponent(normalizedTaskId)}`, {}, {
@@ -432,6 +479,49 @@ export default class RocomApi extends WeGameApi {
     return request('/api/v1/games/rocom/ingame/merchant/info', trimObject({
       shop_id: shopId
     }), options)
+  }
+
+  /**
+   * 实时商店信息：走完整信封请求以保留 data 之外的 goods_mapping，
+   * 同时兼容异步任务结果（202 + task_id 时轮询任务）。
+   */
+  async getIngameMerchantInfoRealtime (shopId = undefined, options = {}) {
+    const method = normalizeIngameMethod(options.method) === 'post' ? 'post' : 'get'
+    const shopParams = trimObject({ shop_id: shopId })
+
+    const envelope = await this.requestRocomRawEnvelope('/api/v1/games/rocom/ingame/merchant/info', {
+      method,
+      params: {
+        wait_ms: Number(options.waitMs ?? DEFAULT_INGAME_WAIT_MS) || DEFAULT_INGAME_WAIT_MS,
+        ...shopParams
+      },
+      data: shopParams,
+      userIdentifier: options.userIdentifier,
+      timeout: options.httpTimeoutMs
+    })
+
+    const payload = this.attachEnvelopeExtras(envelope)
+
+    return this.resolveIngameTask(payload, {
+      waitMs: DEFAULT_INGAME_WAIT_MS,
+      httpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,
+      taskHttpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,
+      intervalMs: DEFAULT_INGAME_HOME_TASK_INTERVAL_MS,
+      timeoutMs: DEFAULT_INGAME_HOME_TASK_TIMEOUT_MS,
+      ...options,
+      fetchTask: async (taskId) => {
+        const taskEnvelope = await this.requestRocomRawEnvelope(
+          `/api/v1/games/rocom/ingame/tasks/${encodeURIComponent(taskId)}`,
+          {
+            method: 'get',
+            userIdentifier: options.userIdentifier,
+            timeout: options.taskHttpTimeoutMs ?? options.httpTimeoutMs
+          }
+        )
+
+        return this.attachEnvelopeExtras(taskEnvelope)
+      }
+    })
   }
 
   getIngameHomeInfo (uid, options = {}) {

@@ -135,6 +135,9 @@ const ROUND_WINDOWS = [
   { id: 4, label: '20:00 - 24:00', startHour: 20, endHour: 24 }
 ]
 
+/** 旧接口只用来补图标与当天档期，缓存期内不再重复请求 */
+const MERCHANT_ENRICH_CACHE_TTL_MS = 10 * 60 * 1000
+
 function classifyMerchantItem (item) {
   const startTime = Number(item?.start_time)
   const endTime = Number(item?.end_time)
@@ -174,13 +177,306 @@ function getRoundForItem (item, todayDate) {
   return null
 }
 
+function getRoundWindowMs (roundId, date = new Date()) {
+  const win = ROUND_WINDOWS.find((item) => item.id === Number(roundId))
+  if (!win) return null
+
+  const { startOfDay } = getTodayRangeMs(date)
+  return {
+    start_time: startOfDay + (win.startHour * 60 * 60 * 1000),
+    end_time: startOfDay + (win.endHour * 60 * 60 * 1000)
+  }
+}
+
+function isPlainObject (value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+/** 秒级/毫秒级时间戳统一成毫秒 */
+function toTimestampMs (value) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric) || numeric <= 0) return 0
+  return numeric < 1e12 ? numeric * 1000 : numeric
+}
+
+/** 实时接口的价格可能是数字，也可能是 { amount } 结构 */
+function resolveRealtimePrice (goods = {}, key = 'real') {
+  const price = goods?.price
+
+  if (isPlainObject(price)) {
+    const target = price[key] ?? price.origin ?? price.real
+    if (isPlainObject(target)) return Number(target.amount) || 0
+    return Number(target) || 0
+  }
+
+  return Number(price) || 0
+}
+
 class MerchantService {
   constructor () {
     this.api = new RocomApi()
+    // 旧接口只用于补齐图标 / 当天档期，做短缓存避免订阅轮询翻倍调用
+    this.legacyCache = { at: 0, payload: null }
+  }
+
+  /** 实时商店信息（ingame/merchant/info），失败时抛错由 getInfo 回退 */
+  async getRealtimeInfo (options = {}) {
+    const payload = await this.api.getIngameMerchantInfoRealtime(undefined, {
+      waitMs: 5000,
+      httpTimeoutMs: 15000,
+      ...options
+    })
+
+    if (!isPlainObject(payload)) return null
+
+    const goods = Array.isArray(payload.goods) ? payload.goods : []
+    const shop = isPlainObject(payload.shop) ? payload.shop : null
+    if (goods.length === 0 && !shop) return null
+
+    return payload
+  }
+
+  async getLegacyInfo (refresh = false, options = {}) {
+    const cachedAt = Number(this.legacyCache?.at) || 0
+    if (this.legacyCache?.payload && Date.now() - cachedAt < MERCHANT_ENRICH_CACHE_TTL_MS) {
+      return this.legacyCache.payload
+    }
+
+    const payload = await this.api.getMerchantInfo({ refresh }, options)
+    this.legacyCache = { at: Date.now(), payload }
+    return payload
   }
 
   async getInfo (refresh = false, options = {}) {
-    return this.api.getMerchantInfo({ refresh }, options)
+    let realtime = null
+
+    try {
+      realtime = await this.getRealtimeInfo(options)
+    } catch (error) {
+      logger.warn(`[WeGame-plugin][rocom] 实时远行商人接口不可用，回退旧接口：${error?.message || error}`)
+    }
+
+    if (!realtime) {
+      return this.api.getMerchantInfo({ refresh }, options)
+    }
+
+    const legacy = await this.getLegacyInfo(refresh, options).catch((error) => {
+      logger.warn(`[WeGame-plugin][rocom] 远行商人旧接口补充数据失败：${error?.message || error}`)
+      return null
+    })
+
+    return this.buildRealtimePayload(realtime, {
+      legacy,
+      now: options?.now
+    })
+  }
+
+  /** 旧接口的商品索引：按 goods_id / 名称命中图标、档期与价格 */
+  buildLegacyGoodsIndex (legacy = {}) {
+    const merchantActivities = Array.isArray(legacy?.merchantActivities)
+      ? legacy.merchantActivities
+      : Array.isArray(legacy?.merchant_activities)
+          ? legacy.merchant_activities
+          : []
+    const activity = merchantActivities[0] || {}
+    const randomGoods = Array.isArray(legacy?.random_goods) ? legacy.random_goods : []
+
+    const byGoodsId = new Map()
+    const byName = new Map()
+    const items = []
+
+    for (const item of randomGoods) {
+      const goodsId = Number(item?.id)
+      const name = trimText(item?.goods_name)
+      const entry = {
+        goods_id: Number.isFinite(goodsId) ? goodsId : 0,
+        name,
+        icon_url: '',
+        item_id: Number(item?.item_id) || 0,
+        item_num: Number(item?.item_num) || 1,
+        price: Number(item?.price) || 0,
+        origin_price: Number(item?.origin_price) || 0,
+        buy_limit_num: Number(item?.buy_limit_num) || 0
+      }
+
+      if (entry.goods_id) byGoodsId.set(entry.goods_id, entry)
+      if (name) byName.set(name, entry)
+    }
+
+    const collectItems = (list = [], kind = 'prop') => {
+      for (const item of Array.isArray(list) ? list : []) {
+        const name = trimText(item?.name)
+        if (!name) continue
+
+        const linked = byName.get(name) || {}
+        const entry = {
+          goods_id: Number(linked.goods_id) || 0,
+          name,
+          icon_url: trimText(item?.icon_url),
+          start_time: Number(item?.start_time) || 0,
+          end_time: Number(item?.end_time) || 0,
+          round: Number(item?.round) || 0,
+          item_id: Number(linked.item_id) || 0,
+          item_num: Number(linked.item_num) || 1,
+          price: Number(linked.price) || 0,
+          origin_price: Number(linked.origin_price) || 0,
+          buy_limit_num: Number(linked.buy_limit_num) || 0,
+          kind
+        }
+
+        items.push(entry)
+        byName.set(name, entry)
+        if (entry.goods_id) byGoodsId.set(entry.goods_id, entry)
+      }
+    }
+
+    collectItems(activity?.get_props, 'prop')
+    collectItems(activity?.get_extra_props, 'extra_prop')
+    collectItems(activity?.get_pets, 'pet')
+
+    return { activity, items, byGoodsId, byName, randomGoods }
+  }
+
+  /**
+   * 实时商品只带 next_refresh_time，没有档期；按「当前轮次窗口」还原，
+   * 这样既有卡片分类逻辑（热销 / 常规 / 周末）无需改动。
+   */
+  resolveRealtimeWindow (item = {}, now = new Date()) {
+    const nowMs = now.getTime()
+    const currentRound = this.getCurrentRound(now)
+    const roundWindow = getRoundWindowMs(currentRound.current, now)
+    const nextRefreshMs = toTimestampMs(item?.next_refresh_time)
+
+    if (nextRefreshMs > nowMs) {
+      return {
+        start_time: roundWindow ? roundWindow.start_time : nowMs,
+        end_time: nextRefreshMs,
+        round: currentRound.current || 0
+      }
+    }
+
+    // 没有刷新时间：视为全天在架，走「热销商品」
+    if (!nextRefreshMs) {
+      const { startOfDay, endOfDay } = getTodayRangeMs(now)
+      return {
+        start_time: startOfDay + (8 * 60 * 60 * 1000),
+        end_time: endOfDay,
+        round: 0
+      }
+    }
+
+    return roundWindow
+      ? { ...roundWindow, round: currentRound.current || 0 }
+      : { start_time: nowMs, end_time: nowMs + (4 * 60 * 60 * 1000), round: currentRound.current || 0 }
+  }
+
+  /** 把实时商店 + 旧接口补充数据整成下游渲染/订阅沿用的结构 */
+  buildRealtimePayload (realtime = {}, options = {}) {
+    const now = options?.now instanceof Date ? options.now : new Date()
+    const legacyIndex = this.buildLegacyGoodsIndex(options?.legacy)
+    const shop = isPlainObject(realtime?.shop) ? realtime.shop : {}
+    const goods = Array.isArray(realtime?.goods) ? realtime.goods : []
+    const mapping = Array.isArray(realtime?.goods_mapping) ? realtime.goods_mapping : []
+
+    const mappingById = new Map()
+    for (const item of mapping) {
+      const goodsId = Number(item?.goods_id)
+      if (Number.isFinite(goodsId)) mappingById.set(goodsId, item)
+    }
+
+    const getProps = []
+    const randomGoods = []
+    const usedNames = new Set()
+    // 只记录实时接口已覆盖的商品，用于判断旧接口 random_goods 是否重复
+    const realtimeNames = new Set()
+    const realtimeGoodsIds = new Set()
+
+    for (const item of goods) {
+      const goodsId = Number(item?.goods_id)
+      const mapped = mappingById.get(goodsId) || {}
+      const legacyItem = legacyIndex.byGoodsId.get(goodsId) || null
+      const name = trimText(item?.goods_name) ||
+        trimText(mapped.goods_name) ||
+        trimText(legacyItem?.name) ||
+        (Number.isFinite(goodsId) ? `商品 ${goodsId}` : '未知商品')
+      const price = resolveRealtimePrice(item, 'real')
+      const originPrice = resolveRealtimePrice(item, 'origin')
+      const buyLimit = Number(item?.limit_buy_num) || 0
+      const itemId = Number(mapped.item_id) || Number(legacyItem?.item_id) || 0
+      const itemNum = Number(mapped.item_num) || Number(legacyItem?.item_num) || 1
+      const window = this.resolveRealtimeWindow(item, now)
+
+      getProps.push({
+        name,
+        icon_url: trimText(legacyItem?.icon_url),
+        start_time: window.start_time,
+        end_time: window.end_time,
+        round: window.round,
+        goods_id: Number.isFinite(goodsId) ? goodsId : 0,
+        item_id: itemId,
+        item_num: itemNum,
+        price,
+        origin_price: originPrice,
+        buy_limit_num: buyLimit,
+        buy_num: Number(item?.buy_num) || 0,
+        source: 'realtime'
+      })
+
+      randomGoods.push({
+        id: Number.isFinite(goodsId) ? goodsId : 0,
+        goods_name: name,
+        item_id: itemId,
+        item_num: itemNum,
+        price,
+        origin_price: originPrice,
+        buy_limit_num: buyLimit,
+        enable: true
+      })
+
+      usedNames.add(name)
+      realtimeNames.add(name)
+      if (Number.isFinite(goodsId)) realtimeGoodsIds.add(goodsId)
+    }
+
+    // 旧接口里还有、本轮实时商店没上的商品（当天其它轮次）保留下来，
+    // 供「今日远行商人」和图标使用
+    for (const entry of legacyIndex.items) {
+      if (usedNames.has(entry.name)) continue
+      getProps.push({ ...entry })
+      usedNames.add(entry.name)
+    }
+
+    for (const item of legacyIndex.randomGoods) {
+      const goodsId = Number(item?.id)
+      const name = trimText(item?.goods_name)
+      if (name && realtimeNames.has(name)) continue
+      if (Number.isFinite(goodsId) && realtimeGoodsIds.has(goodsId)) continue
+      randomGoods.push({ ...item })
+    }
+
+    const legacyActivity = legacyIndex.activity || {}
+    const activity = {
+      name: trimText(legacyActivity?.name) || '远行商人',
+      start_date: trimText(legacyActivity?.start_date) || formatChinaDate(now),
+      start_time: Number(legacyActivity?.start_time) || 0,
+      end_time: Number(legacyActivity?.end_time) || 0,
+      get_props: getProps,
+      get_extra_props: [],
+      get_pets: [],
+      source: 'realtime'
+    }
+
+    return {
+      merchantActivities: [activity],
+      random_goods: randomGoods,
+      realtime: {
+        shop,
+        goods,
+        goods_mapping: mapping,
+        source: trimText(realtime?.meta?.source),
+        round: this.getCurrentRound(now)
+      }
+    }
   }
 
   getCurrentRound (date = new Date()) {
