@@ -322,9 +322,21 @@ export default class RocomApi extends WeGameApi {
   /** 把信封上 data 之外的补充字段并进 data，例如商店接口的 goods_mapping */
   attachEnvelopeExtras (envelope = {}) {
     const data = isPlainObject(envelope?.data) ? { ...envelope.data } : {}
+    // 规范位置是响应顶层（与 code/message/data 同级），data 内只作兼容兜底
+    const mapping = Array.isArray(envelope?.goods_mapping)
+      ? envelope.goods_mapping
+      : Array.isArray(data.goods_mapping)
+        ? data.goods_mapping
+        : null
 
-    if (Array.isArray(envelope?.goods_mapping)) {
-      data.goods_mapping = envelope.goods_mapping
+    if (mapping) {
+      data.goods_mapping = mapping
+
+      // 任务状态接口把商店结构放在 data.result 里，而 goods_mapping 始终挂在
+      // 整个响应顶层。解包 result 时会丢掉兄弟字段，这里先补进去。
+      if (isPlainObject(data.result) && !Array.isArray(data.result.goods_mapping)) {
+        data.result = { ...data.result, goods_mapping: mapping }
+      }
     }
 
     return data

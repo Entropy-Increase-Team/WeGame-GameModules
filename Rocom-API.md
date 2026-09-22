@@ -1870,15 +1870,15 @@ Accept: application/json
 说明：
 
 - 适合做远行商人页、商店商品列表、刷新时间展示
-- `shop_id` 可省略；省略时返回当前周期远行商人商店信息
+- `shop_id` 可省略；省略时使用当前默认远行商店 `3009`（实测省略与显式传 `3009` 结果一致）
 - 当前周期商店每天 `Asia/Shanghai` 08:01 后更新
 - 显式传 `shop_id` 时查询指定商店
 - `GET` 可使用 query 参数 `shop_id`
-- `POST` 可使用 JSON 请求体 `{"shop_id":3019}`，也可用 query 参数 `shop_id` 作为 body 省略时的兜底
+- `POST` 可使用 JSON 请求体 `{"shop_id":3019}`，也可用 query 参数 `shop_id` 作为 body 省略时的兜底；`shop_id` 与 `wait_ms` 均以 JSON body 优先
 - `GET` 和 `POST` 都可选传 `wait_ms`，用于指定同步等待查询结果的毫秒数；`POST` 可放在 JSON body 或 query 参数
-- 响应整理为 `data.ret_code`、`data.shop`、`data.goods`
+- 响应整理为 `data.meta.ret_code`、`data.shop`、`data.goods`；游戏侧失败时 `code` 仍为 `0`，需看 `data.meta.status`（见下方「meta.status / ret_code」）
 - 服务端按 `data.goods[].goods_id` 匹配本地 `random_goods.id`，把命中商品的 `goods_name`、`item_id`、`item_num` 放进**响应信封同级的 `goods_mapping` 数组**（不在 `data` 里，见下方「goods_mapping」）
-- `data.goods[]` 自身也可能内联 `goods_name` / `item_id` / `item_num`；两处取其一即可，内联字段优先
+- `data.goods[]` 文档上可能内联 `goods_name` / `item_id` / `item_num`（内联字段优先），但**实测线上 `goods_name` 为 `null`**，实际依赖 `goods_mapping` 兜底
 - 商品价格统一放在 `data.goods[].price`，其中 `origin` 为原价，`real` 为现价；`price.real` 可能是数字，也可能是 `{ amount, currency_type, currency_id }` 结构
 - `data.shop.refresh_count` / `data.shop.max_refresh_count` 表示当前刷新轮次与每日总轮次（远行商人每天 08:00 / 12:00 / 16:00 / 20:00 共 4 轮）
 - `data.goods[].next_refresh_time` 为**秒级**时间戳，即本轮结束时间；为 `0` 表示该商品全天在架
@@ -2130,11 +2130,41 @@ Accept: application/json
 }
 ```
 
-- 只做展示或按名字匹配商品时，用 `data.goods[].goods_name` 优先，缺失时再按 `goods_id` 查 `goods_mapping`
+- 实测线上 `data.goods[]` **不带** `goods_name`（值为 `null`），商品名只能来自 `goods_mapping`，再兜底到旧接口 `random_goods` 的名字
 - 未命中本地 `random_goods` 的商品不会出现在 `goods_mapping` 里，此时需要自己兜底命名
 - `goods_mapping` 为空数组或缺失时，不应视为请求失败
 
 **注意**：如果客户端封装的请求方法只返回 `data`（很多 SDK 会剥掉信封），`goods_mapping` 会被一起丢掉，需要改用保留完整响应体的调用方式。
+
+请求参数：
+
+| 参数 | 位置 | 说明 |
+| --- | --- | --- |
+| `shop_id` | query / body | 省略时使用当前默认远行商店 **3009**（实测省略与传 `3009` 结果一致） |
+| `wait_ms` | query / body | 同步等待毫秒数，本项目用 `5000` |
+| `X-API-Key` | header | 第三方客户端必填；Web JWT 或匿名调用不用传 |
+
+`POST` 版本 `shop_id` 与 `wait_ms` 均以 JSON body 优先，body 省略时回落到 query 参数。
+
+#### meta.status / ret_code（失败不会体现在 code 上）
+
+`code`/`message` 只反映网关层结果，游戏侧查询被拒时**仍是 HTTP 200 + `code: 0` + `message: "ok"`**，只能从 `data.meta` 看出来：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "goods": [],
+    "shop": { "goods_count": 0, "random_shop_shown_indexes": [], "shop_id": 3019 },
+    "meta": { "ret_code": 2347, "source": "live", "status": "rejected", "task_id": "tsk_xxx" }
+  }
+}
+```
+
+- `meta.status`：`ok` 为成功，`rejected` 表示游戏侧拒绝（上例 `shop_id=3019` 不存在）
+- 被拒时 `goods` 为空数组、`goods_mapping` 缺失，但 `shop` 对象依然存在——只判断 `shop` 是否存在会误判为成功
+- 因此**商品为空即视为不可用并回退旧接口**，否则会渲染成一张空商店卡片
 
 #### 异步任务（HTTP 202）
 
@@ -2151,7 +2181,27 @@ Accept: application/json
 }
 ```
 
-此时用 `GET /api/v1/games/rocom/ingame/tasks/{task_id}` 轮询任务状态，任务完成后返回的同样是上面的商店结构（`data.goods` + 信封级 `goods_mapping`）。同步返回时 `data.meta.task_id` 也会带上任务号，便于排查。
+此时用 `GET /api/v1/games/rocom/ingame/tasks/{task_id}` 轮询任务状态，任务完成后：
+
+- 商店结构被包在 **`data.result`** 里（不是 `data` 本身）
+- `goods_mapping` 仍然挂在**整个响应顶层**，与 `data` 同级
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "status": "done",
+    "task_id": "tsk_xxx",
+    "result": { "shop": { ... }, "goods": [ ... ], "meta": { ... } }
+  },
+  "goods_mapping": [ { "goods_id": 67005, "goods_name": "魔力果", "item_id": 100213, "item_num": 1 } ]
+}
+```
+
+所以解包 `data.result` 时要把顶层 `goods_mapping` 一起带上，否则任务路径会丢掉商品名。同步返回时 `data.meta.task_id` 也会带上任务号，便于排查。
+
+**已知限制**：文档称 `goods_mapping` 按主商品和**子商品** ID 去重，但实测线上 `data.goods[].sub_goods` 恒为空数组，本模块只映射顶层 `goods[].goods_id`，子商品不参与展示。
 
 ### 家园信息
 

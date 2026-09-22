@@ -230,8 +230,17 @@ class MerchantService {
     if (!isPlainObject(payload)) return null
 
     const goods = Array.isArray(payload.goods) ? payload.goods : []
-    const shop = isPlainObject(payload.shop) ? payload.shop : null
-    if (goods.length === 0 && !shop) return null
+
+    // 查询被拒时 HTTP/code/message 仍是 200/0/ok，只有 meta.status/ret_code 能看出来。
+    // 商品为空即视为不可用，交给旧接口兜底，避免渲染成空商店。
+    if (goods.length === 0) {
+      const meta = isPlainObject(payload.meta) ? payload.meta : {}
+      const status = trimText(meta.status)
+      if (status && status !== 'ok') {
+        logger.warn(`[WeGame-plugin][rocom] 实时商店查询未成功（status=${status} ret_code=${meta.ret_code ?? '-'}），回退旧接口`)
+      }
+      return null
+    }
 
     return payload
   }
