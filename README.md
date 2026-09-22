@@ -196,6 +196,18 @@ README 中统一使用 `+` 举例。其他前缀等价，例如 `#洛克 档案`
 远行商人订阅运行数据保存在：
 
 - `data/wegame-plugin/rocom_merchant_subscriptions.json`
+- `data/wegame-plugin/rocom_merchant_price_log.json`（当天实时价格记录，见下）
+
+### 当天实时价格记录
+
+实时接口 `ingame/merchant/info` **只返回当前轮次**的商品价格，轮次一过就拿不到了；旧接口 `random_goods[].price` 恒为 0。所以「今日远行商人」里往期轮次的商品原本只能显示「价格 0」。
+
+现在每次查询都会把本轮实时价格按 `goods_id + 轮次` 记进 `rocom_merchant_price_log.json`，当天后续轮次渲染时用它补价：
+
+- 按游戏内自然日（`Asia/Shanghai`）分桶，**跨过 00:00 自动清空**（惰性清空，不依赖定时任务，进程不在线也不会漏）
+- 同一商品不同轮次的价格分别记录；查不到对应轮次时回退到当天最近一次记录
+- 只在 bot 运行时观察到某轮，才能记到那一轮的价格 —— **当天已经过去的轮次补不回来**，从下一次换轮开始生效
+- 记录读写失败只记 warn，不影响出卡片
 
 ## 认证与权限
 

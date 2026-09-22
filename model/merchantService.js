@@ -1,4 +1,5 @@
 import RocomApi from './api.js'
+import merchantPriceLog from './merchantPriceLog.js'
 import { trimText } from '../utils/rocom.js'
 
 const CHINA_TIMEZONE = 'Asia/Shanghai'
@@ -269,6 +270,9 @@ class MerchantService {
       return this.api.getMerchantInfo({ refresh }, options)
     }
 
+    // 实时接口只给当前轮次的价格，轮次一过就没了；先落盘，供当天后续轮次补价
+    this.recordRealtimePrices(realtime, options)
+
     const legacy = await this.getLegacyInfo(refresh, options).catch((error) => {
       logger.warn(`[WeGame-plugin][rocom] 远行商人旧接口补充数据失败：${error?.message || error}`)
       return null
@@ -278,6 +282,59 @@ class MerchantService {
       legacy,
       now: options?.now
     })
+  }
+
+  /**
+   * 把本轮实时价格记进当天的价格记录（按 goods_id + 轮次）。
+   * 记录失败不影响主链路。
+   */
+  recordRealtimePrices (realtime = {}, options = {}) {
+    try {
+      const now = options?.now instanceof Date ? options.now : new Date()
+      const goods = Array.isArray(realtime?.goods) ? realtime.goods : []
+      if (goods.length === 0) return false
+
+      const mappingById = new Map()
+      for (const item of Array.isArray(realtime?.goods_mapping) ? realtime.goods_mapping : []) {
+        const goodsId = Number(item?.goods_id)
+        if (Number.isFinite(goodsId)) mappingById.set(goodsId, item)
+      }
+
+      const entries = goods.map((item) => {
+        const goodsId = Number(item?.goods_id)
+        const mapped = mappingById.get(goodsId) || {}
+        const window = this.resolveRealtimeWindow(item, now)
+
+        return {
+          goods_id: Number.isFinite(goodsId) ? goodsId : 0,
+          goods_name: trimText(mapped.goods_name),
+          item_id: Number(mapped.item_id) || 0,
+          item_num: Number(mapped.item_num) || 1,
+          buy_limit_num: Number(item?.limit_buy_num) || 0,
+          price: resolveRealtimePrice(item, 'real'),
+          origin_price: resolveRealtimePrice(item, 'origin'),
+          round: Number(window.round) || 0
+        }
+      })
+
+      // 同轮次一起写一次，避免每条都落盘
+      const grouped = new Map()
+      for (const entry of entries) {
+        const key = String(entry.round || 0)
+        if (!grouped.has(key)) grouped.set(key, [])
+        grouped.get(key).push(entry)
+      }
+
+      let changed = false
+      for (const [round, list] of grouped) {
+        if (merchantPriceLog.record(list, { now, round: Number(round) || 0 })) changed = true
+      }
+
+      return changed
+    } catch (error) {
+      logger.warn(`[WeGame-plugin][rocom] 记录远行商人实时价格失败：${error?.message || error}`)
+      return false
+    }
   }
 
   /** 旧接口的商品索引：按 goods_id / 名称命中图标、档期与价格 */
@@ -458,7 +515,18 @@ class MerchantService {
       if (realtimeRoundKeys.has(roundKey)) continue
       if (legacyRoundKeys.has(roundKey)) continue
       legacyRoundKeys.add(roundKey)
-      getProps.push({ ...entry })
+
+      // 旧接口 random_goods[].price 恒为 0，用当天记录下来的实时价格补上
+      const logged = merchantPriceLog.lookup(entry.goods_id, entry.name, entry.round)
+      const legacyPrice = Number(entry.price) || 0
+
+      getProps.push({
+        ...entry,
+        price: legacyPrice > 0 ? legacyPrice : (logged?.price || 0),
+        origin_price: Number(entry.origin_price) || logged?.origin_price || 0,
+        buy_limit_num: Number(entry.buy_limit_num) || logged?.buy_limit_num || 0,
+        price_source: legacyPrice > 0 ? 'legacy' : (logged ? 'log' : 'none')
+      })
     }
 
     for (const item of legacyIndex.randomGoods) {
@@ -466,7 +534,19 @@ class MerchantService {
       const name = trimText(item?.goods_name)
       if (name && realtimeNames.has(name)) continue
       if (Number.isFinite(goodsId) && realtimeGoodsIds.has(goodsId)) continue
-      randomGoods.push({ ...item })
+
+      // 卡片的价格来自 random_goods，而旧接口这里的 price 恒为 0，
+      // 用当天记录下来的实时价格补上，否则往期轮次会显示「价格 0」
+      const logged = merchantPriceLog.lookup(goodsId, name, 0)
+      const legacyPrice = Number(item?.price) || 0
+
+      randomGoods.push({
+        ...item,
+        price: legacyPrice > 0 ? legacyPrice : (logged?.price || 0),
+        origin_price: Number(item?.origin_price) || logged?.origin_price || 0,
+        buy_limit_num: Number(item?.buy_limit_num) || logged?.buy_limit_num || 0,
+        price_source: legacyPrice > 0 ? 'legacy' : (logged ? 'log' : 'none')
+      })
     }
 
     const legacyActivity = legacyIndex.activity || {}
