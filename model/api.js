@@ -316,7 +316,7 @@ export default class RocomApi extends WeGameApi {
       }
     }
 
-    return isPlainObject(payload) ? payload : { data: payload }
+    return payload
   }
 
   /** 把信封上 data 之外的补充字段并进 data，例如商店接口的 goods_mapping */
@@ -338,7 +338,12 @@ export default class RocomApi extends WeGameApi {
       timeout: requestOptions.timeout
     })
 
-    return envelope.data ?? {}
+    // 与改造前保持一致：有 code 信封时取 data，否则原样返回整个响应体
+    if (isPlainObject(envelope) && Object.prototype.hasOwnProperty.call(envelope, 'code')) {
+      return envelope.data ?? {}
+    }
+
+    return envelope
   }
 
   async requestRocomIngameGet (urlPath, params = {}, options = {}) {
