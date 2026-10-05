@@ -77,8 +77,16 @@ function buildDefaultMenuGroups () {
           desc: '查询当前活动日历'
         },
         {
-          cmd: formatCommand('订阅远行商人 1 国王球 棱镜球'),
-          desc: '订阅商人商品提醒'
+          cmd: formatCommand('商人商品'),
+          desc: '查看远行商人商品列表与订阅序号'
+        },
+        {
+          cmd: formatCommand('订阅远行商人 1 3 5'),
+          desc: '按商品序号订阅商人提醒'
+        },
+        {
+          cmd: formatCommand('订阅远行商人 全部'),
+          desc: '订阅全物品，任意商品上架都推送'
         },
         {
           cmd: formatCommand('取消订阅远行商人'),

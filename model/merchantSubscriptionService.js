@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { trimText } from '../utils/rocom.js'
+import { isAllAlias } from './merchantCatalogService.js'
 
 const DATA_DIR = path.join(process.cwd(), 'data', 'wegame-plugin')
 const DATA_PATH = path.join(DATA_DIR, 'rocom_merchant_subscriptions.json')
@@ -15,13 +16,40 @@ function ensureDataDir () {
   }
 }
 
-function buildMerchantSubscriptionKey (botId, groupId) {
+const TARGET_GROUP = 'group'
+const TARGET_PRIVATE = 'private'
+
+const MODE_ITEMS = 'items'
+const MODE_ALL = 'all'
+
+function normalizeTargetType (value = '') {
+  const text = trimText(value).toLowerCase()
+  if (text === TARGET_PRIVATE || text === 'user' || text === 'friend') return TARGET_PRIVATE
+  return TARGET_GROUP
+}
+
+function normalizeMode (value = '') {
+  return trimText(value).toLowerCase() === MODE_ALL ? MODE_ALL : MODE_ITEMS
+}
+
+/**
+ * 订阅键：群订阅保持旧的 `bot:群号` 不变（兼容已有数据），
+ * 私聊订阅用 `bot:private:用户号` 区分。
+ */
+function buildMerchantSubscriptionKey (botId, targetId, targetType = TARGET_GROUP) {
   const normalizedBotId = trimText(botId) || 'bot'
-  const normalizedGroupId = trimText(groupId)
-  if (!normalizedGroupId) {
-    throw new Error('缺少群号，无法生成远行商人订阅键')
+  const normalizedTargetId = trimText(targetId)
+  const normalizedType = normalizeTargetType(targetType)
+
+  if (!normalizedTargetId) {
+    throw new Error(normalizedType === TARGET_PRIVATE
+      ? '缺少用户号，无法生成远行商人订阅键'
+      : '缺少群号，无法生成远行商人订阅键')
   }
-  return `${normalizedBotId}:${normalizedGroupId}`
+
+  return normalizedType === TARGET_PRIVATE
+    ? `${normalizedBotId}:${TARGET_PRIVATE}:${normalizedTargetId}`
+    : `${normalizedBotId}:${normalizedTargetId}`
 }
 
 function normalizeItems (items = []) {
@@ -39,10 +67,15 @@ function normalizeItems (items = []) {
 }
 
 function normalizeSubscription (key = '', payload = {}) {
+  const targetType = normalizeTargetType(payload?.target_type || payload?.targetType)
+
   return {
     key: trimText(key),
-    group_id: trimText(payload?.group_id || payload?.groupId),
+    target_type: targetType,
     bot_id: trimText(payload?.bot_id || payload?.botId),
+    group_id: targetType === TARGET_GROUP ? trimText(payload?.group_id || payload?.groupId) : '',
+    user_id: trimText(payload?.user_id || payload?.userId),
+    mode: normalizeMode(payload?.mode),
     mention_all: payload?.mention_all === true || payload?.mentionAll === true,
     items: normalizeItems(payload?.items),
     last_push_round: trimText(payload?.last_push_round || payload?.lastPushRound),
@@ -52,33 +85,69 @@ function normalizeSubscription (key = '', payload = {}) {
   }
 }
 
-function splitMerchantSubscriptionItems (rawText = '') {
-  const parts = String(rawText || '').split(/[\s,，、/|；;]+/)
-  return normalizeItems(parts)
+function splitMerchantSubscriptionTokens (rawText = '') {
+  return String(rawText || '')
+    .split(/[\s,，、/|；;]+/)
+    .map((item) => trimText(item))
+    .filter(Boolean)
 }
 
+function splitMerchantSubscriptionItems (rawText = '') {
+  return normalizeItems(splitMerchantSubscriptionTokens(rawText))
+}
+
+// 「命中后 @全体」的写法；纯数字留给商品序号
+const MENTION_ALL_ALIASES = new Set(['@全体', '全体', '@所有人', 'at全体', 'at所有人'])
+
+/**
+ * 解析订阅参数。
+ *
+ * 支持：`1 3 5`（商品序号）、`国王球 棱镜球`（商品名）、`全部`（全物品订阅）、
+ * `@全体`（命中后尝试 @全体）。开头的 `0` 仍按旧写法理解为「关闭 @全体」——
+ * 序号从 1 开始，0 不会是有效序号。
+ */
 function parseMerchantSubscriptionArgs (rawText = '') {
   const text = trimText(rawText)
   if (!text) {
     return {
-      mentionAll: false,
+      mentionAll: null,
+      all: false,
+      tokens: [],
       customItems: null
     }
   }
 
-  const tokens = text.split(/\s+/, 2)
-  let mentionAll = false
-  let itemsText = text
+  const tokens = splitMerchantSubscriptionTokens(text)
+  let mentionAll = null
+  let all = false
+  const items = []
 
-  if (tokens[0] === '0' || tokens[0] === '1') {
-    mentionAll = tokens[0] === '1'
-    itemsText = text.slice(tokens[0].length).trim()
+  for (const token of tokens) {
+    const lowered = token.toLowerCase()
+
+    if (MENTION_ALL_ALIASES.has(lowered)) {
+      mentionAll = true
+      continue
+    }
+
+    if (isAllAlias(token)) {
+      all = true
+      continue
+    }
+
+    if (token === '0' && mentionAll === null && items.length === 0) {
+      mentionAll = false
+      continue
+    }
+
+    items.push(token)
   }
 
-  const customItems = splitMerchantSubscriptionItems(itemsText)
   return {
     mentionAll,
-    customItems: customItems.length > 0 ? customItems : null
+    all,
+    tokens: items,
+    customItems: items.length > 0 ? items : null
   }
 }
 
@@ -172,10 +241,17 @@ class MerchantSubscriptionService {
 const merchantSubscriptionService = new MerchantSubscriptionService()
 
 export {
+  MODE_ALL,
+  MODE_ITEMS,
   MerchantSubscriptionService,
+  TARGET_GROUP,
+  TARGET_PRIVATE,
   buildMerchantSubscriptionKey,
+  normalizeMode,
+  normalizeTargetType,
   parseMerchantSubscriptionArgs,
-  splitMerchantSubscriptionItems
+  splitMerchantSubscriptionItems,
+  splitMerchantSubscriptionTokens
 }
 
 export default merchantSubscriptionService

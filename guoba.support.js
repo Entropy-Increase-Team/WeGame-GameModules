@@ -1,6 +1,9 @@
 import path from 'node:path'
 import Config from '../../utils/config.js'
 import RocomConfig from './utils/config.js'
+import merchantCatalogService, {
+  buildMerchantCatalogOptions
+} from './model/merchantCatalogService.js'
 import merchantSubscriptionService, {
   buildMerchantSubscriptionKey
 } from './model/merchantSubscriptionService.js'
@@ -17,6 +20,10 @@ const CONFIG_TOP_KEYS = ['rocom', 'lineup', 'merchant']
 const RUNTIME_TOP_KEYS = ['subscriptions']
 
 const TOP_KEYS = [...CONFIG_TOP_KEYS, ...RUNTIME_TOP_KEYS]
+
+// 锅巴的 schemas 必须是同步数组，所以商品下拉直接用磁盘缓存；
+// 缓存由订阅检查 cron / 「商人商品」命令写入，取不到时退化成可自由输入的标签选择。
+const merchantItemOptions = buildMerchantCatalogOptions(merchantCatalogService.loadCachedCatalog())
 
 const schemas = [
   {
@@ -36,26 +43,40 @@ const schemas = [
   {
     field: 'merchant.subscription_default_items',
     label: '默认监听商品',
-    bottomHelpMessage: '群订阅未自定义商品时使用的默认监听列表。回车添加，可拖动调整顺序。',
+    bottomHelpMessage: '群/私聊订阅未自定义商品时使用的默认监听列表。可直接从下拉选择，也可以输入商品名后回车添加。',
     component: 'Select',
     componentProps: {
       mode: 'tags',
       placeholder: '输入商品名称后回车添加，例如：国王球',
-      tokenSeparators: [',', '，', ' ', '、']
+      tokenSeparators: [',', '，', ' ', '、'],
+      options: merchantItemOptions,
+      filterOption: true
     }
   },
   {
     component: 'SOFT_GROUP_BEGIN',
-    label: `${MODULE_TITLE} · 远行商人订阅 · 已订阅群`
+    label: `${MODULE_TITLE} · 远行商人订阅 · 已订阅群 / 人`
   },
   {
     field: 'subscriptions.merchant',
-    label: '已订阅群',
-    bottomHelpMessage: '直接管理已写入 data/wegame-plugin/rocom_merchant_subscriptions.json 的订阅；保存后会按机器人ID + 群号增删改。',
+    label: '已订阅群 / 人',
+    bottomHelpMessage: '直接管理已写入 data/wegame-plugin/rocom_merchant_subscriptions.json 的订阅；保存后会按「机器人ID + 群号 / 用户号」增删改。',
     component: 'GSubForm',
     componentProps: {
       multiple: true,
       schemas: [
+        {
+          field: 'target_type',
+          label: '订阅对象',
+          bottomHelpMessage: '群聊：推送到群；私聊：只推送给订阅者本人',
+          component: 'Select',
+          componentProps: {
+            options: [
+              { label: '群聊', value: 'group' },
+              { label: '私聊', value: 'private' }
+            ]
+          }
+        },
         {
           field: 'bot_id',
           label: '机器人ID',
@@ -66,24 +87,46 @@ const schemas = [
         {
           field: 'group_id',
           label: '群号',
-          required: true,
           component: 'Input',
+          bottomHelpMessage: '订阅对象选「群聊」时填写',
           componentProps: { placeholder: '订阅生效的群号' }
+        },
+        {
+          field: 'user_id',
+          label: '用户号',
+          component: 'Input',
+          bottomHelpMessage: '订阅对象选「私聊」时填写',
+          componentProps: { placeholder: '私聊推送接收人的 QQ 号' }
+        },
+        {
+          field: 'mode',
+          label: '订阅模式',
+          bottomHelpMessage: '指定商品：命中监听列表才推送；全物品：本轮任意商品上架都推送',
+          component: 'Select',
+          componentProps: {
+            options: [
+              { label: '指定商品', value: 'items' },
+              { label: '全物品', value: 'all' }
+            ]
+          }
         },
         {
           field: 'mention_all',
           label: '@全体',
           component: 'Switch',
-          bottomHelpMessage: '命中商品时是否尝试 @全体（要求机器人是群管理员）'
+          bottomHelpMessage: '命中商品时是否尝试 @全体（仅群订阅生效，要求机器人是群管理员）'
         },
         {
           field: 'items',
           label: '监听商品',
+          bottomHelpMessage: '可从下拉按序号选择，也可输入商品名；留空表示使用上方的默认监听商品。',
           component: 'Select',
           componentProps: {
             mode: 'tags',
             placeholder: '留空表示使用上方的默认监听商品',
-            tokenSeparators: [',', '，', ' ', '、']
+            tokenSeparators: [',', '，', ' ', '、'],
+            options: merchantItemOptions,
+            filterOption: true
           }
         }
       ]
@@ -108,8 +151,11 @@ function trimText (value = '') {
 async function loadMerchantSubscriptionRows () {
   const all = await merchantSubscriptionService.getAllSubscriptions()
   return Object.values(all || {}).map((item) => ({
+    target_type: item?.target_type === 'private' ? 'private' : 'group',
     bot_id: trimText(item?.bot_id),
     group_id: trimText(item?.group_id),
+    user_id: trimText(item?.user_id),
+    mode: item?.mode === 'all' ? 'all' : 'items',
     mention_all: item?.mention_all === true,
     items: Array.isArray(item?.items) ? [...item.items] : []
   }))
@@ -122,17 +168,23 @@ async function applyMerchantSubscriptionRows (rows = []) {
 
   for (const row of list) {
     const botId = trimText(row?.bot_id)
-    const groupId = trimText(row?.group_id)
-    if (!botId || !groupId) continue
+    const targetType = trimText(row?.target_type).toLowerCase() === 'private' ? 'private' : 'group'
+    const groupId = targetType === 'group' ? trimText(row?.group_id) : ''
+    const userId = targetType === 'private' ? trimText(row?.user_id) : ''
+    const targetId = targetType === 'private' ? userId : groupId
+    if (!botId || !targetId) continue
 
-    const key = buildMerchantSubscriptionKey(botId, groupId)
+    const key = buildMerchantSubscriptionKey(botId, targetId, targetType)
     nextKeys.add(key)
     const prev = all[key] || {}
 
     await merchantSubscriptionService.upsertSubscription(key, {
       ...prev,
+      target_type: targetType,
       group_id: groupId,
+      user_id: userId,
       bot_id: botId,
+      mode: trimText(row?.mode).toLowerCase() === 'all' ? 'all' : 'items',
       mention_all: row?.mention_all === true,
       items: Array.isArray(row?.items) ? row.items : [],
       // 保留运行时进度，避免重复推送
