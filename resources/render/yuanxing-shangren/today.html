@@ -444,7 +444,7 @@
         <div class="num-badge-text">{{item.num}}</div>
       </div>
       <div class="goods-img-wrap">
-        <img class="goods-img" src="{{item.iconUrl}}" alt="{{item.goods_name}}">
+        <img class="goods-img" src="{{item.iconUrl}}" alt="{{item.goods_name}}" style="transform: translate({{item.iconOffsetX}}px, {{item.iconOffsetY}}px) scale({{item.iconScale}})">
         {{if item.isHot}}<img class="hot-badge" src="{{_res_path}}render/yuanxing-shangren/img/热销.png" alt="热销">{{/if}}
       </div>
       <div class="price-group">

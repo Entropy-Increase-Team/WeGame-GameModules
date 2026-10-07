@@ -1,5 +1,6 @@
 import RocomApi from './api.js'
 import merchantPriceLog from './merchantPriceLog.js'
+import { buildIconFit, readImageMetrics } from '../utils/imageMetrics.js'
 import { trimText } from '../utils/rocom.js'
 
 const CHINA_TIMEZONE = 'Asia/Shanghai'
@@ -139,6 +140,22 @@ const ROUND_WINDOWS = [
 /** 旧接口只用来补图标与当天档期，缓存期内不再重复请求 */
 const MERCHANT_ENRICH_CACHE_TTL_MS = 10 * 60 * 1000
 
+// 卡片里 `.goods-img-wrap` 的尺寸（模板基准 px），图标等面积归一的框
+const MERCHANT_ICON_BOX_WIDTH = 74
+const MERCHANT_ICON_BOX_HEIGHT = 61.5
+// 图标「不透明内容」统一缩放到的面积（约等于 55×55 的方图）。
+// 取值受框高 61.5 限制：再大一点，最细长的商品就会溢出图标框。
+const MERCHANT_ICON_TARGET_AREA = 3000
+// 单个图标取图超时；取不到就按原样渲染，不影响出卡片
+const MERCHANT_ICON_FETCH_TIMEOUT_MS = 8000
+
+/** 「+远行商人」单件商品卡片的图标框 */
+const MERCHANT_CARD_ICON_BOX = Object.freeze({
+  width: MERCHANT_ICON_BOX_WIDTH,
+  height: MERCHANT_ICON_BOX_HEIGHT,
+  targetArea: MERCHANT_ICON_TARGET_AREA
+})
+
 function classifyMerchantItem (item) {
   const startTime = Number(item?.start_time)
   const endTime = Number(item?.end_time)
@@ -218,6 +235,8 @@ class MerchantService {
     this.api = new RocomApi()
     // 旧接口只用于补齐图标 / 当天档期，做短缓存避免订阅轮询翻倍调用
     this.legacyCache = { at: 0, payload: null }
+    // 图标尺寸按「去掉签名参数的地址」缓存，避免每次出卡片重复取图
+    this.iconMetricsCache = new Map()
   }
 
   /** 实时商店信息（ingame/merchant/info），失败时抛错由 getInfo 回退 */
@@ -831,6 +850,89 @@ class MerchantService {
     }
   }
 
+  /**
+   * 收集 payload 里出现过的图标地址（去重）。
+   * 图标只挂在旧接口的 get_props / get_extra_props / get_pets 上。
+   */
+  collectIconUrls (payload = {}) {
+    const merchantActivities = Array.isArray(payload?.merchantActivities)
+      ? payload.merchantActivities
+      : Array.isArray(payload?.merchant_activities)
+          ? payload.merchant_activities
+          : []
+
+    const urls = new Set()
+    for (const activity of merchantActivities) {
+      for (const key of ['get_props', 'get_extra_props', 'get_pets']) {
+        for (const item of Array.isArray(activity?.[key]) ? activity[key] : []) {
+          const url = trimText(item?.icon_url)
+          if (url) urls.add(url)
+        }
+      }
+    }
+
+    return [...urls]
+  }
+
+  /** 取一张图标并量出尺寸 / 内容框；失败缓存 null，避免每次出卡片都重试 */
+  async measureIcon (url, options = {}) {
+    const cacheKey = trimText(url).split('?')[0]
+    if (!cacheKey) return null
+    if (this.iconMetricsCache.has(cacheKey)) return this.iconMetricsCache.get(cacheKey)
+
+    let metrics = null
+    try {
+      const response = await this.api.client.request({
+        url,
+        method: 'get',
+        responseType: 'arraybuffer',
+        timeout: Number(options.timeoutMs) || MERCHANT_ICON_FETCH_TIMEOUT_MS
+      })
+
+      const status = Number(response?.status) || 0
+      if (status >= 400) throw new Error(`HTTP ${status}`)
+
+      const body = response?.data
+      const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body || [])
+      metrics = readImageMetrics(buffer)
+    } catch (error) {
+      logger.warn(`[WeGame-plugin][rocom] 读取商品图标失败（${cacheKey}）：${error?.message || error}`)
+    }
+
+    this.iconMetricsCache.set(cacheKey, metrics)
+    return metrics
+  }
+
+  /** 批量量图标，返回 Map<icon_url, metrics>；个别失败只是缺那一条 */
+  async collectIconMetrics (payload = {}, options = {}) {
+    const urls = this.collectIconUrls(payload)
+    const metrics = new Map()
+
+    await Promise.all(urls.map(async (url) => {
+      const measured = await this.measureIcon(url, options)
+      if (measured) metrics.set(url, measured)
+    }))
+
+    return metrics
+  }
+
+  /** 把图标换算成模板用的 transform；没有测量结果就原样渲染 */
+  buildIconStyle (iconUrl, iconMetrics, box = MERCHANT_CARD_ICON_BOX) {
+    const fallback = { iconScale: 1, iconOffsetX: 0, iconOffsetY: 0 }
+    const url = trimText(iconUrl)
+    if (!url || !iconMetrics?.get) return fallback
+
+    const fit = buildIconFit(iconMetrics.get(url), {
+      boxWidth: box?.width,
+      boxHeight: box?.height,
+      targetArea: box?.targetArea
+    })
+
+    return fit
+      ? { iconScale: fit.scale, iconOffsetX: fit.offsetX, iconOffsetY: fit.offsetY }
+      : fallback
+  }
+
   buildTodayCardRenderData (payload = {}, options = {}) {
     const now = options?.now || new Date()
     const merchantActivities = Array.isArray(payload?.merchantActivities)
@@ -1080,8 +1182,10 @@ class MerchantService {
     })
 
     // Assign position and num
+    const iconMetrics = options?.iconMetrics
     const goods = goodsAll.map((item, i) => ({
       ...item,
+      ...this.buildIconStyle(item.iconUrl, iconMetrics),
       num: String(i + 1).padStart(2, '0'),
       top: startY + i * (cardHeight + gap)
     }))

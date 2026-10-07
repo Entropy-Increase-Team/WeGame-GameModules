@@ -121,7 +121,8 @@ export class RocomTools extends plugin {
       const data = await merchantService.getInfo(false, {
         userIdentifier: this.accountService.getUserIdentifier()
       })
-      const renderData = merchantService.buildCurrentRoundCardRenderData(data)
+      const iconMetrics = await merchantService.collectIconMetrics(data)
+      const renderData = merchantService.buildCurrentRoundCardRenderData(data, { iconMetrics })
 
       const image = await renderModuleTemplate(
         this.e,
@@ -154,7 +155,8 @@ export class RocomTools extends plugin {
       const data = await merchantService.getInfo(false, {
         userIdentifier: this.accountService.getUserIdentifier()
       })
-      const renderData = merchantService.buildTodayCardRenderData(data)
+      const iconMetrics = await merchantService.collectIconMetrics(data)
+      const renderData = merchantService.buildTodayCardRenderData(data, { iconMetrics })
 
       const image = await renderModuleTemplate(
         this.e,
