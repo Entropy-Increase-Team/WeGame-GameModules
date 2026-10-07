@@ -169,7 +169,12 @@ function classifyMerchantItem (item) {
   const startParts = getChinaParts(new Date(startTime))
   const endParts = getChinaParts(new Date(endTime))
   const startHour = startParts.hour + startParts.minute / 60
-  const endHour = endParts.hour + endParts.minute / 60
+  let endHour = endParts.hour + endParts.minute / 60
+
+  // 实时接口对「全天在架」的商品给的是 08:00 ~ 次日 00:00，结束时刻的 hour 是 0。
+  // 不折算成 24 点的话会被当成「00:00 结束的单轮商品」：既排进第 1 轮那一行，
+  // 又因为 end_time 还没到而不变暗，和同行的单轮商品对不上。
+  if (endHour === 0 && endTime > startTime) endHour = 24
 
   if (startHour <= 8 && endHour >= 23.5) return 'normal'
 
