@@ -95,268 +95,203 @@
     z-index: 1;
   }
 
-  .goods-card {
+  /* ── 一轮一行 ─────────────────────────────────────────── */
+  .round-row {
     position: absolute;
     left: 5px;
     width: 260.75px;
-    height: 77px;
+    height: 92px;
     overflow: visible;
   }
-  .goods-card.ended {
-    opacity: 0.5;
-  }
-  .goods-card.ended .goods-name {
-    color: #878070;
-  }
-  .goods-card.ended .goods-name-shadow {
-    color: #c8c2b8;
-  }
-  .goods-card.ended .price-value {
-    background: linear-gradient(to bottom, #878070, #878070);
-    -webkit-background-clip: text;
-    background-clip: text;
-  }
-  .goods-card.ended .price-sep,
-  .goods-card.ended .price-unit {
-    color: #878070;
-  }
 
-  .goods-card-bg {
+  .round-row-bg {
     position: absolute;
     left: 0; top: 0;
     width: 260.75px;
-    height: 77px;
+    height: 92px;
     border-radius: 3.75px;
     background: #cec8bc;
   }
-
-  .goods-name-wrap {
-    position: absolute;
-    top: -2px;
-    left: -5.5px;
-    width: 200px;
-    text-align: center;
-    transform: scaleX(1.1);
-    transform-origin: center center;
-    overflow: visible;
-  }
-  .goods-name-shadow {
-    position: absolute;
-    left: 50%;
-    top: 1px;
-    transform: translateX(-50%);
-    font-family: 'RocoProduct', sans-serif;
-    font-size: 37.5px;
-    color: #f4eee0;
-    letter-spacing: 0.5px;
-    line-height: 1;
-    white-space: nowrap;
-    pointer-events: none;
-    filter: url(#imgStroke11NoOffset);
-    overflow: visible;
-  }
-  .goods-name {
-    position: relative;
-    font-family: 'RocoProduct', sans-serif;
-    font-size: 37.5px;
-    color: #3f3832;
-    letter-spacing: 0.5px;
-    line-height: 1;
-    white-space: nowrap;
+  .round-row.is-current .round-row-bg {
+    background: #d9d3c6;
+    box-shadow: 0 0 0 1.5px #f0c946;
   }
 
-  .goods-img-wrap {
+  .round-tab {
     position: absolute;
-    left: 181.25px;
-    top: 7.75px;
-    width: 74px;
-    height: 61.5px;
+    left: 0; top: 0;
+    width: 38px;
+    height: 92px;
+    border-radius: 3.75px 0 0 3.75px;
+    background: #b3aa9d;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     z-index: 1;
+  }
+  .round-row.is-current .round-tab {
+    background: #f0c946;
+  }
+  .round-tab-label {
+    font-family: 'RocoProduct', sans-serif;
+    font-size: 11px;
+    line-height: 1;
+    color: #fdf7e9;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+  }
+  .round-row.is-current .round-tab-label {
+    color: #3f3832;
+  }
+  .round-tab-time {
+    font-family: 'RocoName', sans-serif;
+    font-size: 7.5px;
+    line-height: 1;
+    color: #ece4d6;
+    margin-top: 3.5px;
+    white-space: nowrap;
+  }
+  .round-row.is-current .round-tab-time {
+    color: #6d5c1f;
+  }
+
+  .round-items {
+    position: absolute;
+    left: 38px; top: 0;
+    width: 222.75px;
+    height: 92px;
+  }
+
+  .item-cell {
+    position: absolute;
+    top: 0;
+    width: 44.55px;
+    height: 92px;
+  }
+  .item-cell.ended {
+    opacity: 0.5;
+  }
+
+  .item-icon-wrap {
+    position: absolute;
     overflow: visible;
   }
-  .goods-img {
+  .item-icon {
     width: 100%;
     height: 100%;
     object-fit: contain;
     filter: url(#imgStroke11);
     overflow: visible;
   }
-  .hot-badge {
+  .item-hot-badge {
     position: absolute;
     top: 0;
     right: 0;
-    width: 37.5%;
-    height: 37.5%;
+    width: 38%;
+    height: 38%;
     z-index: 2;
     object-fit: contain;
   }
 
-  .num-badge {
+  .item-name-wrap {
     position: absolute;
-    left: 186.25px;
-    top: -3.75px;
-    width: 18.5px;
-    height: 13.25px;
-    z-index: 2;
+    left: 0; top: 45px;
+    width: 100%;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
   }
-  .num-badge-bg {
+  .item-name-box {
+    position: relative;
+    max-width: 100%;
+  }
+  .item-name-shadow {
     position: absolute;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
+    left: 0.5px; top: 1px;
+    width: 100%;
+    font-family: 'RocoProduct', sans-serif;
+    font-size: 8.5px;
+    line-height: 9.5px;
+    color: #f4eee0;
+    text-align: center;
+    word-break: break-all;
+    pointer-events: none;
+    filter: url(#imgStrokeName);
+    overflow: visible;
+  }
+  .item-name {
+    position: relative;
+    display: block;
+    width: 100%;
+    font-family: 'RocoProduct', sans-serif;
+    font-size: 8.5px;
+    line-height: 9.5px;
+    color: #3f3832;
+    text-align: center;
+    word-break: break-all;
+  }
+
+  .item-price {
+    position: absolute;
+    left: 0; top: 64px;
+    width: 100%;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    overflow: visible;
+  }
+  .item-coin {
+    width: 9.5px;
+    height: 9.5px;
     object-fit: contain;
+    filter: url(#imgStrokeName);
   }
-  .num-badge-text {
+  .item-price-value {
+    font-family: 'RocoName', sans-serif;
+    font-size: 10.5px;
+    line-height: 1;
+    letter-spacing: -0.08em;
+    background: linear-gradient(to bottom, #d07338, #dd9036);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .item-limit {
     position: absolute;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
+    left: 0; top: 77px;
+    width: 100%;
+    height: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'RocoName', sans-serif;
     font-size: 7px;
-    color: #f5efe3;
-    letter-spacing: -0.05em;
-    z-index: 1;
-    padding-top: 0.5px;
-  }
-
-  .price-group {
-    position: absolute;
-    left: 45.25px;
-    top: 33.5px;
-    width: 98.25px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1;
-  }
-  .price-inner {
-    display: flex;
-    align-items: flex-end;
-    overflow: visible;
-  }
-  .coin-icon {
-    width: 22.75px;
-    height: 22.5px;
-    object-fit: contain;
-    position: relative;
-    filter: url(#imgStroke11NoOffset);
-    overflow: visible;
-  }
-
-  .price-value-wrap {
-    position: relative;
-    display: inline-block;
-    margin-left: -0.5px;
-    overflow: visible;
-    z-index: 1;
-  }
-  .price-shadow {
-    position: absolute;
-    left: 0.5px;
-    top: 1px;
-    font-family: 'RocoName', sans-serif;
-    font-size: 30px;
-    color: #f4eee0;
     line-height: 1;
-    letter-spacing: -0.1em;
-    transform: scaleX(1.1);
-    transform-origin: left center;
+    color: #878070;
+    letter-spacing: -0.04em;
     white-space: nowrap;
-    pointer-events: none;
-    filter: url(#imgStroke11NoOffset);
     overflow: visible;
   }
 
-  .price-value {
-    font-family: 'RocoName', sans-serif;
-    font-size: 30px;
-    background: linear-gradient(to bottom, #d07338, #dd9036);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: -0.1em;
-    line-height: 1;
-    transform: scaleX(1.1);
-    transform-origin: left center;
-    position: relative;
-    display: block;
-  }
-
-  .price-sep {
-    font-family: 'RocoName', sans-serif;
-    font-size: 30px;
-    color: #837f76;
-    line-height: 1;
-    margin-left: 2.25px;
-    position: relative;
-    overflow: visible;
-    z-index: 2;
-  }
-  .price-sep::after {
-    content: attr(data-text);
-    position: absolute;
-    left: 0.5px;
-    top: 1px;
-    color: #f4eee0;
-    z-index: -1;
-    pointer-events: none;
-    filter: url(#imgStroke11NoOffset);
-  }
-
-  .price-unit {
-    font-family: 'RocoName', sans-serif;
-    font-size: 12.5px;
-    color: #837f76;
-    line-height: 1;
-    position: relative;
-    bottom: 3.75px;
-    margin-left: -2px;
-    overflow: visible;
-  }
-  .price-unit::after {
-    content: attr(data-text);
-    position: absolute;
-    left: 0.5px;
-    top: 1px;
-    color: #f4eee0;
-    z-index: -1;
-    pointer-events: none;
-    filter: url(#imgStroke11NoOffset);
-  }
-
-  .limit-area {
-    position: absolute;
-    left: 94.25px;
-    top: 60.75px;
-    min-width: 98.25px;
-    width: auto;
-    height: 13.5px;
-    z-index: 1;
-    transform: translateX(-50%);
-  }
-  .limit-btn {
-    position: absolute;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
-    border-radius: 3.5px;
-    background: #878070;
-    border: none;
-    box-shadow: 0 0 0 2px #f4ede5;
-  }
-  .limit-text {
-    position: relative;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
+  .round-row-empty {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'RocoName', sans-serif;
-    font-size: 9px;
-    color: #fdf7e9;
-    letter-spacing: 0;
-    white-space: nowrap;
-    padding: 0 5px;
+  }
+  .round-empty-text {
+    position: relative;
+    z-index: 1;
+    font-family: 'RocoProduct', sans-serif;
+    font-size: 16px;
+    color: #878070;
+    text-align: center;
+    letter-spacing: 1px;
   }
 
   .bottom-img {
@@ -366,21 +301,6 @@
     height: 40px;
     object-fit: contain;
     z-index: 2;
-  }
-
-  .goods-card-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .goods-empty-text {
-    position: relative;
-    z-index: 1;
-    font-family: 'RocoProduct', sans-serif;
-    font-size: 16px;
-    color: #878070;
-    text-align: center;
-    letter-spacing: 1px;
   }
 </style>
 </head>
@@ -409,6 +329,16 @@
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
+    <filter id="imgStrokeName" x="-10%" y="-10%" width="120%" height="120%"
+            color-interpolation-filters="sRGB">
+      <feFlood flood-color="#f4eee0" result="color"/>
+      <feMorphology in="SourceAlpha" operator="dilate" radius="{{renderStrokeName}}" result="dilated"/>
+      <feComposite in="color" in2="dilated" operator="in" result="outline"/>
+      <feMerge>
+        <feMergeNode in="outline"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
     <filter id="timeStroke10" x="-10%" y="-10%" width="120%" height="120%"
             color-interpolation-filters="sRGB">
       <feFlood flood-color="#3f3832" result="color"/>
@@ -431,43 +361,41 @@
       <span class="time-range">08:00-24:00</span>
     </div>
 
-    {{if goods && goods.length > 0}}
-    {{each goods item}}
-    <div class="goods-card{{if item.isEnded}} ended{{/if}}" style="top: calc({{item.top}}px * var(--render-scale))">
-      <div class="goods-card-bg"></div>
-      <div class="goods-name-wrap">
-        <span class="goods-name-shadow">{{item.goods_name}}</span>
-        <span class="goods-name">{{item.goods_name}}</span>
+    {{if rows && rows.length > 0}}
+    {{each rows row}}
+    <div class="round-row{{if row.isCurrent}} is-current{{/if}}" style="top: calc({{row.top}}px * var(--render-scale))">
+      <div class="round-row-bg"></div>
+      <div class="round-tab">
+        <div class="round-tab-label">{{row.label}}</div>
+        <div class="round-tab-time">{{row.timeLabel}}</div>
       </div>
-      <div class="num-badge">
-        <img class="num-badge-bg" src="{{_res_path}}render/yuanxing-shangren/img/编号背景框.png" alt="">
-        <div class="num-badge-text">{{item.num}}</div>
-      </div>
-      <div class="goods-img-wrap">
-        <img class="goods-img" src="{{item.iconUrl}}" alt="{{item.goods_name}}" style="transform: translate({{item.iconOffsetX}}px, {{item.iconOffsetY}}px) scale({{item.iconScale}})">
-        {{if item.isHot}}<img class="hot-badge" src="{{_res_path}}render/yuanxing-shangren/img/热销.png" alt="热销">{{/if}}
-      </div>
-      <div class="price-group">
-        <img class="coin-icon" src="{{_res_path}}render/yuanxing-shangren/img/coin.png" alt="coin">
-        <div class="price-inner">
-          <span class="price-value-wrap">
-            <span class="price-shadow">{{item.price}}</span>
-            <span class="price-value">{{item.price}}</span>
-          </span>
-          <span class="price-sep" data-text="/">/</span>
-          <span class="price-unit" data-text="个">个</span>
+      <div class="round-items">
+        {{each row.items item index}}
+        <div class="item-cell{{if item.isEnded}} ended{{/if}}" style="left: {{index * row.cellWidth}}px; width: {{row.cellWidth}}px">
+          <div class="item-icon-wrap" style="left: {{(row.cellWidth - row.iconSize) / 2}}px; top: {{4 + (40 - row.iconSize) / 2}}px; width: {{row.iconSize}}px; height: {{row.iconSize}}px">
+            <img class="item-icon" src="{{item.iconUrl}}" alt="{{item.goods_name}}" style="transform: translate({{item.iconOffsetX}}px, {{item.iconOffsetY}}px) scale({{item.iconScale}})">
+            {{if item.isHot}}<img class="item-hot-badge" src="{{_res_path}}render/yuanxing-shangren/img/热销.png" alt="热销">{{/if}}
+          </div>
+          <div class="item-name-wrap">
+            <div class="item-name-box">
+              <span class="item-name-shadow">{{item.goods_name}}</span>
+              <span class="item-name">{{item.goods_name}}</span>
+            </div>
+          </div>
+          <div class="item-price">
+            <img class="item-coin" src="{{_res_path}}render/yuanxing-shangren/img/coin.png" alt="coin">
+            <span class="item-price-value">{{item.price}}</span>
+          </div>
+          {{if item.limit}}<div class="item-limit">限购{{item.limit}}</div>{{/if}}
         </div>
-      </div>
-      <div class="limit-area">
-        <div class="limit-btn"></div>
-        <div class="limit-text">{{item.remainingStr}}</div>
+        {{/each}}
       </div>
     </div>
     {{/each}}
     {{else}}
-    <div class="goods-card goods-card-empty" style="top: 148px">
-      <div class="goods-card-bg"></div>
-      <div class="goods-empty-text">暂无商品</div>
+    <div class="round-row round-row-empty" style="top: calc({{startTop}}px * var(--render-scale))">
+      <div class="round-row-bg"></div>
+      <div class="round-empty-text">今日暂无商品</div>
     </div>
     {{/if}}
 

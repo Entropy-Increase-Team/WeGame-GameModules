@@ -16,6 +16,8 @@ const MERCHANT_CARD_RENDER_ZOOM = MERCHANT_CARD_RENDER_WIDTH / MERCHANT_CARD_REN
 const MERCHANT_CARD_STROKE_11 = 11 * MERCHANT_CARD_RENDER_SCALE
 const MERCHANT_CARD_STROKE_10 = 10 * MERCHANT_CARD_RENDER_SCALE
 const MERCHANT_CARD_OFFSET_3 = 3 * MERCHANT_CARD_RENDER_SCALE
+// 今日卡片里商品名只有 8.5px，沿用 11 倍描边会把字糊成一坨，单独给一个小半径
+const MERCHANT_TODAY_NAME_STROKE = 3 * MERCHANT_CARD_RENDER_SCALE
 
 const chinaDateFormatter = new Intl.DateTimeFormat('zh-CN', {
   timeZone: CHINA_TIMEZONE,
@@ -155,6 +157,23 @@ const MERCHANT_CARD_ICON_BOX = Object.freeze({
   height: MERCHANT_ICON_BOX_HEIGHT,
   targetArea: MERCHANT_ICON_TARGET_AREA
 })
+
+// 「+今日远行商人」是一轮一行：每行左侧是轮次标签，右侧最多并排 5 件商品。
+// 列宽固定（不随该轮商品数变化），否则同一张卡片里图标大小又会参差。
+const MERCHANT_TODAY_START_Y = 592
+const MERCHANT_TODAY_ROW_HEIGHT = 368
+const MERCHANT_TODAY_ROW_GAP = 32
+// 底部信息框不是「隔一段距离」而是「压在最后一行下沿一点」：
+// 沿用旧版算法 bottomFrameTop = lastCardTop + 287（= 卡片下沿 - 21），
+// 写成正间距会在末尾留出一大片空白。
+const MERCHANT_TODAY_FRAME_OVERLAP = 21
+const MERCHANT_TODAY_ROW_WIDTH = 260.75
+const MERCHANT_TODAY_TAB_WIDTH = 38
+const MERCHANT_TODAY_MAX_COLUMNS = 5
+const MERCHANT_TODAY_CELL_WIDTH = (MERCHANT_TODAY_ROW_WIDTH - MERCHANT_TODAY_TAB_WIDTH) / MERCHANT_TODAY_MAX_COLUMNS
+/** 今日卡片的商品图标框（对应模板里 .item-icon-wrap）；等面积归一的基准值 */
+const MERCHANT_TODAY_ICON_SIZE = 40
+const MERCHANT_TODAY_ICON_TARGET_AREA = 1150
 
 function classifyMerchantItem (item) {
   const startTime = Number(item?.start_time)
@@ -938,6 +957,57 @@ class MerchantService {
       : fallback
   }
 
+  /**
+   * 「今日远行商人」按轮次分行：第 1~4 轮升序排，「热销」（roundId 0，全天在架）置顶。
+   * 每件商品落在哪一轮由 buildTodayCardRenderData 事先算好（roundId）。
+   *
+   * 列宽固定（不随该轮商品数变化），否则同一张卡片里图标大小又会参差；
+   * 一轮超过 5 件时整行一起收窄、图标框跟着缩，保证永远不溢出这一行。
+   */
+  buildTodayRows (goods = [], currentRoundId = null, iconMetrics = null) {
+    const grouped = new Map()
+    for (const item of goods) {
+      const roundId = Number(item?.roundId) || 0
+      if (!grouped.has(roundId)) grouped.set(roundId, [])
+      grouped.get(roundId).push(item)
+    }
+
+    // 全天在架的「热销」置顶，其余按轮次升序
+    const roundIds = [...grouped.keys()].sort((a, b) => {
+      if (a === 0) return -1
+      if (b === 0) return 1
+      return a - b
+    })
+
+    const available = MERCHANT_TODAY_ROW_WIDTH - MERCHANT_TODAY_TAB_WIDTH
+
+    return roundIds.map((roundId, index) => {
+      const win = ROUND_WINDOWS.find((item) => item.id === roundId)
+      const list = grouped.get(roundId)
+      const cellWidth = Math.min(MERCHANT_TODAY_CELL_WIDTH, available / Math.max(list.length, 1))
+      const iconSize = Math.min(MERCHANT_TODAY_ICON_SIZE, cellWidth - 4)
+      const iconBox = {
+        width: iconSize,
+        height: iconSize,
+        targetArea: MERCHANT_TODAY_ICON_TARGET_AREA * ((iconSize / MERCHANT_TODAY_ICON_SIZE) ** 2)
+      }
+
+      return {
+        roundId,
+        label: win ? `第${roundId}轮` : '热销',
+        timeLabel: win ? `${padNumber(win.startHour)}-${padNumber(win.endHour)}` : '全天',
+        isCurrent: Boolean(currentRoundId) && roundId === currentRoundId,
+        top: MERCHANT_TODAY_START_Y + (index * (MERCHANT_TODAY_ROW_HEIGHT + MERCHANT_TODAY_ROW_GAP)),
+        cellWidth,
+        iconSize,
+        items: list.map((item) => ({
+          ...item,
+          ...this.buildIconStyle(item.iconUrl, iconMetrics, iconBox)
+        }))
+      }
+    })
+  }
+
   buildTodayCardRenderData (payload = {}, options = {}) {
     const now = options?.now || new Date()
     const merchantActivities = Array.isArray(payload?.merchantActivities)
@@ -970,10 +1040,6 @@ class MerchantService {
     const startDate = new Date(activity.start_time || now)
     const dateStr = `${startDate.getMonth() + 1}.${startDate.getDate()}`
 
-    const startY = 592
-    const cardHeight = 308
-    const gap = 43
-
     const goodsAll = []
     for (const p of allItems) {
       const startTime = Number(p.start_time || 0)
@@ -989,13 +1055,13 @@ class MerchantService {
           goods_name: p.name,
           iconUrl: p.icon_url || iconMap[p.name] || '',
           price: priceMap[p.name] || 0,
+          limit,
           num: '',
           category: 'normal',
           roundId: 0,
           isHot: true,
           isEnded: false,
-          remainingStr: `本日限购${limit}个`,
-          top: 0
+          remainingStr: `本日限购${limit}个`
         })
         continue
       }
@@ -1009,13 +1075,13 @@ class MerchantService {
           goods_name: p.name,
           iconUrl: p.icon_url || iconMap[p.name] || '',
           price: priceMap[p.name] || 0,
+          limit,
           num: '',
           category: 'weekend',
           roundId: 0,
           isHot: true,
           isEnded,
-          remainingStr: isEnded ? `第${roundId}轮·本轮限购${limit}个` : `活动期间限购${limit}个`,
-          top: 0
+          remainingStr: isEnded ? `第${roundId}轮·本轮限购${limit}个` : `活动期间限购${limit}个`
         })
         continue
       }
@@ -1025,13 +1091,13 @@ class MerchantService {
         goods_name: p.name,
         iconUrl: p.icon_url || iconMap[p.name] || '',
         price: priceMap[p.name] || 0,
+        limit,
         num: '',
         category: 'round',
         roundId,
         isHot: false,
         isEnded,
-        remainingStr: isEnded ? `第${roundId}轮·本轮限购${limit}个` : `本轮限购${limit}个`,
-        top: 0
+        remainingStr: isEnded ? `第${roundId}轮·本轮限购${limit}个` : `本轮限购${limit}个`
       })
     }
 
@@ -1043,15 +1109,20 @@ class MerchantService {
       return (b.price || 0) - (a.price || 0)
     })
 
-    // Assign position and num
-    const goods = goodsAll.map((item, i) => ({
-      ...item,
-      num: String(i + 1).padStart(2, '0'),
-      top: startY + i * (cardHeight + gap)
-    }))
+    const rows = this.buildTodayRows(goodsAll, this.getCurrentRound(now).current, options?.iconMetrics)
 
-    const lastCardTop = goods.length > 0 ? goods[goods.length - 1].top : startY
-    const bottomFrameTop = lastCardTop + 287
+    // 扁平的 goods 仍按「行序」编号，方便日志/订阅侧复用
+    const goods = []
+    for (const row of rows) {
+      for (const item of row.items) {
+        goods.push({ ...item, num: String(goods.length + 1).padStart(2, '0') })
+      }
+    }
+
+    const lastRowTop = rows.length > 0
+      ? rows[rows.length - 1].top
+      : MERCHANT_TODAY_START_Y
+    const bottomFrameTop = (lastRowTop + MERCHANT_TODAY_ROW_HEIGHT) - MERCHANT_TODAY_FRAME_OVERLAP
     const pageHeight = bottomFrameTop + 160
     const renderHeight = Math.ceil(pageHeight * MERCHANT_CARD_OUTPUT_SCALE)
     const renderBaseHeight = pageHeight * MERCHANT_CARD_LAYOUT_SCALE
@@ -1059,6 +1130,10 @@ class MerchantService {
     return {
       dateStr,
       goods,
+      rows,
+      rowHeight: MERCHANT_TODAY_ROW_HEIGHT,
+      rowGap: MERCHANT_TODAY_ROW_GAP,
+      startTop: MERCHANT_TODAY_START_Y,
       bottomFrameTop,
       pageHeight,
       renderWidth: MERCHANT_CARD_RENDER_WIDTH,
@@ -1070,6 +1145,7 @@ class MerchantService {
       renderDeviceScaleFactor: MERCHANT_CARD_DEVICE_SCALE_FACTOR,
       renderStroke11: MERCHANT_CARD_STROKE_11,
       renderStroke10: MERCHANT_CARD_STROKE_10,
+      renderStrokeName: MERCHANT_TODAY_NAME_STROKE,
       renderOffset3: MERCHANT_CARD_OFFSET_3
     }
   }
