@@ -337,7 +337,7 @@ class MerchantService {
     }
   }
 
-  /** 旧接口的商品索引：按 goods_id / 名称命中图标、档期与价格 */
+  /** 旧接口的商品索引：按 goods_id / item_id / 名称命中图标、档期与价格 */
   buildLegacyGoodsIndex (legacy = {}) {
     const merchantActivities = Array.isArray(legacy?.merchantActivities)
       ? legacy.merchantActivities
@@ -348,6 +348,7 @@ class MerchantService {
     const randomGoods = Array.isArray(legacy?.random_goods) ? legacy.random_goods : []
 
     const byGoodsId = new Map()
+    const byItemId = new Map()
     const byName = new Map()
     const items = []
 
@@ -366,6 +367,7 @@ class MerchantService {
       }
 
       if (entry.goods_id) byGoodsId.set(entry.goods_id, entry)
+      if (entry.item_id) byItemId.set(entry.item_id, entry)
       if (name) byName.set(name, entry)
     }
 
@@ -393,6 +395,7 @@ class MerchantService {
         items.push(entry)
         byName.set(name, entry)
         if (entry.goods_id) byGoodsId.set(entry.goods_id, entry)
+        if (entry.item_id) byItemId.set(entry.item_id, entry)
       }
     }
 
@@ -400,7 +403,7 @@ class MerchantService {
     collectItems(activity?.get_extra_props, 'extra_prop')
     collectItems(activity?.get_pets, 'pet')
 
-    return { activity, items, byGoodsId, byName, randomGoods }
+    return { activity, items, byGoodsId, byItemId, byName, randomGoods }
   }
 
   /**
@@ -464,7 +467,14 @@ class MerchantService {
     for (const item of goods) {
       const goodsId = Number(item?.goods_id)
       const mapped = mappingById.get(goodsId) || {}
-      const legacyItem = legacyIndex.byGoodsId.get(goodsId) || null
+      const mappedItemId = Number(mapped.item_id) || 0
+      // 商店的 goods_id 与旧接口 random_goods.id 并不总是同一个：
+      // 实测「美妙球」实时 100120 / 旧接口 100007，「可可果球」实时 80003 / 旧接口 80001，
+      // 只按 goods_id 命中会取不到图标，所以依次回落到 item_id、商品名。
+      const legacyItem = legacyIndex.byGoodsId.get(goodsId) ||
+        (mappedItemId ? legacyIndex.byItemId.get(mappedItemId) : null) ||
+        legacyIndex.byName.get(trimText(mapped.goods_name)) ||
+        null
       const name = trimText(item?.goods_name) ||
         trimText(mapped.goods_name) ||
         trimText(legacyItem?.name) ||
@@ -472,7 +482,7 @@ class MerchantService {
       const price = resolveRealtimePrice(item, 'real')
       const originPrice = resolveRealtimePrice(item, 'origin')
       const buyLimit = Number(item?.limit_buy_num) || 0
-      const itemId = Number(mapped.item_id) || Number(legacyItem?.item_id) || 0
+      const itemId = mappedItemId || Number(legacyItem?.item_id) || 0
       const itemNum = Number(mapped.item_num) || Number(legacyItem?.item_num) || 1
       const window = this.resolveRealtimeWindow(item, now)
 
