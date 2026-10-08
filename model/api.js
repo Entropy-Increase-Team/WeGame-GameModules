@@ -57,6 +57,10 @@ function isCompletedGatewayPayload (payload = {}) {
   if (trimText(payload.title)) return true
   if (payload.source !== undefined) return true
   if (payload.home_info !== undefined) return true
+  // home/eggs 响应：包含蛋状态字段
+  if (payload.eggs !== undefined || payload.egg_info !== undefined || payload.egg_list !== undefined) return true
+  // home/pet-data 响应：复用 npc_pets / home_info 结构
+  if (payload.npc_pets !== undefined) return true
   // 新响应格式：不再返回 rows，而是直接给出结构化业务对象
   if (payload.player_info !== undefined) return true
   if (payload.player_card_brief_info !== undefined) return true
@@ -564,6 +568,47 @@ export default class RocomApi extends WeGameApi {
       : this.requestRocomIngamePost.bind(this)
 
     return request('/api/v1/games/rocom/ingame/pet/data', trimObject(data), {
+      waitMs: 5000,
+      httpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,
+      taskHttpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,
+      intervalMs: DEFAULT_INGAME_HOME_TASK_INTERVAL_MS,
+      timeoutMs: DEFAULT_INGAME_HOME_TASK_TIMEOUT_MS,
+      ...options
+    })
+  }
+
+  /**
+   * 查询指定 UID 家园的精灵蛋状态（是否有蛋可收）。
+   * 轻量级接口，只返回蛋相关数据，不拉取完整家园信息。
+   */
+  getIngameHomeEggs (uid, options = {}) {
+    const request = normalizeIngameMethod(options.method) === 'get'
+      ? this.requestRocomIngameGet.bind(this)
+      : this.requestRocomIngamePost.bind(this)
+
+    return request('/api/v1/games/rocom/ingame/home/eggs', {
+      uid
+    }, {
+      waitMs: 5000,
+      httpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,
+      taskHttpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,
+      intervalMs: DEFAULT_INGAME_HOME_TASK_INTERVAL_MS,
+      timeoutMs: DEFAULT_INGAME_HOME_TASK_TIMEOUT_MS,
+      ...options
+    })
+  }
+
+  /**
+   * 查询指定 UID 家园的精灵详情（体重、声音等）。
+   * 与 ingame/pet/data 的区别：此接口走 home/pet-data 路径，
+   * 返回的详情侧重体重和声音，不含完整技能数据。
+   */
+  getIngameHomePetData (data = {}, options = {}) {
+    const request = normalizeIngameMethod(options.method) === 'get'
+      ? this.requestRocomIngameGet.bind(this)
+      : this.requestRocomIngamePost.bind(this)
+
+    return request('/api/v1/games/rocom/ingame/home/pet-data', trimObject(data), {
       waitMs: 5000,
       httpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,
       taskHttpTimeoutMs: DEFAULT_INGAME_HOME_HTTP_TIMEOUT_MS,

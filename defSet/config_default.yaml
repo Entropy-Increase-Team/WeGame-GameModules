@@ -18,3 +18,7 @@ merchant:
     - 国王球
     - 棱镜球
     - 炫彩精灵蛋
+
+egg:
+  # 蛋状态订阅轮询 cron（默认每 30 分钟检查一次）
+  subscription_cron: "0 */30 * * * *"
