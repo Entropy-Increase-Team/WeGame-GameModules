@@ -8,7 +8,9 @@ import { trimText, toNumber, encodeAssetPath, pickPrimaryAccount, extractUidFrom
 
 const HOME_REG = buildCommandReg('(?:家园|home)(?:\\s*(\\d+))?')
 const REFRESH_HOME_REG = buildCommandReg('(?:刷新家园|rehome)(?:\\s*(\\d+))?')
-const PET_DETAIL_REG = buildCommandReg('(?:家园详情|homeinfo)(?:\\s+(\\d+))?(?:\\s+(\\d+))?(?:\\s+(\\d+))?')
+// 家园精灵：默认列表（home/pet-data）；带 UID + 精灵 GID 时出单只详情（ingame/pet/data）
+// `家园详情` / `homeinfo` 作为等价别名，触发同一功能
+const HOME_PET_REG = buildCommandReg('(?:家园精灵|家园详情|homepets?|homeinfo)(?:\\s+(\\d+))?(?:\\s+(\\d+))?(?:\\s+(\\d+))?')
 const PLANT_MAP_PATH = path.join(process.cwd(), 'plugins', 'WeGame-plugin', 'modules', 'rocom', 'utils', 'map', 'home_item_list.json')
 const LOCAL_PLANT_MAP_PATH = path.join(process.cwd(), 'utils', 'map', 'home_item_list.json')
 const RENDER_PLANT_MAP_PATH = path.join(process.cwd(), 'plugins', 'WeGame-plugin', 'modules', 'rocom', 'resources', 'render', 'home', 'data', 'home_item_list.json')
@@ -535,8 +537,8 @@ export class RocomHome extends plugin {
       priority: 108,
       rule: [
         {
-          reg: PET_DETAIL_REG,
-          fnc: 'queryPetDetail'
+          reg: HOME_PET_REG,
+          fnc: 'queryHomePets'
         },
         {
           reg: HOME_REG,
@@ -623,6 +625,80 @@ export class RocomHome extends plugin {
     throw new Error(`未提供 UID，且当前没有可用的已绑定洛克角色。请先发送 ${formatCommand('账号列表')} 或 ${formatCommand('家园 <UID>')}`)
   }
 
+  async queryHomePets () {
+    try {
+      const match = String(this.e.msg || '').match(new RegExp(HOME_PET_REG))
+      const nums = [match?.[1], match?.[2], match?.[3]].filter(Boolean).map((v) => toNumber(v, 0))
+      const uid = nums[0] ? String(nums[0]) : ''
+      const petGid = nums[1] || 0
+      const npcId = nums[2] || 0
+
+      // 带精灵 GID / NPC ID 时走单只精灵详情（旧 ingame/pet/data 能力，已并入本命令）
+      if (petGid || npcId) {
+        return this.queryHomePetDetail(uid, petGid, npcId)
+      }
+
+      // 默认：家园精灵列表（home/pet-data）
+      const resolvedUid = uid || await this.resolveHomeUid(HOME_PET_REG)
+      await this.reply(`正在获取 UID：${resolvedUid} 的家园精灵信息，请稍后...`)
+
+      let queuedNotified = false
+      const payload = await this.api.getIngameHomePetData({ uid: resolvedUid }, {
+        userIdentifier: this.accountService.getUserIdentifier(),
+        waitMs: HOME_INGAME_WAIT_MS,
+        httpTimeoutMs: HOME_INGAME_HTTP_TIMEOUT_MS,
+        taskHttpTimeoutMs: HOME_INGAME_HTTP_TIMEOUT_MS,
+        intervalMs: HOME_INGAME_TASK_INTERVAL_MS,
+        timeoutMs: HOME_INGAME_TASK_TIMEOUT_MS,
+        onQueued: async () => {
+          if (queuedNotified) return
+          queuedNotified = true
+          await this.reply(`UID：${resolvedUid} 的家园精灵查询已进入队列，正在等待游戏侧返回...`)
+        }
+      })
+
+      const renderData = normalizeHomePets(payload, resolvedUid)
+      const image = await renderModuleTemplate(
+        this.e,
+        'rocom',
+        'render/home-pets/index',
+        renderData,
+        {
+          retType: 'base64',
+          viewport: {
+            width: 1000,
+            height: 800
+          },
+          beforeRender: ({ data }) => this.withHomePetAssets(data)
+        }
+      )
+
+      if (!image) {
+        throw new Error('家园精灵信息渲染失败')
+      }
+
+      await this.reply(image)
+      return true
+    } catch (error) {
+      logger.error('[WeGame-plugin][rocom] 查询家园精灵失败', error)
+      await this.reply(`查询家园精灵失败：${error.message || error}`)
+      return true
+    }
+  }
+
+  withHomePetAssets (data = {}) {
+    const buildResUrl = (assetPath) => `${data.pluResPath}${encodeAssetPath(assetPath)}`
+
+    return {
+      ...data,
+      pets: (data.pets || []).map((pet) => ({
+        ...pet,
+        iconUrl: pet.iconUrl && !String(pet.iconUrl).startsWith('http') ? buildResUrl(pet.iconUrl) : (pet.iconUrl || ''),
+        starIconUrl: pet.starIconUrl ? buildResUrl(pet.starIconUrl) : ''
+      }))
+    }
+  }
+
   withRenderAssets (data = {}) {
     const buildResUrl = (assetPath) => `${data.pluResPath}${encodeAssetPath(assetPath)}`
 
@@ -645,16 +721,10 @@ export class RocomHome extends plugin {
     }
   }
 
-  async queryPetDetail () {
+  async queryHomePetDetail (uid = '', petGid = 0, npcId = 0) {
     try {
-      const match = String(this.e.msg || '').match(new RegExp(PET_DETAIL_REG))
-      const nums = [match?.[1], match?.[2], match?.[3]].filter(Boolean).map((v) => toNumber(v, 0))
-      const uid = nums[0] ? String(nums[0]) : ''
-      const petGid = nums[1] || 0
-      const npcId = nums[2] || 0
-
       if (!uid && !petGid) {
-        throw new Error(`格式：${formatCommand('家园详情 <UID>')}`)
+        throw new Error(`格式：${formatCommand('家园精灵 <UID>')} 或 ${formatCommand('家园精灵 <UID> <精灵GID>')}`)
       }
 
       const userIdentifier = this.accountService.getUserIdentifier()
@@ -1102,6 +1172,96 @@ function buildFeatureInfo (mapped = {}, pet = {}, displayInfo = {}, homePetInfo 
   }
 
   return null
+}
+
+function normalizeHomePets (payload = {}, uid = '') {
+  const data = pickPetDetailPayload(payload)
+  const homePets = collectPetDetailHomePets(data)
+  const npcPets = Array.isArray(data?.npc_pets) ? data.npc_pets : []
+  const petMap = loadPetMap()
+  const now = Math.floor(Date.now() / 1000)
+
+  const npcMap = new Map()
+  for (const raw of npcPets) {
+    const gid = extractNpcPetGid(raw)
+    if (gid) npcMap.set(gid, raw)
+  }
+
+  const petSources = homePets.length > 0
+    ? homePets
+    : npcPets.map((raw) => buildHomePetFromNpc(raw))
+
+  const pets = []
+  for (const hp of petSources) {
+    const di = pickObject(hp?.display_info, hp?.displayInfo)
+    const hi = pickObject(hp?.home_pet_info, hp?.homePetInfo, hp)
+    const petGid = trimText(hi?.pet_gid || di?.pet_gid)
+    const npcRaw = npcMap.get(petGid) || {}
+    const npcFullPet = extractNpcFullPet(npcRaw)
+    const npcStatus = trimText(npcRaw?.status)
+    const hasFull = Object.keys(npcFullPet).length > 0 && npcStatus !== 'error'
+    const pet = hasFull ? npcFullPet : di
+    const petId = toNumber(pet?.base_conf_id || pet?.pet_id || pet?.id || di?.base_conf_id || hi?.pet_cfg_id, 0)
+    if (isHomeGuardPet(hi, di, pet) || !petId) continue
+
+    const mapped = petMap[String(petId)] || petMap[assetPetId(petId)] || {}
+    const petName = trimText(pet?.name || hi?.name || mapped?.name) || `精灵 ${petId || petGid || ''}`.trim()
+
+    const gender = toNumber(pet?.gender ?? di?.gender, 0)
+    const genderText = gender === 1 ? '♂ 雄性' : (gender === 2 ? '♀ 雌性' : '未知')
+
+    const mutationType = toNumber(pet?.mutation_type ?? di?.mutation_type, 0)
+    const variantText = trimText(pet?.mutation_name || di?.mutation_name) ||
+      (mutationType === 9 ? '异色炫彩' : mutationType === 1 ? '异色' : mutationType === 8 ? '炫彩' : '')
+    const starIconUrl = [1, 8, 9].includes(mutationType) ? `render/home/img/rocomuid/star_${mutationType}.png` : ''
+
+    const rawWeight = pet?.weight ?? di?.weight ?? hi?.weight ?? pet?.pet_weight
+    const weightValue = Number(rawWeight)
+    const weightText = Number.isFinite(weightValue) && weightValue > 0 ? `${weightValue}kg` : '--'
+
+    const rawVoice = pet?.voice ?? di?.voice ?? hi?.voice
+    const voiceText = rawVoice === undefined || rawVoice === null || rawVoice === '' ? '--' : String(rawVoice)
+
+    const hasEgg = Boolean(hp?.have_egg ?? pet?.have_egg)
+    const predictedEggTime = normalizeTimestampSeconds(hp?.predicted_egg_time ?? pet?.predicted_egg_time)
+    const eggReady = hasEgg || (predictedEggTime > 0 && now >= predictedEggTime)
+    const eggText = eggReady ? '可收蛋' : (predictedEggTime > 0 ? `${formatEggRemaining(predictedEggTime, now)}后生蛋` : '')
+
+    pets.push({
+      id: String(petId || ''),
+      name: petName,
+      level: trimText(pet?.level ?? di?.level) || '--',
+      iconUrl: buildHeadIconUrl(petId, mutationType) || buildPetIconUrl(petId),
+      fallbackIconUrl: buildPetIconUrl(petId),
+      starIconUrl,
+      genderText,
+      weightText,
+      voiceText,
+      variantText,
+      eggReady,
+      eggText
+    })
+  }
+
+  pets.sort((a, b) => {
+    if (a.eggReady !== b.eggReady) return a.eggReady ? -1 : 1
+    return 0
+  })
+
+  const brief = data?.home_info?.friend_home_brief_info || data?.home_info?.home_brief_info || data?.home_info || {}
+  const homeName = trimText(brief?.home_name || brief?.name) || '洛克玩家'
+
+  return {
+    title: '家园精灵',
+    subtitle: 'Home Pets',
+    homeName,
+    uid,
+    pets,
+    total: pets.length,
+    eggCount: pets.filter((p) => p.eggReady).length,
+    emptyText: '未获取到家园精灵信息。请确认目标玩家在线、家园可访问，或稍后重试。',
+    updatedAt: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+  }
 }
 
 function buildPetDetailRenderData (payload = {}, uid = '') {

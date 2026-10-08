@@ -99,6 +99,34 @@ function buildDefaultMenuGroups () {
         {
           cmd: formatCommand('配种 火花 喵喵'),
           desc: '判断两只精灵能否配种'
+        },
+        {
+          cmd: formatCommand('家园精灵 437023912'),
+          desc: '查看家园精灵列表（体重、声音、是否可收蛋）'
+        },
+        {
+          cmd: formatCommand('家园精灵 437023912 12345'),
+          desc: '查看指定精灵详情（属性、技能，需在线）'
+        },
+        {
+          cmd: formatCommand('家园详情 437023912'),
+          desc: '+家园精灵 的等价别名，触发同一功能'
+        },
+        {
+          cmd: formatCommand('家园状态 437023912'),
+          desc: '查询指定 UID 当前家园蛋状态'
+        },
+        {
+          cmd: formatCommand('订阅家园 437023912'),
+          desc: '订阅家园蛋状态，检测到可收蛋时推送提醒'
+        },
+        {
+          cmd: formatCommand('取消订阅家园 437023912'),
+          desc: '取消指定 UID 的家园蛋状态订阅'
+        },
+        {
+          cmd: formatCommand('我的家园订阅'),
+          desc: '查看当前家园蛋状态订阅列表'
         }
       ]
     }

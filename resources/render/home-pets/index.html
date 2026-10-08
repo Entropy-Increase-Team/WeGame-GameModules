@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1000, initial-scale=1">
+  <link rel="stylesheet" href="{{_res_path}}render/home-pets/style.css">
+  <title>家园精灵</title>
+</head>
+<body>
+  <div class="pets-page">
+    <img class="page-bg-img" src="{{_res_path}}render/home/img/rocomuid/bg.jpg" alt="">
+    <header class="pets-top">
+      <img class="top-bg" src="{{_res_path}}render/home/img/rocomuid/top_bg.png" alt="">
+      <img class="title-fg" src="{{_res_path}}render/home/img/rocomuid/title_fg.png" alt="">
+      <div class="avatar-wrap">
+        <img class="avatar-img" src="{{_res_path}}render/home/img/rocomuid/img_head.png" alt="">
+      </div>
+      <div class="pets-profile">
+        <div class="pets-owner">{{homeName}}的家园精灵</div>
+        <div class="pets-uid">学号 {{uid}}</div>
+      </div>
+      {{if updatedAt}}
+      <div class="update-time">{{updatedAt}}</div>
+      {{/if}}
+    </header>
+
+    <section class="pets-summary">
+      <span>共 <strong>{{total}}</strong> 只精灵</span>
+      {{if eggCount > 0}}
+      <span class="egg-summary">可收蛋 <strong>{{eggCount}}</strong> 只</span>
+      {{/if}}
+    </section>
+
+    <main class="pets-content">
+      {{if pets.length}}
+      <div class="pet-grid">
+        {{each pets item}}
+        <article class="pet-card">
+          <img class="card-bg" src="{{_res_path}}render/home/img/rocomuid/pet_bg.png" alt="">
+          <div class="pet-avatar-box">
+            {{if item.iconUrl}}
+            <img class="pet-avatar" src="{{item.iconUrl}}" alt="">
+            {{else}}
+            <div class="pet-avatar pet-empty">无图</div>
+            {{/if}}
+            {{if item.starIconUrl}}
+            <img class="pet-star" src="{{item.starIconUrl}}" alt="">
+            {{/if}}
+            <div class="level-badge">
+              <img src="{{_res_path}}render/home/img/rocomuid/level_icon.png" alt="">
+              <span>Lv{{item.level}}</span>
+            </div>
+          </div>
+          <div class="pet-info">
+            <div class="pet-name">
+              <span class="pet-name-text">{{item.name}}</span>
+              {{if item.eggReady}}<em class="egg-badge">可收蛋</em>{{/if}}
+            </div>
+            <div class="pet-attrs">
+              <span class="attr"><i>性别</i>{{item.genderText}}</span>
+              <span class="attr"><i>体重</i>{{item.weightText}}</span>
+              <span class="attr"><i>声音</i>{{item.voiceText}}</span>
+            </div>
+            {{if item.variantText}}<div class="pet-variant">{{item.variantText}}</div>{{/if}}
+          </div>
+        </article>
+        {{/each}}
+      </div>
+      {{else}}
+      <div class="empty-state">{{emptyText}}</div>
+      {{/if}}
+    </main>
+
+    <footer class="pets-footer">
+      <span>WeGame · 洛克家园精灵</span>
+    </footer>
+  </div>
+</body>
+</html>

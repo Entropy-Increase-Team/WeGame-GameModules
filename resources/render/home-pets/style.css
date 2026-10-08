@@ -1,0 +1,315 @@
+@font-face {
+    font-family: "rocom-home";
+    src: url("../../ttf/HYWenHei-85W-1.ttf") format("truetype");
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "rocom-skill";
+    src: url("../../ttf/rocom_skill_origin.ttf") format("truetype");
+    font-display: swap;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    display: inline-block;
+    background: transparent;
+    color: #ffffff;
+    font-family: "rocom-home", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+.pets-page {
+    position: relative;
+    width: 1000px;
+    min-height: 760px;
+    overflow: hidden;
+    padding-bottom: 72px;
+    background: #efe6d2;
+}
+
+.page-bg-img {
+    position: absolute;
+    inset: 0 auto auto 0;
+    z-index: 0;
+    width: 1000px;
+    min-height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    pointer-events: none;
+}
+
+.pets-top {
+    position: relative;
+    z-index: 1;
+    height: 228px;
+}
+
+.top-bg,
+.title-fg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1000px;
+    pointer-events: none;
+}
+
+.top-bg {
+    height: 250px;
+    object-fit: cover;
+}
+
+.title-fg {
+    height: 210px;
+    object-fit: contain;
+}
+
+.avatar-wrap {
+    position: absolute;
+    left: 31px;
+    top: 14px;
+    width: 152px;
+    height: 152px;
+    overflow: hidden;
+    border-radius: 50%;
+    filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.22));
+}
+
+.avatar-img {
+    width: 152px;
+    height: 152px;
+    object-fit: cover;
+}
+
+.pets-profile {
+    position: absolute;
+    left: 200px;
+    top: 70px;
+    right: 130px;
+}
+
+.pets-owner {
+    overflow: hidden;
+    color: #ffffff;
+    font-family: "rocom-skill", "rocom-home", "Microsoft YaHei", sans-serif;
+    font-size: 46px;
+    font-weight: 400;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pets-uid {
+    margin-top: 11px;
+    color: #ffffff;
+    font-family: "rocom-skill", "rocom-home", "Microsoft YaHei", sans-serif;
+    font-size: 38px;
+    font-weight: 400;
+    line-height: 1;
+}
+
+.update-time {
+    position: absolute;
+    right: 28px;
+    top: 18px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.23);
+    color: #ffffff;
+    font-size: 15px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.28);
+}
+
+.pets-summary {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 26px;
+    justify-content: center;
+    margin-top: 4px;
+    font-size: 24px;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+}
+
+.pets-summary strong {
+    color: #ffff00;
+    font-weight: 400;
+}
+
+.egg-summary strong {
+    color: #67d737;
+}
+
+.pets-content {
+    position: relative;
+    z-index: 1;
+    padding-top: 24px;
+}
+
+.pet-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 486px);
+    justify-content: center;
+    gap: 0;
+}
+
+.pet-card {
+    position: relative;
+    width: 486px;
+    height: 192px;
+}
+
+.card-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.pet-avatar-box {
+    position: absolute;
+    left: 24px;
+    top: 28px;
+    width: 150px;
+    height: 150px;
+}
+
+.pet-avatar {
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+}
+
+.pet-star {
+    position: absolute;
+    left: -3px;
+    top: -30px;
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+}
+
+.pet-empty {
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 22px;
+}
+
+.level-badge {
+    position: absolute;
+    left: 38px;
+    top: 97px;
+    width: 82px;
+    height: 48px;
+    transform: rotate(10deg);
+}
+
+.level-badge img {
+    width: 74px;
+    height: 39px;
+}
+
+.level-badge span {
+    position: absolute;
+    left: 0;
+    top: 9px;
+    width: 74px;
+    text-align: center;
+    color: #ffffff;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.pet-info {
+    position: absolute;
+    left: 166px;
+    top: 30px;
+    width: 304px;
+}
+
+.pet-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.pet-name-text {
+    overflow: hidden;
+    color: #ffff00;
+    font-family: "rocom-skill", "rocom-home", "Microsoft YaHei", sans-serif;
+    font-size: 28px;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+}
+
+.egg-badge {
+    flex-shrink: 0;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: #67d737;
+    color: #10330a;
+    font-style: normal;
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+.pet-attrs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    margin-top: 16px;
+}
+
+.attr {
+    color: #ffffff;
+    font-family: "rocom-skill", "rocom-home", "Microsoft YaHei", sans-serif;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.attr i {
+    margin-right: 6px;
+    font-style: normal;
+    opacity: 0.72;
+}
+
+.pet-variant {
+    margin-top: 12px;
+    color: #ffd23f;
+    font-family: "rocom-skill", "rocom-home", "Microsoft YaHei", sans-serif;
+    font-size: 20px;
+    line-height: 1;
+}
+
+.empty-state {
+    margin: 20px 46px 0;
+    padding: 32px;
+    border-radius: 18px;
+    background: rgba(42, 93, 16, 0.58);
+    color: #ffffff;
+    text-align: center;
+    font-size: 28px;
+}
+
+.pets-footer {
+    position: absolute;
+    z-index: 1;
+    left: 0;
+    bottom: 15px;
+    width: 1000px;
+    color: rgba(255, 255, 255, 0.82);
+    text-align: center;
+    font-size: 18px;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.32);
+}
